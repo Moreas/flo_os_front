@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.rbc-calendar {
+  @apply bg-white rounded-2xl shadow-lg border border-primary-200 p-2;
+}
+.rbc-toolbar {
+  @apply flex flex-col sm:flex-row items-center justify-between mb-4 gap-2 bg-primary-50 border border-primary-200 rounded-lg px-4 py-2;
+}
+.rbc-toolbar-label {
+  @apply text-2xl font-extrabold text-primary-700 tracking-tight;
+}
+.rbc-btn-group button {
+  @apply px-4 py-1.5 rounded-md bg-primary-100 text-primary-700 hover:bg-primary-200 hover:text-primary-900 transition font-medium;
+}
+.rbc-btn-group button.rbc-active {
+  @apply bg-primary-600 text-white;
+}
+.rbc-month-view, .rbc-time-view {
+  @apply bg-white;
+}
+.rbc-header {
+  @apply bg-primary-50 text-primary-700 font-semibold border-b-0 py-1 text-sm text-center;
+}
+.rbc-date-cell {
+  @apply text-xs text-primary-400 text-center;
+}
+.rbc-date-cell.rbc-now {
+  @apply bg-primary-200 text-primary-900 rounded-full;
+}
+.rbc-day-bg {
+  @apply bg-white;
+}
+.rbc-today {
+  @apply bg-primary-50;
+}
+.rbc-off-range {
+  @apply bg-primary-50 text-primary-200;
+}
+.rbc-row-segment {
+  @apply px-1;
+}
+.rbc-selected {
+  @apply ring-2 ring-primary-400;
+}
+.rbc-show-more {
+  @apply text-primary-600 hover:underline;
+}
+.rbc-event {
+  @apply flex items-center gap-2 bg-primary-500 text-white rounded-lg px-3 py-1 text-xs font-semibold shadow border-0 hover:bg-primary-600 transition;
+}
+.rbc-day-bg:hover {
+  @apply bg-primary-100 cursor-pointer;
+}
+.rbc-time-gutter, .rbc-time-header-gutter {
+  @apply text-primary-500 text-xs font-medium;
+}
+.rbc-time-header-content {
+  @apply bg-primary-50;
+}
+.rbc-allday-cell, .rbc-allday-events {
+  @apply p-0 m-0;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+} 
