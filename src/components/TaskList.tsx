@@ -474,7 +474,6 @@ const TaskList: React.FC = () => {
 
     } catch (error: any) {
         console.error("Failed to update task due date:", error);
-        const errorMsg = error.response?.data?.detail || error.message || 'Failed to update due date.';
         // Revert UI on error
         setTasks(originalTasks);
     } finally {
