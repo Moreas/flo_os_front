@@ -50,16 +50,6 @@ interface Project {
   }>;
 }
 
-interface Business {
-  id: number;
-  name: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-}
-
 type SortField = 'name' | 'status' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'paused' | 'archived';

@@ -115,12 +115,10 @@ const TaskList: React.FC = () => {
   // Toggle Status State
   const [taskBeingToggledId, setTaskBeingToggledId] = useState<number | null>(null);
   const [isToggling, setIsToggling] = useState(false);
-  const [toggleError, setToggleError] = useState<string | null>(null);
 
   // --- Inline Date Edit State ---
   const [editingDateTaskId, setEditingDateTaskId] = useState<number | null>(null);
   const [isUpdatingDate, setIsUpdatingDate] = useState(false);
-  const [updateDateError, setUpdateDateError] = useState<string | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null); // Ref for focusing
   // ------------------------------
 
@@ -160,7 +158,6 @@ const TaskList: React.FC = () => {
 
     setTaskBeingToggledId(taskId); // Indicate which task is being toggled
     setIsToggling(true);
-    setToggleError(null);
 
     // Optimistically update UI - NOW includes completion_date
     const newIsDoneStatus = !taskToToggle.is_done;
@@ -188,7 +185,6 @@ const TaskList: React.FC = () => {
     } catch (error: any) {
       console.error("Failed to update task status:", error);
       const errorMsg = error.response?.data?.detail || 'Failed to update status.';
-      setToggleError(errorMsg); // Show specific error if possible
       // Revert UI on error
       setTasks(originalTasks);
        // Optionally show toast notification for error
@@ -459,7 +455,6 @@ const TaskList: React.FC = () => {
   // --- Inline Date Update Logic ---
   const handleInlineDateChange = async (taskId: number, newDateValue: string) => {
     setIsUpdatingDate(true);
-    setUpdateDateError(null);
     const originalTasks = [...tasks]; // For potential revert
     const taskToUpdate = originalTasks.find(t => t.id === taskId);
     if (!taskToUpdate) return;
@@ -496,8 +491,6 @@ const TaskList: React.FC = () => {
     } catch (error: any) {
         console.error("Failed to update task due date:", error);
         const errorMsg = error.response?.data?.detail || error.message || 'Failed to update due date.';
-        setUpdateDateError(errorMsg); // Display error (consider a toast)
-        alert(`Error updating date: ${errorMsg}`); // Simple alert
         // Revert UI on error
         setTasks(originalTasks);
     } finally {

@@ -10,14 +10,6 @@ interface JournalFormProps {
   onJournalEntryCreated: () => void;
 }
 
-interface JournalEntry {
-    id: number;
-    content: string;
-    date: string;
-    emotion?: string;
-    tags?: string;
-}
-
 const initialFormData = {
     content: '',
     emotion: '',

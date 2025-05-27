@@ -12,16 +12,6 @@ interface ToolFormProps {
   isEditMode?: boolean;
 }
 
-// Interface for Tool data
-interface Tool { 
-    id: number;
-    name: string;
-    description?: string;
-    status?: string;
-    category?: string;
-    last_used?: string | null;
-}
-
 const initialFormData = {
     name: '',
     description: '',

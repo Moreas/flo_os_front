@@ -12,15 +12,6 @@ interface GoalFormProps {
   isEditMode?: boolean;
 }
 
-// Interface for Goal data (can be shared)
-interface Goal { 
-    id: number;
-    title: string;
-    description?: string;
-    status?: string;
-    target_date?: string | null;
-}
-
 const initialFormData = {
     title: '',
     description: '',

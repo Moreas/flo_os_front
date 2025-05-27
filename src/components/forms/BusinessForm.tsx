@@ -2,14 +2,6 @@ import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
-import API_BASE from '../../apiBase';
-
-// Interface (can be shared)
-interface Business {
-  id: number;
-  name: string;
-  description?: string;
-}
 
 interface BusinessFormProps {
   isOpen: boolean;
@@ -27,8 +19,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
     isOpen, 
     onClose, 
     onBusinessCreated 
-    // initialBusinessData = null, // For edit mode later
-    // isEditMode = false 
 }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,12 +29,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
   useEffect(() => {
     if (isOpen) {
         // Reset to initial state when opening for creation
-        // if (!isEditMode) { 
-            setFormData(initialFormData);
-        // } else if (initialBusinessData) { 
-            // Populate with initial data for edit mode later 
-        //    setFormData({ name: initialBusinessData.name, description: initialBusinessData.description || ''});
-        //} 
+        setFormData(initialFormData);
     } 
     // Clear errors/success on close regardless of mode
     if (!isOpen) {
@@ -54,7 +39,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
         }, 300)
     }
     
-  }, [isOpen /*, isEditMode, initialBusinessData */]);
+  }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -69,18 +54,13 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
     setSubmitError(null);
     setSubmitSuccess(false);
 
-    // const apiUrl = isEditMode ? `/api/businesses/${initialBusinessData.id}/` : '/api/businesses/';
-    // const apiMethod = isEditMode ? 'patch' : 'post';
     const apiUrl = 'http://localhost:8000/api/businesses/';
     const apiMethod = 'post';
 
     try {
-      // const response = await axios({ method: apiMethod, url: apiUrl, data: formData });
       await axios({ method: apiMethod, url: apiUrl, data: formData });
 
       setSubmitSuccess(true);
-      // if (isEditMode && onBusinessUpdated) { onBusinessUpdated(response.data); }
-      // else { onBusinessCreated(); }
       onBusinessCreated();
       
       setFormData(initialFormData); // Clear form
@@ -90,8 +70,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
       }, 1500);
 
     } catch (err: any) {
-      console.error(`Error ${ 'creating' /* isEditMode ? 'updating' : 'creating' */} business:`, err);
-      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to ${ 'create' /* isEditMode ? 'update' : 'create' */} business.`;
+      console.error(`Error creating business:`, err);
+      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to create business.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -121,7 +101,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title as="h3" className="text-lg font-medium text-gray-900">
-                     {/* {isEditMode ? 'Edit Business' : 'Create New Business'} */}
                      Create New Business
                   </Dialog.Title>
                   <button type="button" className="text-gray-400 hover:text-gray-500 disabled:opacity-50"
@@ -165,7 +144,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
                         {submitSuccess && (
                             <div className="p-3 text-sm text-green-700 bg-green-50 rounded-md border border-green-200 flex items-center">
                                 <CheckCircleIcon className="h-5 w-5 mr-2" />
-                                {/* {isEditMode ? 'Business updated!' : 'Business created!'} */}
                                 Business created!
                             </div>
                         )}
@@ -181,7 +159,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
                           <button type="submit" className="inline-flex justify-center items-center rounded-md border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isSubmitting}> 
                             {isSubmitting && <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />}
-                            {/* {isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Business')} */} 
                             {isSubmitting ? 'Creating...' : 'Create Business'}
                           </button>
                         </div>

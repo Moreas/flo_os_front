@@ -129,34 +129,38 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
         {/* Topbar Icons Grouped Right */}
         <div className="flex items-center gap-x-2 md:gap-x-4 ml-auto">
           {/* Quick Actions */}
-          <div className="flex items-center gap-x-1 md:gap-x-2">
+          <div className="flex items-center gap-x-1 md:gap-x-2" role="toolbar" aria-label="Quick actions">
             <button 
               className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg" 
               title="Log Journal"
               onClick={() => setIsJournalFormOpen(true)}
+              aria-label="Log Journal"
             >
-              <BookOpenIcon className="w-5 h-5" />
+              <BookOpenIcon className="w-5 h-5" aria-hidden="true" />
             </button>
             <button 
               className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg" 
               title="Add Task"
               onClick={() => setIsTaskFormOpen(true)}
+              aria-label="Add Task"
             >
-              <ClipboardDocumentListIcon className="w-5 h-5" />
+              <ClipboardDocumentListIcon className="w-5 h-5" aria-hidden="true" />
             </button>
             <button 
               className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg" 
               title="New Goal"
               onClick={() => setIsGoalFormOpen(true)}
+              aria-label="New Goal"
             >
-              <FlagIcon className="w-5 h-5" />
+              <FlagIcon className="w-5 h-5" aria-hidden="true" />
             </button>
             <button 
               className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg" 
               title="Add Project"
               onClick={() => setIsProjectFormOpen(true)}
+              aria-label="Add Project"
             >
-              <FolderIcon className="w-5 h-5" />
+              <FolderIcon className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
           {/* Notification Bell */}
@@ -166,12 +170,14 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
                 <Popover.Button
                   className={`relative p-1.5 rounded-full ${open ? 'bg-gray-100' : ''} text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500`}
                   title={`View notifications (${notifTotalCount})`}
+                  aria-label={`View notifications (${notifTotalCount})`}
+                  aria-expanded={open}
                 >
                   <span className="sr-only">View notifications</span>
                   <BellIcon className="h-6 w-6" aria-hidden="true" />
                   {/* Badge */}
                   {notifTotalCount > 0 && (
-                    <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full ring-2 ring-white">
+                    <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full ring-2 ring-white" aria-label={`${notifTotalCount} unread notifications`}>
                       {notifTotalCount}
                     </span>
                   )}
@@ -187,34 +193,34 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <Popover.Panel className="absolute right-0 z-10 mt-2 w-80 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <Popover.Panel className="absolute right-0 z-10 mt-2 w-80 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="dialog" aria-label="Notifications panel">
                     <div className="px-4 py-3 border-b border-gray-200">
                        <p className="text-sm font-medium text-gray-900">Notifications</p>
                     </div>
-                    <div className="py-1 max-h-80 overflow-y-auto">
+                    <div className="py-1 max-h-80 overflow-y-auto" role="list">
                       {notifLoading ? (
-                        <div className="flex items-center justify-center py-4 text-gray-400">
-                          <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                        <div className="flex items-center justify-center py-4 text-gray-400" role="status" aria-label="Loading notifications">
+                          <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
                           Loading...
                         </div>
                       ) : notifError ? (
-                        <div className="px-4 py-2 text-sm text-red-600">{notifError}</div>
+                        <div className="px-4 py-2 text-sm text-red-600" role="alert">{notifError}</div>
                       ) : notifications.length === 0 ? (
-                        <div className="px-4 py-2 text-sm text-gray-500">No notifications.</div>
+                        <div className="px-4 py-2 text-sm text-gray-500" role="status">No notifications.</div>
                       ) : (
                         notifications.map((group, idx) => (
-                          <div key={group.type || idx} className="border-b border-gray-100 last:border-b-0 px-4 py-3">
+                          <div key={group.type || idx} className="border-b border-gray-100 last:border-b-0 px-4 py-3" role="listitem">
                             <div className="flex items-center justify-between mb-1">
                               <Link to={groupLink(group.type)} className="font-semibold text-gray-900 text-sm hover:underline">
                                 {group.title}
                               </Link>
                               {group.count > 0 && (
-                                <span className={`ml-2 text-xs font-medium rounded-full px-2 py-0.5 ${group.priority === 'high' ? 'bg-red-100 text-red-700' : group.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}`}>{group.count}</span>
+                                <span className={`ml-2 text-xs font-medium rounded-full px-2 py-0.5 ${group.priority === 'high' ? 'bg-red-100 text-red-700' : group.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}`} aria-label={`${group.count} items`}>{group.count}</span>
                               )}
                             </div>
-                            <ul className="space-y-1 mt-1">
+                            <ul className="space-y-1 mt-1" role="list">
                               {Array.isArray(group.items) && group.items.map((item: any) => (
-                                <li key={item.id} className="text-xs text-gray-700 flex flex-col">
+                                <li key={item.id} className="text-xs text-gray-700 flex flex-col" role="listitem">
                                   <Link to={itemLink(group.type, item)} className="hover:underline">
                                     {group.type === 'email' && (
                                       <span><span className="font-medium">{item.subject}</span> <span className="text-gray-500">from {item.sender_name}</span> <span className="text-gray-400">({new Date(item.received_at).toLocaleString()})</span></span>
@@ -240,7 +246,7 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
                       )}
                     </div>
                      <div className="px-4 py-2 border-t border-gray-200">
-                       <Link to="/notifications" className="block text-center text-xs font-medium text-primary-600 hover:text-primary-800">
+                       <Link to="/notifications" className="block text-center text-xs font-medium text-primary-600 hover:text-primary-800" aria-label="View all notifications">
                           View all notifications
                        </Link>
                     </div>
