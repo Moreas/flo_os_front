@@ -416,36 +416,21 @@ const TaskList: React.FC = () => {
     if (!dateString) return 'No due date';
     try {
         const date = parseISO(dateString); // Parse the ISO string (likely UTC)
-        
         // Get the date parts in UTC to avoid local conversion issues for comparison/display logic
         const utcYear = date.getUTCFullYear();
         const utcMonth = date.getUTCMonth();
         const utcDay = date.getUTCDate();
-
-        // Get current date parts in UTC for comparison
         const now = new Date();
         const nowUtcYear = now.getUTCFullYear();
         const nowUtcMonth = now.getUTCMonth();
         const nowUtcDay = now.getUTCDate();
-
-        // Compare using UTC dates
         if (utcYear === nowUtcYear && utcMonth === nowUtcMonth && utcDay === nowUtcDay) {
              return 'Today';
         }
-        
-        // Format using UTC parts to display the date as it is in UTC
-        const displayMonth = (utcMonth + 1).toString().padStart(2, '0');
-        const displayDay = utcDay.toString().padStart(2, '0');
-        // Using a numeric month format for simplicity, use `format` with locale/options for names
-        // return `${displayMonth}/${displayDay}`;
-        
-        // Or use format, but ensure it doesn't shift the day due to implicit timezone conversion
-        // A common trick is to adjust the parsed date by the *local* timezone offset 
-        // before formatting, effectively canceling out the format function's conversion.
+        // Remove unused displayMonth and displayDay assignments
         const localOffsetMinutes = date.getTimezoneOffset();
         const adjustedDate = new Date(date.getTime() + localOffsetMinutes * 60 * 1000);
         return format(adjustedDate, 'MMM d');
-
     } catch (e) {
         console.error("Error parsing/formatting date:", dateString, e);
         return "Invalid date";

@@ -7,7 +7,6 @@ const EmailsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleRetrieveEmails = async () => {
     setLoading(true);
@@ -28,7 +27,6 @@ const EmailsPage: React.FC = () => {
           `${saved} saved, ${skipped} skipped, ${errors} error${errors === 1 ? '' : 's'}.` +
           (statusMessages.length ? ' ' + statusMessages.join(' ') : '')
         );
-        setRefreshKey(prev => prev + 1); // trigger refresh
       } else {
         setError(response.data.message || 'Failed to retrieve emails.');
       }
