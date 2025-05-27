@@ -218,9 +218,9 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
                                 <span className={`ml-2 text-xs font-medium rounded-full px-2 py-0.5 ${group.priority === 'high' ? 'bg-red-100 text-red-700' : group.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}`} aria-label={`${group.count} items`}>{group.count}</span>
                               )}
                             </div>
-                            <ul className="space-y-1 mt-1" role="list">
+                            <ul className="space-y-1">
                               {Array.isArray(group.items) && group.items.map((item: any) => (
-                                <li key={item.id} className="text-xs text-gray-700 flex flex-col" role="listitem">
+                                <li key={item.id} className="text-xs text-gray-700 flex flex-col">
                                   <Link to={itemLink(group.type, item)} className="hover:underline">
                                     {group.type === 'email' && (
                                       <span><span className="font-medium">{item.subject}</span> <span className="text-gray-500">from {item.sender_name}</span> <span className="text-gray-400">({new Date(item.received_at).toLocaleString()})</span></span>

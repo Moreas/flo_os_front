@@ -100,7 +100,7 @@ const ProjectDetailPage: React.FC = () => {
       return 0;
     });
     return filtered;
-  }, [tasks, taskStatusFilter, taskSortField, taskSortDirection, project?.id]);
+  }, [tasks, taskStatusFilter, taskSortField, taskSortDirection, project]);
 
   const renderSortIcon = (field: 'due' | 'status') => {
     if (taskSortField !== field) return null;

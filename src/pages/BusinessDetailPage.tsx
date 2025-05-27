@@ -101,7 +101,7 @@ const BusinessDetailPage: React.FC = () => {
     
     setIsUpdatingTask(taskId);
     try {
-      const response = await axios.patch(`${API_BASE}/api/tasks/${taskId}/`, {
+      await axios.patch(`${API_BASE}/api/tasks/${taskId}/`, {
         is_done: !currentStatus
       });
 

@@ -13,12 +13,7 @@ import {
   ExclamationCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  MagnifyingGlassIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  FunnelIcon,
-  XMarkIcon
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 
 interface Project {
