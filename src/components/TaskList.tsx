@@ -186,8 +186,8 @@ const TaskList: React.FC = () => {
       console.error("Failed to update task status:", error);
       // Revert UI on error
       setTasks(originalTasks);
-       // Optionally show toast notification for error
-       alert(`Error updating task: ${error.response?.data?.detail || 'Failed to update status.'}`); // Simple alert for now
+      // Show error message to user
+      alert(`Error updating task: ${error.response?.data?.detail || 'Failed to update status.'}`);
     } finally {
       setIsToggling(false);
       setTaskBeingToggledId(null); // Clear indicator
