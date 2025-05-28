@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import API_BASE from '../apiBase';
 
 // Interface for EmailMessage data based on the backend model
 interface EmailMessage {
@@ -64,7 +65,7 @@ const EmailList: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get('http://localhost:8000/api/emails/'); // Adjust endpoint if needed
+        const response = await axios.get(`${API_BASE}/api/emails/`);
         setEmails(response.data || []);
       } catch (err) {
         console.error("Error fetching emails:", err);
