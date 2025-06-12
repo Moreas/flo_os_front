@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import API_BASE from '../../apiBase';
 
 interface Person {
   id: number;
@@ -79,8 +80,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
     try {
       const url = isEditMode
-        ? `http://localhost:8000/api/people/${initialPerson?.id}/`
-        : 'http://localhost:8000/api/people/';
+        ? `${API_BASE}/api/people/${initialPerson?.id}/`
+        : `${API_BASE}/api/people/`;
       
       const method = isEditMode ? 'put' : 'post';
       
