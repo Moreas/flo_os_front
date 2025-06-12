@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowPathIcon, ExclamationTriangleIcon, BuildingOffice2Icon } from '@heroicons/react/24/outline';
+import API_BASE from '../apiBase';
 
 // Interface for Business data
 interface Business {
@@ -28,7 +29,7 @@ const BusinessList: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get('http://localhost:8000/api/businesses/');
+        const response = await axios.get(`${API_BASE}/api/businesses/`);
         setBusinesses(response.data || []);
       } catch (err) {
         console.error("Error fetching businesses:", err);
