@@ -5,7 +5,8 @@ import axios from 'axios';
 import API_BASE from '../apiBase';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar-overrides.css';
-import { FaUsers, FaCircle, FaFilter } from 'react-icons/fa';
+import { FaUsers, FaCircle } from 'react-icons/fa';
+import { FunnelIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 
@@ -195,7 +196,7 @@ const CalendarPage: React.FC = () => {
             onClick={() => setIsFilterModalOpen(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
           >
-            <FaFilter className="text-gray-500" />
+            <FunnelIcon className="w-5 h-5 text-gray-500" />
             <span className="text-sm font-medium text-gray-700">Filters</span>
           </button>
         </div>
