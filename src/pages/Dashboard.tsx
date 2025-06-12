@@ -7,8 +7,10 @@ import ProjectList from '../components/ProjectList';
 import axios from 'axios';
 import { isToday, parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
+import { useRefresh } from '../contexts/RefreshContext';
 
 const Dashboard: React.FC = () => {
+  const { tasksVersion, journalVersion } = useRefresh();
   const currentTime = new Date();
   const hour = currentTime.getHours();
   let greeting = 'Good morning';
@@ -56,7 +58,7 @@ const Dashboard: React.FC = () => {
       })
       .catch(() => setActiveProjects(0));
     // Optionally: fetch monthly income here
-  }, []);
+  }, [tasksVersion]);
 
   return (
     <div className="space-y-6">

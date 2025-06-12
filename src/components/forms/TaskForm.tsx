@@ -4,6 +4,7 @@ import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from
 import axios from 'axios';
 import MentionInput from '../ui/MentionInput';
 import API_BASE from '../../apiBase';
+import { useRefresh } from '../../contexts/RefreshContext';
 
 interface Category {
   id: number;
@@ -57,6 +58,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   initialTaskData = null,
   isEditMode = false,
 }) => {
+  const { refreshTasks } = useRefresh();
   const [formData, setFormData] = useState({
     description: '',
     dueDate: '',
@@ -184,6 +186,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       setSubmitSuccess(true);
       if (isEditMode && onTaskUpdated) onTaskUpdated(response.data);
       else onTaskCreated();
+      refreshTasks();
       setTimeout(() => onClose(), 1500);
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to ${isEditMode ? 'update' : 'create'} task.`;

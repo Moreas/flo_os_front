@@ -63,7 +63,7 @@ const PeopleList: React.FC = () => {
   };
 
   const handlePersonUpdated = (updatedPerson: Person) => {
-    setPeople(people.map(person => person.id === updatedPerson.id ? updatedPerson : person));
+    fetchPeople();
     setIsEditModalOpen(false);
     setSelectedPerson(null);
   };

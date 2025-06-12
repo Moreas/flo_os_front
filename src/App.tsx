@@ -14,6 +14,7 @@ import HealthPage from './pages/HealthPage';
 import FinancePage from './pages/FinancePage';
 import MeetingsPage from './pages/MeetingsPage';
 import { TaskRefreshProvider } from './contexts/TaskRefreshContext';
+import { RefreshProvider } from './contexts/RefreshContext';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import BusinessDetailPage from './pages/BusinessDetailPage';
 import PersonDetailPage from './pages/PersonDetailPage';
@@ -25,31 +26,33 @@ import CalendarPage from './pages/CalendarPage';
 function App() {
   return (
     <Router>
-      <TaskRefreshProvider>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/businesses" element={<BusinessesPage />} />
-            <Route path="/people" element={<PeoplePage />} />
-            <Route path="/tools" element={<ToolsPage />} />
-            <Route path="/goals" element={<GoalsPage />} />
-            <Route path="/journal" element={<JournalPage />} />
-            <Route path="/emails" element={<EmailsPage />} />
-            <Route path="/health" element={<HealthPage />} />
-            <Route path="/finance" element={<FinancePage />} />
-            <Route path="/meetings" element={<MeetingsPage />} />
-            <Route path="/projects/:id" element={<ProjectDetailPage />} />
-            <Route path="/businesses/:id" element={<BusinessDetailPage />} />
-            <Route path="/people/:id" element={<PersonDetailPage />} />
-            <Route path="/search" element={<SearchResultsPage />} />
-            <Route path="/goals/:id" element={<GoalDetailPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-          </Routes>
-        </Layout>
-      </TaskRefreshProvider>
+      <RefreshProvider>
+        <TaskRefreshProvider>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/businesses" element={<BusinessesPage />} />
+              <Route path="/people" element={<PeoplePage />} />
+              <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/goals" element={<GoalsPage />} />
+              <Route path="/journal" element={<JournalPage />} />
+              <Route path="/emails" element={<EmailsPage />} />
+              <Route path="/health" element={<HealthPage />} />
+              <Route path="/finance" element={<FinancePage />} />
+              <Route path="/meetings" element={<MeetingsPage />} />
+              <Route path="/projects/:id" element={<ProjectDetailPage />} />
+              <Route path="/businesses/:id" element={<BusinessDetailPage />} />
+              <Route path="/people/:id" element={<PersonDetailPage />} />
+              <Route path="/search" element={<SearchResultsPage />} />
+              <Route path="/goals/:id" element={<GoalDetailPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+            </Routes>
+          </Layout>
+        </TaskRefreshProvider>
+      </RefreshProvider>
     </Router>
   );
 }

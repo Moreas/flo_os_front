@@ -2,12 +2,17 @@ import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import API_BASE from '../../apiBase';
+import { useRefresh } from '../../contexts/RefreshContext';
 import MentionInput from '../ui/MentionInput';
 
 interface JournalFormProps {
   isOpen: boolean;
   onClose: () => void;
   onJournalEntryCreated: () => void;
+  initialEntry?: any;
+  isEditMode?: boolean;
+  onJournalEntryUpdated?: (updatedEntry: any) => void;
 }
 
 const initialFormData = {
@@ -29,7 +34,15 @@ const emotionsMap: { [key: string]: string } = {
   confused: '😕',
 };
 
-const JournalForm: React.FC<JournalFormProps> = ({ isOpen, onClose, onJournalEntryCreated }) => {
+const JournalForm: React.FC<JournalFormProps> = ({
+  isOpen,
+  onClose,
+  onJournalEntryCreated,
+  initialEntry = null,
+  isEditMode = false,
+  onJournalEntryUpdated,
+}) => {
+  const { refreshJournal } = useRefresh();
   const [formData, setFormData] = useState(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -64,22 +77,26 @@ const JournalForm: React.FC<JournalFormProps> = ({ isOpen, onClose, onJournalEnt
     setSubmitError(null);
     setSubmitSuccess(false);
 
-    const apiUrl = 'http://localhost:8000/api/journal_entries/';
-    const payload: any = {
-        content: formData.content,
-        emotion: formData.emotion || null,
-        tags: formData.tags || null,
+    const payload = {
+      content: formData.content,
+      emotion: formData.emotion,
+      tags: formData.tags,
     };
 
+    const apiUrl = initialEntry && initialEntry.id
+      ? `${API_BASE}/api/journal_entries/${initialEntry.id}/`
+      : `${API_BASE}/api/journal_entries/`;
+    const apiMethod = isEditMode ? 'patch' : 'post';
+
     try {
-      await axios.post(apiUrl, payload);
+      const response = await axios({ method: apiMethod, url: apiUrl, data: payload });
       setSubmitSuccess(true);
-      onJournalEntryCreated();
-      setFormData(initialFormData);
-      setTimeout(() => { onClose(); }, 1500);
+      if (isEditMode && onJournalEntryUpdated) onJournalEntryUpdated(response.data);
+      else onJournalEntryCreated();
+      refreshJournal(); // Refresh journal entries after successful submission
+      setTimeout(() => onClose(), 1500);
     } catch (err: any) {
-      console.error(`Error creating journal entry:`, err);
-      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to create entry.`;
+      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to ${isEditMode ? 'update' : 'create'} journal entry.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);

@@ -5,7 +5,9 @@ import axios from 'axios';
 import API_BASE from '../apiBase';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar-overrides.css';
-import { FaUsers, FaCircle } from 'react-icons/fa';
+import { FaUsers, FaCircle, FaFilter } from 'react-icons/fa';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 
 const locales = {
   'en-US': require('date-fns/locale/en-US'),
@@ -57,6 +59,17 @@ const CalendarPage: React.FC = () => {
   const [filterMeeting, setFilterMeeting] = useState<string>('all');
   const [people, setPeople] = useState<any[]>([]);
   const [date, setDate] = useState(new Date());
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch events from the API
   const fetchEvents = async () => {
@@ -168,15 +181,27 @@ const CalendarPage: React.FC = () => {
   }
 
   return (
-    <div className="mx-auto px-0 py-8">
+    <div className="mx-auto px-0 py-4 sm:py-8">
       {error && (
         <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
           {error}
         </div>
       )}
-      <div className="flex gap-6">
-        {/* Left sidebar with filters */}
-        <div className="w-64 flex-shrink-0 space-y-6">
+      
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Mobile Filter Button */}
+        <div className="lg:hidden">
+          <button
+            onClick={() => setIsFilterModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
+          >
+            <FaFilter className="text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Filters</span>
+          </button>
+        </div>
+
+        {/* Left sidebar with filters - hidden on mobile */}
+        <div className="hidden lg:block w-64 flex-shrink-0 space-y-6">
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
             <div className="space-y-4">
@@ -224,13 +249,13 @@ const CalendarPage: React.FC = () => {
 
         {/* Right side with calendar */}
         <div className="flex-1">
-          <div className="h-[600px] bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="h-[500px] sm:h-[600px] bg-white rounded-lg shadow-sm border border-gray-200">
             <Calendar
               localizer={localizer}
               events={filteredEvents}
               startAccessor="start"
               endAccessor="end"
-              view={view}
+              view={isMobile ? 'day' : view}
               onView={(newView: View) => setView(newView)}
               date={date}
               onNavigate={setDate}
@@ -244,7 +269,7 @@ const CalendarPage: React.FC = () => {
                   <span className="flex items-center gap-1">
                     {event.category && <CategoryIcon className={categoryColors[event.category] || 'text-primary-300'} />}
                     {event.is_meeting && <MeetingIcon className="text-primary-100" />}
-                    <span>{event.title}</span>
+                    <span className="truncate">{event.title}</span>
                   </span>
                 ),
               }}
@@ -252,6 +277,93 @@ const CalendarPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Filter Modal */}
+      <Transition appear show={isFilterModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setIsFilterModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title as="h3" className="text-lg font-medium text-gray-900 mb-4">
+                    Filters
+                  </Dialog.Title>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                        value={filterCategory}
+                        onChange={e => setFilterCategory(e.target.value)}
+                      >
+                        <option value="">All</option>
+                        {categories.map((cat: any) => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Business</label>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                        value={filterBusiness}
+                        onChange={e => setFilterBusiness(e.target.value)}
+                      >
+                        <option value="">All</option>
+                        {businesses.map((biz: any) => (
+                          <option key={biz.id} value={biz.id}>{biz.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Meeting</label>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                        value={filterMeeting}
+                        onChange={e => setFilterMeeting(e.target.value)}
+                      >
+                        <option value="all">All</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <button
+                      type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                      onClick={() => setIsFilterModalOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 z-50">
