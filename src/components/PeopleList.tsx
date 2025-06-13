@@ -32,7 +32,7 @@ const PeopleList: React.FC = () => {
     try {
       const response = await axios.get(`${API_BASE}/api/people/`);
       setPeople(response.data || []);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error fetching people:", err);
       setError("Failed to load people.");
     } finally {
@@ -55,14 +55,14 @@ const PeopleList: React.FC = () => {
     try {
       await axios.delete(`${API_BASE}/api/people/${personId}/`);
       setPeople(people.filter(person => person.id !== personId));
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error deleting person:", err);
       setDeleteError("Failed to delete person. Please try again.");
       setTimeout(() => setDeleteError(null), 3000);
     }
   };
 
-  const handlePersonUpdated = (updatedPerson: Person) => {
+  const handlePersonUpdated = () => {
     fetchPeople();
     setIsEditModalOpen(false);
     setSelectedPerson(null);

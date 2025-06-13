@@ -188,8 +188,12 @@ const TaskForm: React.FC<TaskFormProps> = ({
       else onTaskCreated();
       refreshTasks();
       setTimeout(() => onClose(), 1500);
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to ${isEditMode ? 'update' : 'create'} task.`;
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error 
+        ? err.message 
+        : err && typeof err === 'object' && 'response' in err
+          ? (err.response as any)?.data?.detail || JSON.stringify((err.response as any)?.data)
+          : `Failed to ${isEditMode ? 'update' : 'create'} task.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);

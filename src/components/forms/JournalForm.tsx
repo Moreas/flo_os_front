@@ -6,19 +6,33 @@ import API_BASE from '../../apiBase';
 import { useRefresh } from '../../contexts/RefreshContext';
 import MentionInput from '../ui/MentionInput';
 
+interface JournalEntry {
+  id: number;
+  content: string;
+  emotion: string;
+  tags: string;
+  created_at: string;
+}
+
 interface JournalFormProps {
   isOpen: boolean;
   onClose: () => void;
   onJournalEntryCreated: () => void;
-  initialEntry?: any;
+  initialEntry?: JournalEntry | null;
   isEditMode?: boolean;
-  onJournalEntryUpdated?: (updatedEntry: any) => void;
+  onJournalEntryUpdated?: (updatedEntry: JournalEntry) => void;
 }
 
-const initialFormData = {
-    content: '',
-    emotion: '',
-    tags: '',
+interface FormData {
+  content: string;
+  emotion: string;
+  tags: string;
+}
+
+const initialFormData: FormData = {
+  content: '',
+  emotion: '',
+  tags: '',
 };
 
 // Define emotions and their corresponding emojis
@@ -43,14 +57,30 @@ const JournalForm: React.FC<JournalFormProps> = ({
   onJournalEntryUpdated,
 }) => {
   const { refreshJournal } = useRefresh();
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
-    if (isOpen) { setFormData(initialFormData); } 
-    if (!isOpen) { setTimeout(() => { setSubmitError(null); setSubmitSuccess(false); }, 300) }
+    if (initialEntry && isEditMode) {
+      setFormData({
+        content: initialEntry.content || '',
+        emotion: initialEntry.emotion || '',
+        tags: initialEntry.tags || '',
+      });
+    } else if (isOpen) {
+      setFormData(initialFormData);
+    }
+  }, [isOpen, initialEntry, isEditMode]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeout(() => {
+        setSubmitError(null);
+        setSubmitSuccess(false);
+      }, 300);
+    }
   }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -83,7 +113,7 @@ const JournalForm: React.FC<JournalFormProps> = ({
       tags: formData.tags,
     };
 
-    const apiUrl = initialEntry && initialEntry.id
+    const apiUrl = initialEntry?.id
       ? `${API_BASE}/api/journal_entries/${initialEntry.id}/`
       : `${API_BASE}/api/journal_entries/`;
     const apiMethod = isEditMode ? 'patch' : 'post';
@@ -93,10 +123,14 @@ const JournalForm: React.FC<JournalFormProps> = ({
       setSubmitSuccess(true);
       if (isEditMode && onJournalEntryUpdated) onJournalEntryUpdated(response.data);
       else onJournalEntryCreated();
-      refreshJournal(); // Refresh journal entries after successful submission
+      refreshJournal();
       setTimeout(() => onClose(), 1500);
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to ${isEditMode ? 'update' : 'create'} journal entry.`;
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error 
+        ? err.message 
+        : err && typeof err === 'object' && 'response' in err
+          ? (err.response as any)?.data?.detail || JSON.stringify((err.response as any)?.data)
+          : `Failed to ${isEditMode ? 'update' : 'create'} journal entry.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);
