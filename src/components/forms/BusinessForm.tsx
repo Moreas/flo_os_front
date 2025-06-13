@@ -2,6 +2,7 @@ import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import API_BASE from '../../apiBase';
 
 interface BusinessFormProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
     setSubmitError(null);
     setSubmitSuccess(false);
 
-    const apiUrl = 'http://localhost:8000/api/businesses/';
+    const apiUrl = `${API_BASE}/api/businesses/`;
     const apiMethod = 'post';
 
     try {
