@@ -111,6 +111,14 @@ const JournalList: React.FC = () => {
      }
   }
 
+  // Sort entries by date desc, then id desc for same date
+  const sortedEntries = [...entries].sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    if (dateA !== dateB) return dateB - dateA;
+    return b.id - a.id;
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -133,7 +141,7 @@ const JournalList: React.FC = () => {
       )}
       
       <div className="space-y-3">
-        {entries.map((entry) => (
+        {sortedEntries.map((entry) => (
           <div 
             key={entry.id} 
             className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow transition-shadow duration-150"
@@ -162,7 +170,7 @@ const JournalList: React.FC = () => {
                     </button>
                 </div>
             </div>
-             <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-3">{entry.content}</p> 
+             <p className="text-sm text-gray-600 whitespace-pre-wrap sm:line-clamp-3">{entry.content}</p> 
              {/* Optional: Expand/View more button? Edit/Delete? */}
           </div>
         ))}
