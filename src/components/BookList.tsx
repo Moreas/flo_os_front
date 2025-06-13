@@ -3,27 +3,7 @@ import axios from 'axios';
 import { ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import API_BASE from '../apiBase';
 import BookForm from './forms/BookForm';
-
-interface Book {
-  id: number;
-  title: string;
-  author?: string;
-  description?: string;
-  status?: 'not_started' | 'in_progress' | 'completed';
-  current_chapter?: number;
-  total_chapters?: number;
-  rating?: number;
-  notes?: string;
-}
-
-interface Chapter {
-  id: number;
-  book_id: number;
-  title: string;
-  chapter_number: number;
-  notes?: string;
-  is_completed: boolean;
-}
+import { Book, Chapter } from '../types/book';
 
 const BookList: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);

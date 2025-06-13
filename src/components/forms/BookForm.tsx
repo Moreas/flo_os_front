@@ -3,18 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import API_BASE from '../../apiBase';
-
-interface Book {
-  id: number;
-  title: string;
-  author?: string;
-  description?: string;
-  status: 'not_started' | 'in_progress' | 'completed';
-  current_chapter?: number;
-  total_chapters?: number;
-  rating?: number;
-  notes?: string;
-}
+import { Book } from '../../types/book';
 
 interface BookFormProps {
   isOpen: boolean;
