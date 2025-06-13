@@ -16,6 +16,8 @@ import {
   PhoneIcon,
   XMarkIcon,
   CalendarDaysIcon,
+  BookmarkIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -26,6 +28,8 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Inbox', href: '/emails', icon: InboxIcon },
   { name: 'Journal', href: '/journal', icon: BookOpenIcon },
+  { name: 'Books', href: '/books', icon: BookmarkIcon },
+  { name: 'Habits', href: '/habits', icon: ClockIcon },
   { name: 'Projects', href: '/projects', icon: FolderIcon },
   { name: 'Goals', href: '/goals', icon: FlagIcon },
   { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
