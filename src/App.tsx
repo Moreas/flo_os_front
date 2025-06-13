@@ -22,6 +22,8 @@ import SearchResultsPage from './pages/SearchResultsPage';
 import GoalDetailPage from './pages/GoalDetailPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CalendarPage from './pages/CalendarPage';
+import BooksPage from './pages/BooksPage';
+import HabitsPage from './pages/HabitsPage';
 
 function App() {
   return (
@@ -49,6 +51,8 @@ function App() {
               <Route path="/goals/:id" element={<GoalDetailPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/books" element={<BooksPage />} />
+              <Route path="/habits" element={<HabitsPage />} />
             </Routes>
           </Layout>
         </TaskRefreshProvider>
