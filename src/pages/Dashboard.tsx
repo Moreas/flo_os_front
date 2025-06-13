@@ -10,7 +10,7 @@ import API_BASE from '../apiBase';
 import { useRefresh } from '../contexts/RefreshContext';
 
 const Dashboard: React.FC = () => {
-  const { tasksVersion, journalVersion } = useRefresh();
+  const { tasksVersion } = useRefresh();
   const currentTime = new Date();
   const hour = currentTime.getHours();
   let greeting = 'Good morning';
