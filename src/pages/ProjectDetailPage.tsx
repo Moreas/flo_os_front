@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowPathIcon, ExclamationTriangleIcon, CheckCircleIcon, XCircleIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
@@ -6,14 +6,10 @@ import API_BASE from '../apiBase';
 import { Task } from '../types/task';
 import { Project } from '../types/project';
 
-interface ProjectDetailPageProps {
-  project: Project;
-  tasks: Task[];
-}
-
-const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, tasks }) => {
+const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [projectTasks, setProjectTasks] = useState<Task[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'active' | 'completed'>('active');
@@ -22,22 +18,40 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, tasks })
 
   useEffect(() => {
     const fetchProject = async () => {
+      if (!id) return;
+      setLoading(true);
+      setError(null);
       try {
         const response = await axios.get(`${API_BASE}/api/projects/${id}/`);
-        setProjectTasks(response.data.tasks || []);
+        setProject(response.data);
       } catch (err) {
         setError('Failed to load project details.');
+        console.error('Error fetching project:', err);
       } finally {
         setLoading(false);
       }
     };
+
+    const fetchTasks = async () => {
+      if (!id) return;
+      try {
+        const response = await axios.get(`${API_BASE}/api/tasks/`, {
+          params: { project_id: id }
+        });
+        setTasks(response.data || []);
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+      }
+    };
+
     fetchProject();
+    fetchTasks();
   }, [id]);
 
   // Filtering and sorting logic for tasks
   const filteredAndSortedTasks = React.useMemo(() => {
     if (!project) return [];
-    let filtered = [...projectTasks];
+    let filtered = [...tasks];
     if (taskStatusFilter === 'active') {
       filtered = filtered.filter(task => !task.is_done);
     } else if (taskStatusFilter === 'completed') {
@@ -58,7 +72,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, tasks })
       return 0;
     });
     return filtered;
-  }, [projectTasks, taskStatusFilter, taskSortField, taskSortDirection, project]);
+  }, [tasks, taskStatusFilter, taskSortField, taskSortDirection, project]);
 
   const renderSortIcon = (field: 'due' | 'status') => {
     if (taskSortField !== field) return null;
@@ -69,8 +83,21 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, tasks })
     );
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (error || !project) return <div className="p-6 text-red-600">{error || 'Project not found.'}</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-600">Loading project details...</div>
+      </div>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-600">{error || 'Project not found'}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
