@@ -6,15 +6,10 @@ import API_BASE from '../../apiBase';
 
 interface Habit {
   id: number;
-  title: string;
-  description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
-  target_count: number;
-  current_streak: number;
-  longest_streak: number;
+  name: string;
+  good_bad: 'good' | 'bad';
+  category?: number | null;
   is_active: boolean;
-  reminder_time?: string;
-  category?: string;
 }
 
 interface HabitFormProps {
@@ -33,13 +28,10 @@ const HabitForm: React.FC<HabitFormProps> = ({
   isEditMode = false
 }) => {
   const [formData, setFormData] = useState<Partial<Habit>>({
-    title: '',
-    description: '',
-    frequency: 'daily',
-    target_count: 1,
-    is_active: true,
-    reminder_time: '',
-    category: ''
+    name: '',
+    good_bad: 'good',
+    category: null,
+    is_active: true
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +43,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
     }
   }, [initialHabit]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -106,7 +98,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title className="text-lg font-medium text-gray-900">
                     {isEditMode ? 'Edit Habit' : 'Create New Habit'}
@@ -127,93 +119,49 @@ const HabitForm: React.FC<HabitFormProps> = ({
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                      Title *
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                      Name *
                     </label>
                     <input
                       type="text"
-                      id="title"
-                      name="title"
+                      id="name"
+                      name="name"
                       required
-                      value={formData.title}
+                      value={formData.name}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      rows={3}
-                      value={formData.description}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                      Category
-                    </label>
-                    <input
-                      type="text"
-                      id="category"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">
-                      Frequency *
+                    <label htmlFor="good_bad" className="block text-sm font-medium text-gray-700">
+                      Type *
                     </label>
                     <select
-                      id="frequency"
-                      name="frequency"
+                      id="good_bad"
+                      name="good_bad"
                       required
-                      value={formData.frequency}
+                      value={formData.good_bad}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
+                      <option value="good">Good Habit</option>
+                      <option value="bad">Bad Habit</option>
                     </select>
                   </div>
 
                   <div>
-                    <label htmlFor="target_count" className="block text-sm font-medium text-gray-700">
-                      Target Count *
+                    <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                      Category (optional)
                     </label>
                     <input
                       type="number"
-                      id="target_count"
-                      name="target_count"
-                      required
-                      min="1"
-                      value={formData.target_count}
+                      id="category"
+                      name="category"
+                      value={formData.category || ''}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="reminder_time" className="block text-sm font-medium text-gray-700">
-                      Reminder Time
-                    </label>
-                    <input
-                      type="time"
-                      id="reminder_time"
-                      name="reminder_time"
-                      value={formData.reminder_time}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      placeholder="Category ID"
                     />
                   </div>
 
