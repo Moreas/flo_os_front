@@ -5,40 +5,19 @@ import axios from 'axios';
 import MentionInput from '../ui/MentionInput';
 import API_BASE from '../../apiBase';
 import { useRefresh } from '../../contexts/RefreshContext';
+import { Task } from '../../types/task';
+import { Category } from '../../types/category';
+import { Project } from '../../types/project';
+import { Business } from '../../types/business';
+import { Person } from '../../types/person';
 
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface Project {
-  id: number;
-  name: string;
-}
-
-interface Business {
-  id: number;
-  name: string;
-}
-
-interface Person {
-  id: number;
-  name: string;
-}
-
-interface Task {
-  id: number;
-  description: string;
-  due_date: string | null;
-  is_done: boolean;
-  completion_date: string | null;
-  importance: 'could_do' | 'should_do' | 'must_do';
-  is_urgent: boolean;
-  project: Project | null;
-  business: Business | null;
-  categories: Category[];
-  responsible: Person[];
-  impacted: Person[];
+interface TaskFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onTaskCreated: () => void;
+  onTaskUpdated?: (updatedTask: Task) => void;
+  initialTaskData?: Task | null;
+  isEditMode?: boolean;
 }
 
 interface TaskFormData {
@@ -51,15 +30,6 @@ interface TaskFormData {
   category_ids: number[];
   responsible_ids: number[];
   impacted_ids: number[];
-}
-
-interface TaskFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onTaskCreated: () => void;
-  onTaskUpdated?: (updatedTask: Task) => void;
-  initialTaskData?: Task | null;
-  isEditMode?: boolean;
 }
 
 const formatDateInput = (isoString?: string | null): string => {

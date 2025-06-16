@@ -19,41 +19,73 @@ import {
 import { format, parseISO, isPast, isToday as dateFnsIsToday } from 'date-fns';
 import TaskForm from './forms/TaskForm';
 import API_BASE from '../apiBase';
-
-// Interfaces
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface Project {
-  id: number;
-  name: string;
-}
-
-interface Business {
-  id: number;
-  name: string;
-}
-
-interface Task {
-  id: number;
-  description: string;
-  is_done: boolean;
-  due_date?: string | null;
-  completion_date?: string | null;
-  created_at: string; 
-  business?: Business | null;
-  project?: Project | null;
-  categories: Category[];
-}
+import { Task } from '../types/task';
+import { Category } from '../types/category';
+import { Project } from '../types/project';
+import { Business } from '../types/business';
 
 // Fallback Data
 const fallbackTasks: Task[] = [
-    { id: 1, description: "Review project proposal", is_done: false, due_date: "2024-08-15T10:00:00Z", created_at: "2024-08-01T09:00:00Z", business: { id: 1, name: "Acme Corp" }, project: { id: 1, name: "Website Redesign" }, categories: [{ id: 1, name: "Planning" }] },
-    { id: 2, description: "Develop login feature", is_done: true, due_date: "2024-08-10T17:00:00Z", created_at: "2024-07-25T14:30:00Z", project: { id: 2, name: "Mobile App Dev" }, categories: [{ id: 2, name: "Development" }, { id: 3, name: "Frontend" }] },
-    { id: 3, description: "Schedule team meeting", is_done: false, created_at: "2024-08-05T11:00:00Z", categories: [] },
-    { id: 4, description: "Prepare tax documents", is_done: false, due_date: "2024-08-25T17:00:00Z", created_at: "2024-08-06T10:00:00Z", business: { id: 2, name: "Personal Finance"}, categories: [{ id: 4, name: "Finance" }] },
+    { 
+      id: 1, 
+      description: "Review project proposal", 
+      is_done: false, 
+      due_date: "2024-08-15T10:00:00Z", 
+      created_at: "2024-08-01T09:00:00Z", 
+      completion_date: null,
+      importance: 'should_do',
+      is_urgent: false,
+      business: { id: 1, name: "Acme Corp" }, 
+      project: { id: 1, name: "Website Redesign" }, 
+      categories: [{ id: 1, name: "Planning" }],
+      responsible: [],
+      impacted: []
+    },
+    { 
+      id: 2, 
+      description: "Develop login feature", 
+      is_done: true, 
+      due_date: "2024-08-10T17:00:00Z", 
+      created_at: "2024-07-25T14:30:00Z", 
+      completion_date: "2024-08-10T17:00:00Z",
+      importance: 'must_do',
+      is_urgent: true,
+      business: null,
+      project: { id: 2, name: "Mobile App Dev" }, 
+      categories: [{ id: 2, name: "Development" }, { id: 3, name: "Frontend" }],
+      responsible: [],
+      impacted: []
+    },
+    { 
+      id: 3, 
+      description: "Schedule team meeting", 
+      is_done: false, 
+      due_date: null,
+      created_at: "2024-08-05T11:00:00Z", 
+      completion_date: null,
+      importance: 'could_do',
+      is_urgent: false,
+      business: null,
+      project: null,
+      categories: [],
+      responsible: [],
+      impacted: []
+    },
+    { 
+      id: 4, 
+      description: "Prepare tax documents", 
+      is_done: false, 
+      due_date: "2024-08-25T17:00:00Z", 
+      created_at: "2024-08-06T10:00:00Z", 
+      completion_date: null,
+      importance: 'should_do',
+      is_urgent: false,
+      business: { id: 2, name: "Personal Finance"},
+      project: null,
+      categories: [{ id: 4, name: "Finance" }],
+      responsible: [],
+      impacted: []
+    },
 ];
 const fallbackCategories: Category[] = [ {id: 1, name: "Planning"}, {id: 2, name: "Development"}, {id: 3, name: "Frontend"}, {id: 4, name: "Finance"} ];
 const fallbackProjects: Project[] = [ {id: 1, name: "Website Redesign"}, {id: 2, name: "Mobile App Dev"} ];
