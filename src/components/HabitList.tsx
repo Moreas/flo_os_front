@@ -173,8 +173,8 @@ const HabitList: React.FC = () => {
               
               <div className="mt-4 space-y-2">
                 <div className="flex flex-wrap gap-2">
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency)}`}>
-                    {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency || '')}`}>
+                    {(habit.frequency || 'daily').charAt(0).toUpperCase() + (habit.frequency || 'daily').slice(1)}
                   </span>
                   <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                     Target: {habit.target_count}
