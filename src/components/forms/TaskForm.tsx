@@ -41,6 +41,18 @@ interface Task {
   impacted: Person[];
 }
 
+interface TaskFormData {
+  description: string;
+  due_date: string;
+  importance: 'could_do' | 'should_do' | 'must_do';
+  is_urgent: boolean;
+  project_id: string;
+  business_id: string;
+  category_ids: number[];
+  responsible_ids: number[];
+  impacted_ids: number[];
+}
+
 interface TaskFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -71,16 +83,16 @@ const TaskForm: React.FC<TaskFormProps> = ({
   isEditMode = false,
 }) => {
   const { refreshTasks } = useRefresh();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TaskFormData>({
     description: '',
     due_date: '',
-    importance: 'should_do' as const,
+    importance: 'should_do',
     is_urgent: false,
     project_id: '',
     business_id: '',
-    category_ids: [] as number[],
-    responsible_ids: [] as number[],
-    impacted_ids: [] as number[],
+    category_ids: [],
+    responsible_ids: [],
+    impacted_ids: [],
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
