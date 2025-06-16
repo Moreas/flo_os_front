@@ -6,7 +6,7 @@ import API_BASE from '../../apiBase';
 
 interface Habit {
   id: number;
-  title: string;
+  name: string;
   description?: string;
   frequency: 'daily' | 'weekly' | 'monthly';
   target_count: number;
@@ -14,7 +14,7 @@ interface Habit {
   longest_streak: number;
   is_active: boolean;
   reminder_time?: string;
-  category?: string;
+  category?: number;
 }
 
 interface HabitFormProps {
@@ -33,7 +33,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
   isEditMode = false
 }) => {
   const [formData, setFormData] = useState<Partial<Habit>>({
-    title: '',
+    name: '',
     description: '',
     frequency: 'daily',
     target_count: 1,
@@ -41,7 +41,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
     longest_streak: 0,
     is_active: true,
     reminder_time: '',
-    category: ''
+    category: undefined
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -61,22 +61,43 @@ const HabitForm: React.FC<HabitFormProps> = ({
     }));
   };
 
+  const validateReminderTime = (time: string): boolean => {
+    if (!time) return true; // Empty time is valid (optional field)
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    return timeRegex.test(time);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
+    // Validate reminder time format
+    if (formData.reminder_time && !validateReminderTime(formData.reminder_time)) {
+      setError('Reminder time must be in HH:MM format (e.g., 08:00)');
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log('Sending habit data:', formData);
+
       if (isEditMode && initialHabit) {
         await axios.put(`${API_BASE}/api/habits/${initialHabit.id}/`, formData);
       } else {
-        await axios.post(`${API_BASE}/api/habits/`, formData);
+        const response = await axios.post(`${API_BASE}/api/habits/`, formData);
+        console.log('API Response:', response.data);
       }
       onHabitCreated();
       onClose();
     } catch (err: unknown) {
       console.error('Error saving habit:', err);
-      setError('Failed to save habit. Please try again.');
+      if (axios.isAxiosError(err) && err.response) {
+        console.error('API Error Response:', err.response.data);
+        setError(`Failed to save habit: ${err.response.data.message || err.response.data.detail || 'Please try again.'}`);
+      } else {
+        setError('Failed to save habit. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -129,15 +150,15 @@ const HabitForm: React.FC<HabitFormProps> = ({
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                      Title *
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                      Name *
                     </label>
                     <input
                       type="text"
-                      id="title"
-                      name="title"
+                      id="name"
+                      name="name"
                       required
-                      value={formData.title}
+                      value={formData.name}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     />
@@ -234,12 +255,13 @@ const HabitForm: React.FC<HabitFormProps> = ({
 
                   <div>
                     <label htmlFor="reminder_time" className="block text-sm font-medium text-gray-700">
-                      Reminder Time (optional)
+                      Reminder Time (optional, HH:MM format)
                     </label>
                     <input
                       type="text"
                       id="reminder_time"
                       name="reminder_time"
+                      placeholder="08:00"
                       value={formData.reminder_time || ''}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
@@ -248,10 +270,10 @@ const HabitForm: React.FC<HabitFormProps> = ({
 
                   <div>
                     <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                      Category (optional)
+                      Category ID (optional)
                     </label>
                     <input
-                      type="text"
+                      type="number"
                       id="category"
                       name="category"
                       value={formData.category || ''}
