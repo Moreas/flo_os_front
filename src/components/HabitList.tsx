@@ -6,7 +6,7 @@ import HabitForm from './forms/HabitForm';
 
 interface Habit {
   id: number;
-  title: string;
+  name: string;
   description?: string;
   frequency: 'daily' | 'weekly' | 'monthly';
   target_count: number;
@@ -14,7 +14,7 @@ interface Habit {
   longest_streak: number;
   is_active: boolean;
   reminder_time?: string;
-  category?: string;
+  category?: number;
 }
 
 interface HabitInstance {
@@ -141,9 +141,9 @@ const HabitList: React.FC = () => {
                     <ClockIcon className="w-5 h-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-gray-900">{habit.title}</h3>
+                    <h3 className="text-base font-semibold text-gray-900">{habit.name}</h3>
                     {habit.category && (
-                      <p className="mt-1 text-sm text-gray-600">{habit.category}</p>
+                      <p className="mt-1 text-sm text-gray-600">Category ID: {habit.category}</p>
                     )}
                   </div>
                 </div>
