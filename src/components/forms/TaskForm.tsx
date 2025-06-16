@@ -32,18 +32,6 @@ interface TaskFormData {
   impacted_ids: number[];
 }
 
-const formatDateInput = (isoString?: string | null): string => {
-  if (!isoString) return '';
-  try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return '';
-    return `${date.getUTCFullYear()}-${(date.getUTCMonth() + 1).toString().padStart(2, '0')}-${date.getUTCDate().toString().padStart(2, '0')}`;
-  } catch (e) {
-    console.error("Error formatting date for input:", e);
-    return '';
-  }
-};
-
 const TaskForm: React.FC<TaskFormProps> = ({
   isOpen,
   onClose,
