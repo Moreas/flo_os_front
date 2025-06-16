@@ -102,7 +102,7 @@ const ProjectDetailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
         {project.description && (
           <p className="mt-2 text-gray-600">{project.description}</p>
         )}
