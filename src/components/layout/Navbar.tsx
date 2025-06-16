@@ -110,7 +110,7 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
           <Bars3Icon className="h-7 w-7" />
         </button>
         {/* Search Bar (hidden on mobile) */}
-        <div className="flex-1 max-w-2xl mx-2 md:mx-8 hidden md:block">
+        <div className="flex-1 max-w-2xl mx-2 md:mx-8">
           <form onSubmit={handleSearch} className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <MagnifyingGlassIcon className="w-5 h-5 text-gray-400" />
