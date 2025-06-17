@@ -47,11 +47,33 @@ const HabitForm: React.FC<HabitFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      frequency: 'daily',
+      target_count: 1,
+      current_streak: 0,
+      longest_streak: 0,
+      is_active: true,
+      reminder_time: '',
+      category: undefined
+    });
+    setError(null);
+  };
+
   useEffect(() => {
     if (initialHabit) {
       setFormData(initialHabit);
+    } else if (isOpen) {
+      resetForm();
     }
-  }, [initialHabit]);
+  }, [initialHabit, isOpen]);
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -105,7 +127,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={handleClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -135,7 +157,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
                     {isEditMode ? 'Edit Habit' : 'Create New Habit'}
                   </Dialog.Title>
                   <button
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="text-gray-400 hover:text-gray-500"
                   >
                     <XMarkIcon className="w-6 h-6" />
@@ -285,7 +307,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
-                      onClick={onClose}
+                      onClick={handleClose}
                       className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                     >
                       Cancel
