@@ -32,9 +32,7 @@ const EmailsPage: React.FC = () => {
           `${saved} saved, ${skipped} skipped, ${errors} error${errors === 1 ? '' : 's'}.` +
           (statusMessages.length ? ' ' + statusMessages.join(' ') : '')
         );
-        setTimeout(() => {
-          emailListRef.current?.refresh();
-        }, 500);
+        emailListRef.current?.refresh();
       } else {
         setError(response.data.message || 'Failed to retrieve emails.');
       }
@@ -52,9 +50,7 @@ const EmailsPage: React.FC = () => {
       await axios.post(`${API_BASE}/api/emails/purge_all/`);
       setMessage('All emails have been purged successfully.');
       setIsPurgeConfirmOpen(false);
-      setTimeout(() => {
-        emailListRef.current?.refresh();
-      }, 500);
+      emailListRef.current?.refresh();
     } catch (err: any) {
       setError('Failed to purge emails. Please try again.');
     } finally {
