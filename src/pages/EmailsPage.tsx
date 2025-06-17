@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import EmailList from '../components/EmailList';
 import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
@@ -11,6 +11,7 @@ const EmailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isPurgeConfirmOpen, setIsPurgeConfirmOpen] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
+  const emailListRef = useRef<{ refresh: () => void }>(null);
 
   const handleRetrieveEmails = async () => {
     setLoading(true);
@@ -31,6 +32,7 @@ const EmailsPage: React.FC = () => {
           `${saved} saved, ${skipped} skipped, ${errors} error${errors === 1 ? '' : 's'}.` +
           (statusMessages.length ? ' ' + statusMessages.join(' ') : '')
         );
+        emailListRef.current?.refresh();
       } else {
         setError(response.data.message || 'Failed to retrieve emails.');
       }
@@ -48,6 +50,7 @@ const EmailsPage: React.FC = () => {
       await axios.post(`${API_BASE}/api/emails/purge_all/`);
       setMessage('All emails have been purged successfully.');
       setIsPurgeConfirmOpen(false);
+      emailListRef.current?.refresh();
     } catch (err: any) {
       setError('Failed to purge emails. Please try again.');
     } finally {
@@ -89,7 +92,7 @@ const EmailsPage: React.FC = () => {
 
       {/* Email List */}
       <div className="bg-white shadow-sm rounded-lg p-4">
-        <EmailList />
+        <EmailList ref={emailListRef} />
       </div>
 
       {/* Purge Confirmation Dialog */}
