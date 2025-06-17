@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import EmailList from '../components/EmailList';
+import EmailList, { EmailListRef } from '../components/EmailList';
 import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
@@ -11,7 +11,7 @@ const EmailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isPurgeConfirmOpen, setIsPurgeConfirmOpen] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
-  const emailListRef = useRef<{ refresh: () => void }>(null);
+  const emailListRef = useRef<EmailListRef>(null);
 
   const handleRetrieveEmails = async () => {
     setLoading(true);
@@ -32,7 +32,9 @@ const EmailsPage: React.FC = () => {
           `${saved} saved, ${skipped} skipped, ${errors} error${errors === 1 ? '' : 's'}.` +
           (statusMessages.length ? ' ' + statusMessages.join(' ') : '')
         );
-        emailListRef.current?.refresh();
+        setTimeout(() => {
+          emailListRef.current?.refresh();
+        }, 500);
       } else {
         setError(response.data.message || 'Failed to retrieve emails.');
       }
@@ -50,7 +52,9 @@ const EmailsPage: React.FC = () => {
       await axios.post(`${API_BASE}/api/emails/purge_all/`);
       setMessage('All emails have been purged successfully.');
       setIsPurgeConfirmOpen(false);
-      emailListRef.current?.refresh();
+      setTimeout(() => {
+        emailListRef.current?.refresh();
+      }, 500);
     } catch (err: any) {
       setError('Failed to purge emails. Please try again.');
     } finally {

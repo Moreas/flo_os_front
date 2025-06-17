@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment, useMemo, forwardRef } from 'react';
+import React, { useState, useEffect, Fragment, useMemo, forwardRef, useImperativeHandle } from 'react';
 import axios from 'axios';
 import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
@@ -52,7 +52,11 @@ const fallbackEmails: EmailMessage[] = [
   { id: 3, subject: "Invoice #123", sender: "accounting@example.com", sender_name: null, recipients: "me@example.com", body: "...", received_at: "2024-04-18T11:00:00Z", is_handled: false, needs_reply: false, categories: ["Finance"] },
 ];
 
-const EmailList = forwardRef<{ refresh: () => void }, {}>((props, ref) => {
+export interface EmailListRef {
+  refresh: () => void;
+}
+
+const EmailList = forwardRef<EmailListRef>((props, ref) => {
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,9 +84,11 @@ const EmailList = forwardRef<{ refresh: () => void }, {}>((props, ref) => {
     fetchEmails();
   }, [refreshKey]);
 
-  // Expose refresh function to parent
-  React.useImperativeHandle(ref, () => ({
-    refresh: () => setRefreshKey(prev => prev + 1)
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      console.log('Refreshing email list...');
+      setRefreshKey(prev => prev + 1);
+    }
   }));
 
   // Derive unique categories from emails (now strings) for the filter dropdown
