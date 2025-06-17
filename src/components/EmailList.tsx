@@ -80,16 +80,25 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     }
   };
 
-  useEffect(() => {
-    fetchEmails();
-  }, [refreshKey]);
-
   useImperativeHandle(ref, () => ({
-    refresh: () => {
-      console.log('Refreshing email list...');
-      setRefreshKey(prev => prev + 1);
+    refresh: async () => {
+      console.log('Starting email list refresh...');
+      try {
+        // Add a small delay to ensure backend has processed changes
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setRefreshKey(prev => prev + 1);
+        console.log('Refresh key updated, triggering new fetch...');
+      } catch (error) {
+        console.error('Error during refresh:', error);
+        setError('Failed to refresh email list');
+      }
     }
   }));
+
+  useEffect(() => {
+    console.log('Fetching emails, refreshKey:', refreshKey);
+    fetchEmails();
+  }, [refreshKey]);
 
   // Derive unique categories from emails (now strings) for the filter dropdown
   const availableCategories = useMemo(() => {
