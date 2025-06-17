@@ -25,7 +25,6 @@ const EmailsPage: React.FC = () => {
       );
       if (response.data.success) {
         const saved = response.data.saved_count ?? 0;
-        const statusMessages = response.data.status_messages ?? [];
         
         // Only show message if emails were retrieved
         if (saved > 0) {
