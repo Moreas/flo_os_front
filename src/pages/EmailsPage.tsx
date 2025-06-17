@@ -25,25 +25,15 @@ const EmailsPage: React.FC = () => {
       );
       if (response.data.success) {
         const saved = response.data.saved_count ?? 0;
-        const skipped = response.data.skipped_count ?? 0;
-        const errors = response.data.error_count ?? 0;
         const statusMessages = response.data.status_messages ?? [];
         
-        // Build message parts only for non-zero counts
-        const messageParts = [];
-        if (saved > 0) messageParts.push(`${saved} saved`);
-        if (skipped > 0) messageParts.push(`${skipped} skipped`);
-        if (errors > 0) messageParts.push(`${errors} error${errors === 1 ? '' : 's'}`);
-        
-        // Combine message parts
-        let message = messageParts.length > 0 ? messageParts.join(', ') : 'No new emails found';
-        
-        // Add status messages if any
-        if (statusMessages.length) {
-          message += '. ' + statusMessages.join(' ');
+        // Only show message if emails were retrieved
+        if (saved > 0) {
+          setMessage(`${saved} email${saved === 1 ? '' : 's'} retrieved`);
+        } else {
+          setMessage('No new emails found');
         }
         
-        setMessage(message);
         await emailListRef.current?.refresh();
       } else {
         setError(response.data.message || 'Failed to retrieve emails.');
