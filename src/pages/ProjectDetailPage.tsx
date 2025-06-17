@@ -32,7 +32,7 @@ const ProjectDetailPage: React.FC = () => {
       if (!id) return;
       try {
         const response = await axios.get(`${API_BASE}/api/tasks/`, {
-          params: { project_id: id }
+          params: { project: id }
         });
         setTasks(response.data || []);
       } catch (err) {
