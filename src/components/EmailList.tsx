@@ -22,6 +22,7 @@ interface EmailMessage {
   person?: { id: number; name: string; is_self: boolean } | null;
   business?: { id: number; name: string } | null;
   is_handled: boolean;
+  handling_type?: 'external' | 'internal' | null;
   draft_reply?: string | null;
   needs_reply?: boolean;
   categories?: string[]; // Renamed and type changed to string array
@@ -219,8 +220,11 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       
       await axios.post(endpoint);
       console.log(`Email ${emailId} marked as ${handlingType} handling`);
-      // Optionally refresh the email list to show updated status
-      setRefreshKey(prev => prev + 1);
+      
+      // Update local state to reflect the change immediately
+      setEmails(prevEmails => prevEmails.map(email =>
+        email.id === emailId ? { ...email, handling_type: handlingType, is_handled: true } : email
+      ));
     } catch (err) {
       console.error(`Failed to mark email as ${handlingType} handling:`, err);
     }
@@ -326,7 +330,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
                     <select
-                      value=""
+                      value={email.handling_type || ""}
                       onClick={e => e.stopPropagation()}
                       onChange={e => {
                         e.stopPropagation();
