@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FlagIcon, ClipboardDocumentListIcon, FolderIcon, BookOpenIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { FlagIcon, ClipboardDocumentListIcon, FolderIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 import StatCard from '../components/ui/StatCard';
 import MoodTracker from '../components/ui/MoodTracker';
 import EnergyTracker from '../components/ui/EnergyTracker';
