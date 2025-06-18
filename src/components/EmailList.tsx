@@ -22,7 +22,8 @@ interface EmailMessage {
   person?: { id: number; name: string; is_self: boolean } | null;
   business?: { id: number; name: string } | null;
   is_handled: boolean;
-  handling_type?: 'external' | 'internal' | null;
+  needs_internal_handling: boolean;
+  waiting_external_handling: boolean;
   draft_reply?: string | null;
   needs_reply?: boolean;
   categories?: string[]; // Renamed and type changed to string array
@@ -54,9 +55,9 @@ const preprocessEmailBody = (body: string): string => {
 
 // Fallback data (optional, for development/testing) - Using `categories: string[]`
 const fallbackEmails: EmailMessage[] = [
-  { id: 1, subject: "Meeting Follow-up", sender: "client@example.com", sender_name: "Alice Wonderland", recipients: "me@example.com", body: "...", received_at: "2024-04-17T10:30:00Z", is_handled: false, person: {id: 1, name: "Alice", is_self: false}, needs_reply: true, categories: ["Client Communication"] },
-  { id: 2, subject: "Project Update", sender: "colleague@example.com", sender_name: "Bob The Colleague", recipients: "me@example.com, manager@example.com", body: "...", received_at: "2024-04-17T09:15:00Z", is_handled: true, needs_reply: false, categories: ["Internal", "Project Alpha"] },
-  { id: 3, subject: "Invoice #123", sender: "accounting@example.com", sender_name: null, recipients: "me@example.com", body: "...", received_at: "2024-04-18T11:00:00Z", is_handled: false, needs_reply: false, categories: ["Finance"] },
+  { id: 1, subject: "Meeting Follow-up", sender: "client@example.com", sender_name: "Alice Wonderland", recipients: "me@example.com", body: "...", received_at: "2024-04-17T10:30:00Z", is_handled: false, needs_internal_handling: false, waiting_external_handling: false, person: {id: 1, name: "Alice", is_self: false}, needs_reply: true, categories: ["Client Communication"] },
+  { id: 2, subject: "Project Update", sender: "colleague@example.com", sender_name: "Bob The Colleague", recipients: "me@example.com, manager@example.com", body: "...", received_at: "2024-04-17T09:15:00Z", is_handled: true, needs_internal_handling: false, waiting_external_handling: false, needs_reply: false, categories: ["Internal", "Project Alpha"] },
+  { id: 3, subject: "Invoice #123", sender: "accounting@example.com", sender_name: null, recipients: "me@example.com", body: "...", received_at: "2024-04-18T11:00:00Z", is_handled: false, needs_internal_handling: false, waiting_external_handling: false, needs_reply: false, categories: ["Finance"] },
 ];
 
 export interface EmailListRef {
@@ -223,7 +224,12 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       
       // Update local state to reflect the change immediately
       setEmails(prevEmails => prevEmails.map(email =>
-        email.id === emailId ? { ...email, handling_type: handlingType, is_handled: true } : email
+        email.id === emailId ? { 
+          ...email, 
+          needs_internal_handling: handlingType === 'internal',
+          waiting_external_handling: handlingType === 'external',
+          is_handled: true 
+        } : email
       ));
     } catch (err) {
       console.error(`Failed to mark email as ${handlingType} handling:`, err);
@@ -330,7 +336,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
                     <select
-                      value={email.handling_type || ""}
+                      value={email.needs_internal_handling ? "internal" : email.waiting_external_handling ? "external" : ""}
                       onClick={e => e.stopPropagation()}
                       onChange={e => {
                         e.stopPropagation();
