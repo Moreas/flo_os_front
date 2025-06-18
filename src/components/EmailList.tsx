@@ -184,7 +184,10 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     setAssignError(null);
     setAssignSuccess(null);
     try {
-      await axios.post(`${API_BASE}/api/emails/${assigningEmailId}/assign_sender_to_person/`, { person_id: selectedPersonId });
+      // Find the email object to get the sender address
+      const email = emails.find(e => e.id === assigningEmailId);
+      if (!email) throw new Error('Email not found');
+      await axios.post(`${API_BASE}/api/people/${selectedPersonId}/assign_email_address/`, { email_address: email.sender });
       setAssignSuccess('Sender assigned successfully!');
       setTimeout(() => {
         setAssignModalOpen(false);
