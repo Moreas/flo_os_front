@@ -49,11 +49,40 @@ const DailyHabitsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/habits/today_summary/`);
-      setSummary(response.data);
+      console.log('Fetching manual habits from:', `${API_BASE}/api/habits/manual_habits/`);
+      const response = await axios.get(`${API_BASE}/api/habits/manual_habits/`);
+      console.log('Manual habits response:', response.data);
+      
+      // Transform the data to match our expected format
+      const habits = response.data || [];
+      const todaySummary = {
+        date: new Date().toISOString().split('T')[0],
+        summary: habits.map((habit: any) => ({
+          ...habit,
+          is_completed_today: false, // We'll need to check this separately
+          today_instances_count: 0,
+          total_instances: habit.total_instances || 0
+        })),
+        stats: {
+          total_habits: habits.length,
+          completed_today: 0,
+          completion_rate: 0
+        }
+      };
+      
+      console.log('Transformed today summary:', todaySummary);
+      setSummary(todaySummary);
     } catch (err: unknown) {
-      console.error("Error fetching today's summary:", err);
-      setError("Failed to load today's summary.");
+      console.error("Error fetching manual habits:", err);
+      if (axios.isAxiosError(err)) {
+        console.error('Axios error details:', {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          url: err.config?.url
+        });
+      }
+      setError("Failed to load habits.");
     } finally {
       setLoading(false);
     }
@@ -165,8 +194,12 @@ const DailyHabitsPage: React.FC = () => {
   }
 
   const manualHabits = summary.summary.filter(habit => 
-    habit.is_active && habit.tracking_type !== 'automated'
+    habit.is_active
   );
+
+  console.log('All habits from summary:', summary.summary);
+  console.log('Manual habits after filtering:', manualHabits);
+  console.log('Filtering criteria - is_active only (since we get manual habits directly)');
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
