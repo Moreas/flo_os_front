@@ -211,17 +211,6 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     }
   };
 
-  const handleEmailStatusChange = async (emailId: number, newStatus: boolean) => {
-    try {
-      await axios.patch(`${API_BASE}/api/emails/${emailId}/`, { is_handled: newStatus });
-      setEmails(prevEmails => prevEmails.map(email =>
-        email.id === emailId ? { ...email, is_handled: newStatus } : email
-      ));
-    } catch (err) {
-      console.error('Failed to update email status:', err);
-    }
-  };
-
   const handleHandlingTypeChange = async (emailId: number, handlingType: 'external' | 'internal') => {
     try {
       const endpoint = handlingType === 'external' 
