@@ -19,7 +19,7 @@ interface EmailMessage {
   body: string;
   thread_id?: string | null;
   received_at: string; // ISO date string
-  person?: { id: number; name: string; is_myself: boolean } | null;
+  person?: { id: number; name: string; is_self: boolean } | null;
   business?: { id: number; name: string } | null;
   is_handled: boolean;
   draft_reply?: string | null;
@@ -53,7 +53,7 @@ const preprocessEmailBody = (body: string): string => {
 
 // Fallback data (optional, for development/testing) - Using `categories: string[]`
 const fallbackEmails: EmailMessage[] = [
-  { id: 1, subject: "Meeting Follow-up", sender: "client@example.com", sender_name: "Alice Wonderland", recipients: "me@example.com", body: "...", received_at: "2024-04-17T10:30:00Z", is_handled: false, person: {id: 1, name: "Alice", is_myself: false}, needs_reply: true, categories: ["Client Communication"] },
+  { id: 1, subject: "Meeting Follow-up", sender: "client@example.com", sender_name: "Alice Wonderland", recipients: "me@example.com", body: "...", received_at: "2024-04-17T10:30:00Z", is_handled: false, person: {id: 1, name: "Alice", is_self: false}, needs_reply: true, categories: ["Client Communication"] },
   { id: 2, subject: "Project Update", sender: "colleague@example.com", sender_name: "Bob The Colleague", recipients: "me@example.com, manager@example.com", body: "...", received_at: "2024-04-17T09:15:00Z", is_handled: true, needs_reply: false, categories: ["Internal", "Project Alpha"] },
   { id: 3, subject: "Invoice #123", sender: "accounting@example.com", sender_name: null, recipients: "me@example.com", body: "...", received_at: "2024-04-18T11:00:00Z", is_handled: false, needs_reply: false, categories: ["Finance"] },
 ];
@@ -338,12 +338,12 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                     {email.person ? (
                       <Link
                         to={`/people/${email.person.id}`}
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline ${email.person.is_myself ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-green-100 text-green-800'}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline ${email.person.is_self ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-green-100 text-green-800'}`}
                         title={`View ${email.person.name}`}
                       >
-                        <UserCircleIcon className={`w-4 h-4 mr-1 ${email.person.is_myself ? 'text-blue-600' : 'text-green-600'}`} />
+                        <UserCircleIcon className={`w-4 h-4 mr-1 ${email.person.is_self ? 'text-blue-600' : 'text-green-600'}`} />
                         {email.person.name}
-                        {email.person.is_myself && (
+                        {email.person.is_self && (
                           <span className="ml-2 px-2 py-0.5 rounded bg-blue-200 text-blue-800 font-semibold">Myself</span>
                         )}
                       </Link>
