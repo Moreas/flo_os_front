@@ -33,6 +33,11 @@ const PeopleList: React.FC = () => {
     try {
       const response = await axios.get(`${API_BASE}/api/people/`);
       setPeople(response.data || []);
+      if (response.data && Array.isArray(response.data)) {
+        response.data.forEach(person => {
+          console.log('Person:', person);
+        });
+      }
     } catch (err: unknown) {
       console.error("Error fetching people:", err);
       setError("Failed to load people.");
