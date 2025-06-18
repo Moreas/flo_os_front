@@ -1,8 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { PlusIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import HabitList from '../components/HabitList';
 import HabitForm from '../components/forms/HabitForm';
-import QuickHabitTracker from '../components/QuickHabitTracker';
 
 const HabitsPage: React.FC = () => {
   const [isHabitFormOpen, setIsHabitFormOpen] = useState(false);
@@ -25,15 +24,6 @@ const HabitsPage: React.FC = () => {
             New Habit
           </button>
         </div>
-      </div>
-
-      {/* Quick Habit Tracker */}
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <div className="flex items-center mb-4">
-          <ClockIcon className="h-5 w-5 text-primary-600 mr-2" />
-          <h2 className="text-lg font-semibold text-gray-900">Quick Track Manual Habits</h2>
-        </div>
-        <QuickHabitTracker onUpdate={handleHabitCreated} />
       </div>
 
       <div className="bg-white shadow-sm rounded-lg p-4">

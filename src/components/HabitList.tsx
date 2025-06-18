@@ -190,16 +190,21 @@ const HabitList: React.FC = () => {
                   <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency || '')}`}>
                     {(habit.frequency || 'daily').charAt(0).toUpperCase() + (habit.frequency || 'daily').slice(1)}
                   </span>
-                  <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    Target: {habit.target_count}
-                  </span>
                 </div>
-                
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <div>
                     <span>Current Streak: {habit.current_streak}</span>
                     <span className="mx-2">•</span>
                     <span>Longest: {habit.longest_streak}</span>
+                    <span className="mx-2">•</span>
+                    <span>Latest Failure: {
+                      (() => {
+                        const missed = habitInstances
+                          .filter(i => !i.completed)
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        return missed.length > 0 ? new Date(missed[0].date).toLocaleDateString() : '—';
+                      })()
+                    }</span>
                   </div>
                   {habit.reminder_time && (
                     <span>Reminder: {habit.reminder_time}</span>
