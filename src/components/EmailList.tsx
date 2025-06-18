@@ -323,13 +323,15 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right sm:pr-6">
-                    <button
-                      className="ml-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                      onClick={e => { e.stopPropagation(); openAssignModal(email.id); }}
-                      title="Assign sender to person"
-                    >
-                      Assign to Person
-                    </button>
+                    {!email.person && (
+                      <button
+                        className="ml-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        onClick={e => { e.stopPropagation(); openAssignModal(email.id); }}
+                        title="Assign sender to person"
+                      >
+                        Assign to Person
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
