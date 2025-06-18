@@ -44,10 +44,13 @@ const Dashboard: React.FC = () => {
     axios.get(`${API_BASE}/api/tasks/`)
       .then(res => {
         const tasks = res.data || [];
+        const now = new Date();
         const todayCount = tasks.filter((t: any) => {
           if (!t.due_date || t.is_done) return false;
           try {
-            return isToday(parseISO(t.due_date));
+            const due = parseISO(t.due_date);
+            // Include if due today or overdue (before today)
+            return due <= now;
           } catch {
             return false;
           }
