@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FlagIcon, ClipboardDocumentListIcon, FolderIcon, BookOpenIcon } from '@heroicons/react/24/outline';
+import { FlagIcon, ClipboardDocumentListIcon, FolderIcon, BookOpenIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 import StatCard from '../components/ui/StatCard';
 import MoodTracker from '../components/ui/MoodTracker';
 import EnergyTracker from '../components/ui/EnergyTracker';
@@ -26,6 +26,7 @@ const Dashboard: React.FC = () => {
   const [tasksDueToday, setTasksDueToday] = useState<number>(0);
   const [activeProjects, setActiveProjects] = useState<number>(0);
   const [activeHabits, setActiveHabits] = useState<number>(0);
+  const [unhandledEmails, setUnhandledEmails] = useState<number>(0);
 
   useEffect(() => {
     // Fetch goals
@@ -85,6 +86,17 @@ const Dashboard: React.FC = () => {
         console.error('Habits API error:', error);
         setActiveHabits(0);
       });
+    // Fetch emails
+    axios.get(`${API_BASE}/api/emails/`)
+      .then(res => {
+        const emails = res.data || [];
+        const unhandledCount = emails.filter((e: any) => e.is_handled === false).length;
+        setUnhandledEmails(unhandledCount);
+      })
+      .catch((error) => {
+        console.error('Emails API error:', error);
+        setUnhandledEmails(0);
+      });
   }, [tasksVersion]);
 
   return (
@@ -105,7 +117,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Active Goals"
           value={activeGoals}
@@ -129,6 +141,12 @@ const Dashboard: React.FC = () => {
           value={activeHabits}
           icon={BookOpenIcon}
           link="/habits"
+        />
+        <StatCard
+          title="Emails Not Handled"
+          value={unhandledEmails}
+          icon={EnvelopeIcon}
+          link="/emails"
         />
       </div>
 
