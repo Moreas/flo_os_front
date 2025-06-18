@@ -207,8 +207,9 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   const handleEmailStatusChange = async (emailId: number, newStatus: boolean) => {
     try {
       await axios.patch(`${API_BASE}/api/emails/${emailId}/`, { is_handled: newStatus });
-      // Refresh emails after update
-      setRefreshKey(prev => prev + 1);
+      setEmails(prevEmails => prevEmails.map(email =>
+        email.id === emailId ? { ...email, is_handled: newStatus } : email
+      ));
     } catch (err) {
       console.error('Failed to update email status:', err);
     }
