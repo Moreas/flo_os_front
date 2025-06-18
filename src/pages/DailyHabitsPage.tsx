@@ -5,7 +5,9 @@ import {
   ClockIcon,
   ExclamationTriangleIcon,
   ArrowLeftIcon,
-  PlusIcon
+  PlusIcon,
+  XMarkIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -44,10 +46,14 @@ const DailyHabitsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [updatingHabitId, setUpdatingHabitId] = useState<number | null>(null);
   const [isHabitFormOpen, setIsHabitFormOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const fetchTodaySummary = useCallback(async () => {
+  const fetchTodaySummary = useCallback(async (date?: string) => {
     setLoading(true);
     setError(null);
+    const targetDate = date || selectedDate;
+    
     try {
       console.log('Fetching manual habits from:', `${API_BASE}/api/habits/manual_habits/`);
       const response = await axios.get(`${API_BASE}/api/habits/manual_habits/`);
@@ -77,7 +83,7 @@ const DailyHabitsPage: React.FC = () => {
       
       // Transform the data to match our expected format
       const todaySummary = {
-        date: new Date().toISOString().split('T')[0],
+        date: targetDate,
         summary: habits.map((habit: any) => ({
           ...habit,
           is_completed_today: false, // We'll need to check this separately
@@ -107,29 +113,38 @@ const DailyHabitsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchTodaySummary();
   }, [fetchTodaySummary]);
 
-  const handleCompleteHabit = async (habitId: number) => {
+  const handleCompleteHabit = async (habitId: number, status: 'done' | 'missed' | 'unlog') => {
     setUpdatingHabitId(habitId);
     try {
-      console.log('Marking habit as done:', habitId);
-      const payload = {
+      console.log(`Marking habit as ${status}:`, habitId, 'for date:', selectedDate);
+      
+      let payload: any = {
         notes: null,
         effort: 3,
         mood: 3,
         duration: null,
-        location: null
+        location: null,
+        date: selectedDate
       };
+
+      if (status === 'missed') {
+        payload.missed = true;
+      } else if (status === 'unlog') {
+        payload.unlog = true;
+      }
+
       console.log('Sending payload:', payload);
       const response = await axios.post(`${API_BASE}/api/habits/${habitId}/complete_manual/`, payload);
       console.log('Complete habit response:', response.data);
       await fetchTodaySummary();
     } catch (err) {
-      console.error("Error marking habit as done:", err);
+      console.error(`Error marking habit as ${status}:`, err);
       if (axios.isAxiosError(err)) {
         console.error('API Error details:', {
           status: err.response?.status,
@@ -139,7 +154,7 @@ const DailyHabitsPage: React.FC = () => {
           headers: err.config?.headers
         });
       }
-      setError("Failed to mark habit as done.");
+      setError(`Failed to mark habit as ${status}.`);
       setTimeout(() => setError(null), 3000);
     } finally {
       setUpdatingHabitId(null);
@@ -149,8 +164,10 @@ const DailyHabitsPage: React.FC = () => {
   const handleUndoCompletion = async (habitId: number) => {
     setUpdatingHabitId(habitId);
     try {
-      console.log('Undoing habit completion:', habitId);
-      await axios.delete(`${API_BASE}/api/habits/${habitId}/remove_today_instance/`);
+      console.log('Undoing habit completion:', habitId, 'for date:', selectedDate);
+      await axios.delete(`${API_BASE}/api/habits/${habitId}/remove_today_instance/`, {
+        data: { date: selectedDate }
+      });
       await fetchTodaySummary();
     } catch (err) {
       console.error("Error undoing habit completion:", err);
@@ -158,7 +175,9 @@ const DailyHabitsPage: React.FC = () => {
         console.error('API Error details:', {
           status: err.response?.status,
           data: err.response?.data,
-          url: err.config?.url
+          url: err.config?.url,
+          method: err.config?.method,
+          headers: err.config?.headers
         });
       }
       setError("Failed to undo completion.");
@@ -166,6 +185,12 @@ const DailyHabitsPage: React.FC = () => {
     } finally {
       setUpdatingHabitId(null);
     }
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    setShowDatePicker(false);
+    fetchTodaySummary(newDate);
   };
 
   const getFrequencyColor = (frequency: string) => {
@@ -199,6 +224,19 @@ const DailyHabitsPage: React.FC = () => {
   const handleHabitCreated = () => {
     fetchTodaySummary();
     setIsHabitFormOpen(false);
+  };
+
+  const getStatusButtonColor = (status: 'done' | 'missed' | 'unlog') => {
+    switch (status) {
+      case 'done':
+        return 'bg-green-600 hover:bg-green-700 text-white';
+      case 'missed':
+        return 'bg-red-600 hover:bg-red-700 text-white';
+      case 'unlog':
+        return 'bg-gray-600 hover:bg-gray-700 text-white';
+      default:
+        return 'bg-gray-600 hover:bg-gray-700 text-white';
+    }
   };
 
   if (loading) {
@@ -252,9 +290,35 @@ const DailyHabitsPage: React.FC = () => {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Daily Habits</h1>
-            <p className="text-sm text-gray-500">
-              {format(new Date(summary.date), 'EEEE, MMMM d, yyyy')}
-            </p>
+            <div className="flex items-center space-x-2">
+              <p className="text-sm text-gray-500">
+                {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
+              </p>
+              <button
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100"
+                title="Change date"
+              >
+                <CalendarIcon className="w-4 h-4" />
+              </button>
+            </div>
+            {showDatePicker && (
+              <div className="absolute mt-2 z-10 bg-white border border-gray-200 rounded-md shadow-lg p-2">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  max={new Date().toISOString().split('T')[0]}
+                />
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
         <button
@@ -322,7 +386,7 @@ const DailyHabitsPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Manual Habits</h2>
-            <p className="text-sm text-gray-500">Use the buttons to mark habits as done or undone</p>
+            <p className="text-sm text-gray-500">Use the buttons to mark habits as done, missed, or unlog</p>
           </div>
           <div className="divide-y divide-gray-200">
             {manualHabits.map(habit => (
@@ -386,33 +450,48 @@ const DailyHabitsPage: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleCompleteHabit(habit.id)}
-                        disabled={updatingHabitId === habit.id || habit.is_completed_today}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                          habit.is_completed_today
-                            ? 'bg-green-100 text-green-600 cursor-not-allowed'
-                            : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
+                        onClick={() => handleCompleteHabit(habit.id, 'done')}
+                        disabled={updatingHabitId === habit.id}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                          updatingHabitId === habit.id 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : getStatusButtonColor('done')
                         }`}
                       >
-                        {updatingHabitId === habit.id && !habit.is_completed_today ? (
+                        {updatingHabitId === habit.id ? (
                           <ClockIcon className="w-4 h-4 animate-spin" />
                         ) : (
                           'Done'
                         )}
                       </button>
                       <button
-                        onClick={() => handleUndoCompletion(habit.id)}
-                        disabled={updatingHabitId === habit.id || !habit.is_completed_today}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                          !habit.is_completed_today
+                        onClick={() => handleCompleteHabit(habit.id, 'missed')}
+                        disabled={updatingHabitId === habit.id}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                          updatingHabitId === habit.id 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
+                            : getStatusButtonColor('missed')
                         }`}
                       >
-                        {updatingHabitId === habit.id && habit.is_completed_today ? (
+                        {updatingHabitId === habit.id ? (
                           <ClockIcon className="w-4 h-4 animate-spin" />
                         ) : (
-                          'Undo'
+                          'Missed'
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleCompleteHabit(habit.id, 'unlog')}
+                        disabled={updatingHabitId === habit.id}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                          updatingHabitId === habit.id 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : getStatusButtonColor('unlog')
+                        }`}
+                      >
+                        {updatingHabitId === habit.id ? (
+                          <ClockIcon className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Unlog'
                         )}
                       </button>
                     </div>
