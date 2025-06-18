@@ -88,6 +88,7 @@ const PersonDetailPage: React.FC = () => {
       if (!id) return;
       try {
         const res = await axios.get(`${API_BASE}/api/people/${id}/email_addresses/`);
+        console.log('Assigned email addresses:', res.data);
         setAssignedEmails(res.data || []);
       } catch (err) {
         console.error('Error fetching assigned email addresses:', err);
