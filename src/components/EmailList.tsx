@@ -161,8 +161,8 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   // Filter emails based on state
   const filteredEmails = useMemo(() => {
     return emails.filter(email => {
-      // Needs Handling Filter
-      if (showNeedsHandlingOnly && email.is_handled) {
+      // Needs Handling Filter - show emails that need internal or external handling
+      if (showNeedsHandlingOnly && !email.needs_internal_handling && !email.waiting_external_handling) {
         return false;
       }
       // Category Filter: Check if email has ANY of the selected categories
