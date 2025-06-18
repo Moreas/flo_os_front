@@ -84,6 +84,13 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     try {
       const response = await axios.get(`${API_BASE}/api/emails/`);
       setEmails(response.data || []);
+      if (response.data && Array.isArray(response.data)) {
+        response.data.forEach(email => {
+          if (email.person) {
+            console.log('Email ID:', email.id, 'Person:', email.person);
+          }
+        });
+      }
       console.log('Fetched emails:', response.data); // Debug log
     } catch (err) {
       console.error("Error fetching emails:", err);
