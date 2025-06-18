@@ -184,7 +184,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     setAssignError(null);
     setAssignSuccess(null);
     try {
-      await axios.post(`${API_BASE}/api/emailmessages/${assigningEmailId}/assign_sender_to_person/`, { person_id: selectedPersonId });
+      await axios.post(`${API_BASE}/api/emails/${assigningEmailId}/assign_sender_to_person/`, { person_id: selectedPersonId });
       setAssignSuccess('Sender assigned successfully!');
       setTimeout(() => {
         setAssignModalOpen(false);
