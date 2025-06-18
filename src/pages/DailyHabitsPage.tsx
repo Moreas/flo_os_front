@@ -161,32 +161,6 @@ const DailyHabitsPage: React.FC = () => {
     }
   };
 
-  const handleUndoCompletion = async (habitId: number) => {
-    setUpdatingHabitId(habitId);
-    try {
-      console.log('Undoing habit completion:', habitId, 'for date:', selectedDate);
-      await axios.delete(`${API_BASE}/api/habits/${habitId}/remove_today_instance/`, {
-        data: { date: selectedDate }
-      });
-      await fetchTodaySummary();
-    } catch (err) {
-      console.error("Error undoing habit completion:", err);
-      if (axios.isAxiosError(err)) {
-        console.error('API Error details:', {
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-          method: err.config?.method,
-          headers: err.config?.headers
-        });
-      }
-      setError("Failed to undo completion.");
-      setTimeout(() => setError(null), 3000);
-    } finally {
-      setUpdatingHabitId(null);
-    }
-  };
-
   const handleDateChange = (newDate: string) => {
     setSelectedDate(newDate);
     setShowDatePicker(false);
