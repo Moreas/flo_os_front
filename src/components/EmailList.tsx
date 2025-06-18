@@ -222,6 +222,21 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     }
   };
 
+  const handleHandlingTypeChange = async (emailId: number, handlingType: 'external' | 'internal') => {
+    try {
+      const endpoint = handlingType === 'external' 
+        ? `${API_BASE}/api/emails/${emailId}/mark_external_handling/`
+        : `${API_BASE}/api/emails/${emailId}/mark_internal_handling/`;
+      
+      await axios.post(endpoint);
+      console.log(`Email ${emailId} marked as ${handlingType} handling`);
+      // Optionally refresh the email list to show updated status
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      console.error(`Failed to mark email as ${handlingType} handling:`, err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -303,10 +318,11 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
           <table className="min-w-full bg-white table-fixed">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="w-[40%] px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Subject</th>
-                <th scope="col" className="w-[25%] px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Sender</th>
-                <th scope="col" className="w-[20%] px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Received</th>
+                <th scope="col" className="w-[35%] px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Subject</th>
+                <th scope="col" className="w-[20%] px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Sender</th>
+                <th scope="col" className="w-[15%] px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Received</th>
                 <th scope="col" className="w-[15%] px-3 py-3.5 text-right text-sm font-semibold text-gray-900 sm:pr-6">Status</th>
+                <th scope="col" className="w-[15%] px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Handling Type</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Person</th>
               </tr>
             </thead>
@@ -332,6 +348,20 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                     >
                       <option value="needs_handling">Needs Handling</option>
                       <option value="handled">Handled</option>
+                    </select>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
+                    <select
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => {
+                        e.stopPropagation();
+                        handleHandlingTypeChange(email.id, e.target.value as 'external' | 'internal');
+                      }}
+                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="">Select Type</option>
+                      <option value="external">External</option>
+                      <option value="internal">Internal</option>
                     </select>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">
