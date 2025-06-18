@@ -7,6 +7,7 @@ import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import API_BASE from '../apiBase';
+import { Link } from 'react-router-dom';
 
 // Interface for EmailMessage data based on the backend model
 interface EmailMessage {
@@ -313,10 +314,14 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">
                     {email.person ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-medium">
+                      <Link
+                        to={`/people/${email.person.id}`}
+                        className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-medium hover:underline"
+                        title={`View ${email.person.name}`}
+                      >
                         <UserCircleIcon className="w-4 h-4 mr-1 text-green-600" />
                         {email.person.name}
-                      </span>
+                      </Link>
                     ) : (
                       <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-xs font-medium">
                         Unassigned
