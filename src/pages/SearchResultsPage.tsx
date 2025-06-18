@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, BriefcaseIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, BriefcaseIcon, FolderIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
 
 interface SearchResult {
-  type: 'person' | 'project' | 'business';
+  type: 'person' | 'project' | 'business' | 'task';
   id: number;
   title: string;
   subtitle?: string;
@@ -41,6 +41,7 @@ const SearchResultsPage: React.FC = () => {
         let peopleResults: any[] = [];
         let projectResults: any[] = [];
         let businessResults: any[] = [];
+        let taskResults: any[] = [];
 
         try {
           const peopleRes = await axios.get(`${API_BASE}/api/people/?search=${encodeURIComponent(query)}`);
@@ -64,6 +65,14 @@ const SearchResultsPage: React.FC = () => {
           console.log('Business results:', businessResults); // Debug log
         } catch (err) {
           console.error('Error fetching businesses:', err);
+        }
+
+        try {
+          const tasksRes = await axios.get(`${API_BASE}/api/tasks/?search=${encodeURIComponent(query)}`);
+          taskResults = tasksRes.data;
+          console.log('Task results:', taskResults); // Debug log
+        } catch (err) {
+          console.error('Error fetching tasks:', err);
         }
 
         const formattedResults: SearchResult[] = [
@@ -90,6 +99,15 @@ const SearchResultsPage: React.FC = () => {
             description: business.description,
             status: business.status,
             date: business.created_at
+          })),
+          ...taskResults.map((task: any) => ({
+            type: 'task' as const,
+            id: task.id,
+            title: task.description,
+            subtitle: task.is_done ? 'Completed' : 'Pending',
+            description: task.project?.name || task.business?.name,
+            status: task.importance,
+            date: task.due_date || task.created_at
           }))
         ];
 
@@ -123,6 +141,8 @@ const SearchResultsPage: React.FC = () => {
         return <FolderIcon className="w-5 h-5 text-primary-600" />;
       case 'business':
         return <BriefcaseIcon className="w-5 h-5 text-primary-600" />;
+      case 'task':
+        return <ClipboardDocumentListIcon className="w-5 h-5 text-primary-600" />;
       default:
         return null;
     }
@@ -136,6 +156,8 @@ const SearchResultsPage: React.FC = () => {
         return 'Project';
       case 'business':
         return 'Business';
+      case 'task':
+        return 'Task';
       default:
         return type;
     }
@@ -151,6 +173,9 @@ const SearchResultsPage: React.FC = () => {
         break;
       case 'business':
         navigate(`/businesses/${result.id}`);
+        break;
+      case 'task':
+        navigate(`/tasks`);
         break;
     }
   };
