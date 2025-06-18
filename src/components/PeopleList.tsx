@@ -15,6 +15,7 @@ interface Person {
   appreciation?: string;
   triggers?: string;
   last_interaction?: string;
+  is_myself?: boolean;
 }
 
 const PeopleList: React.FC = () => {
@@ -77,6 +78,9 @@ const PeopleList: React.FC = () => {
     }
   };
 
+  // Sort people so is_myself comes first
+  const sortedPeople = [...people].sort((a, b) => (b.is_myself ? 1 : 0) - (a.is_myself ? 1 : 0));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -106,10 +110,10 @@ const PeopleList: React.FC = () => {
       )}
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {people.map((person) => (
-          <div 
-            key={person.id} 
-            className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow duration-150 cursor-pointer"
+        {sortedPeople.map((person) => (
+          <div
+            key={person.id}
+            className={`bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow duration-150 cursor-pointer ${person.is_myself ? 'bg-blue-50 border-blue-300' : ''}`}
             onClick={() => navigate(`/people/${person.id}`)}
           >
             <div className="flex items-start justify-between">
@@ -119,6 +123,9 @@ const PeopleList: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-gray-900">{person.name}</h3>
+                  {person.is_myself && (
+                    <span className="inline-block text-xs font-semibold text-blue-700 bg-blue-100 rounded px-2 py-0.5 ml-1 align-middle">Myself</span>
+                  )}
                   {person.relationship && (
                     <p className="mt-1 text-sm text-gray-600">{person.relationship}</p>
                   )}
