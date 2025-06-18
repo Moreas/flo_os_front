@@ -21,13 +21,19 @@ interface Habit {
   id: number;
   name: string;
   description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
   target_count: number;
   current_streak: number;
   longest_streak: number;
   is_active: boolean;
+  tracking_type: 'manual' | 'automated' | 'hybrid';
+  good_bad: 'good' | 'bad';
   reminder_time?: string;
+  reminder_enabled?: boolean;
   category?: number;
+  automation_config?: Record<string, any>;
+  goal_description?: string;
+  motivation_quote?: string;
 }
 
 interface HabitInstance {

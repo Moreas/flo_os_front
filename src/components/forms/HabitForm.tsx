@@ -13,8 +13,8 @@ interface Habit {
   current_streak: number;
   longest_streak: number;
   is_active: boolean;
-  tracking_type: 'manual' | 'automated' | 'hybrid';
-  good_bad: 'good' | 'bad';
+  tracking_type?: 'manual' | 'automated' | 'hybrid';
+  good_bad?: 'good' | 'bad';
   reminder_time?: string;
   reminder_enabled?: boolean;
   category?: number;
@@ -49,7 +49,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
     tracking_type: 'manual',
     good_bad: 'good',
     reminder_time: '',
-    reminder_enabled: true,
+    reminder_enabled: false,
     category: undefined,
     automation_config: {},
     goal_description: '',
@@ -71,7 +71,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
       tracking_type: 'manual',
       good_bad: 'good',
       reminder_time: '',
-      reminder_enabled: true,
+      reminder_enabled: false,
       category: undefined,
       automation_config: {},
       goal_description: '',
