@@ -5,7 +5,7 @@ import MoodTracker from '../components/ui/MoodTracker';
 import EnergyTracker from '../components/ui/EnergyTracker';
 import ProjectList from '../components/ProjectList';
 import axios from 'axios';
-import { isToday, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
 import { useRefresh } from '../contexts/RefreshContext';
 
