@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment, useMemo, forwardRef, useImperativeHandle } from 'react';
 import axios from 'axios';
-import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { format, parseISO } from 'date-fns';
 import DOMPurify from 'dompurify';
@@ -24,6 +24,11 @@ interface EmailMessage {
   draft_reply?: string | null;
   needs_reply?: boolean;
   categories?: string[]; // Renamed and type changed to string array
+}
+
+interface Person {
+  id: number;
+  name: string;
 }
 
 // Helper function to preprocess body text
@@ -64,6 +69,13 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   const [showNeedsReplyOnly, setShowNeedsReplyOnly] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assigningEmailId, setAssigningEmailId] = useState<number | null>(null);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
 
   const fetchEmails = async () => {
     setLoading(true);
@@ -152,6 +164,42 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     });
   }, [emails, showNeedsReplyOnly, selectedCategories]); // Depend on selectedCategories
 
+  const openAssignModal = async (emailId: number) => {
+    setAssigningEmailId(emailId);
+    setAssignModalOpen(true);
+    setAssignError(null);
+    setAssignSuccess(null);
+    setSelectedPersonId(null);
+    try {
+      const res = await axios.get(`${API_BASE}/api/people/`);
+      setPeople(res.data || []);
+    } catch (err) {
+      setAssignError('Failed to load people.');
+    }
+  };
+
+  const handleAssign = async () => {
+    if (!assigningEmailId || !selectedPersonId) return;
+    setAssignLoading(true);
+    setAssignError(null);
+    setAssignSuccess(null);
+    try {
+      await axios.post(`${API_BASE}/api/emailmessages/${assigningEmailId}/assign_sender_to_person/`, { person_id: selectedPersonId });
+      setAssignSuccess('Sender assigned successfully!');
+      setTimeout(() => {
+        setAssignModalOpen(false);
+        setAssigningEmailId(null);
+        setAssignSuccess(null);
+        setSelectedPersonId(null);
+        setRefreshKey(prev => prev + 1); // Refresh email list
+      }, 1000);
+    } catch (err) {
+      setAssignError('Failed to assign sender.');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -237,11 +285,12 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                 <th scope="col" className="w-[25%] px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Sender</th>
                 <th scope="col" className="w-[20%] px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Received</th>
                 <th scope="col" className="w-[15%] px-3 py-3.5 text-right text-sm font-semibold text-gray-900 sm:pr-6">Status</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Person</th>
               </tr>
             </thead>
-            <tbody className="bg-white">
+            <tbody className="bg-white divide-y divide-gray-100">
               {filteredEmails.map((email) => (
-                <tr key={email.id} onClick={() => handleRowClick(email)} className="border-t border-gray-200 hover:bg-primary-50 cursor-pointer">
+                <tr key={email.id} onClick={() => handleRowClick(email)} className="hover:bg-primary-50 transition-colors duration-100">
                   <td className="whitespace-nowrap px-3 py-2 text-sm font-medium text-gray-900 truncate max-w-xs" title={email.subject}>{email.subject}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 truncate" title={email.sender_name ?? email.sender}>
                     {email.sender_name ?? email.sender}
@@ -257,6 +306,27 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                     }`}>
                       {email.is_handled ? 'Handled' : 'Needs Handling'}
                     </span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">
+                    {email.person ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-medium">
+                        <UserCircleIcon className="w-4 h-4 mr-1 text-green-600" />
+                        {email.person.name}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-xs font-medium">
+                        Unassigned
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right sm:pr-6">
+                    <button
+                      className="ml-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                      onClick={e => { e.stopPropagation(); openAssignModal(email.id); }}
+                      title="Assign sender to person"
+                    >
+                      Assign to Person
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -335,6 +405,65 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                     <button type="button" className="btn-secondary" onClick={handleCloseModal}>Close</button>
                   </div> */}
 
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
+      <Transition appear show={assignModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setAssignModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-150" enterFrom="opacity-0" enterTo="opacity-100"
+            leave="ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-30" />
+          </Transition.Child>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-150" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                leave="ease-in duration-100" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900 flex items-center">
+                    <UserCircleIcon className="w-6 h-6 text-primary-600 mr-2" />
+                    Assign Sender to Person
+                  </Dialog.Title>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select a person:</label>
+                    <select
+                      className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      value={selectedPersonId ?? ''}
+                      onChange={e => setSelectedPersonId(Number(e.target.value))}
+                    >
+                      <option value="">-- Select --</option>
+                      {people.map(person => (
+                        <option key={person.id} value={person.id}>{person.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {assignError && <div className="mt-2 text-sm text-red-600">{assignError}</div>}
+                  {assignSuccess && <div className="mt-2 text-sm text-green-600">{assignSuccess}</div>}
+                  <div className="mt-6 flex justify-end space-x-2">
+                    <button
+                      className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      onClick={() => setAssignModalOpen(false)}
+                      disabled={assignLoading}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                      onClick={handleAssign}
+                      disabled={!selectedPersonId || assignLoading}
+                    >
+                      {assignLoading ? 'Assigning...' : 'Assign'}
+                    </button>
+                  </div>
                 </Dialog.Panel>
               </Transition.Child>
             </div>

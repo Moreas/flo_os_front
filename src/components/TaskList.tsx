@@ -564,99 +564,96 @@ const TaskList: React.FC = () => {
         </div>
       )}
 
+      {/* Search Bar - always at the top */}
+      <div className="relative max-w-md mb-2">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          placeholder="Search tasks, projects, businesses, or categories..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+        />
+      </div>
+
       {/* Filters */}
-      <div className="space-y-3">
-        {/* Search Bar */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search tasks, projects, businesses, or categories..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-          />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
+        {/* Status Filter */}
+        <div>
+          <label htmlFor="status-filter" className="sr-only">Status</label>
+          <select 
+            id="status-filter"
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        
+        {/* Category Filter */}
+         <div>
+           <label htmlFor="category-filter" className="sr-only">Category</label>
+           <select 
+             id="category-filter"
+             value={categoryFilter} 
+             onChange={(e) => setCategoryFilter(e.target.value)}
+             className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+           >
+             <option value="all">All Categories</option>
+             {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+           </select>
+         </div>
+
+        {/* Project Filter */}
+        <div>
+          <label htmlFor="project-filter" className="sr-only">Project</label>
+          <select 
+            id="project-filter"
+            value={projectFilter} 
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          >
+            <option value="all">All Projects</option>
+            {projects.map(proj => <option key={proj.id} value={proj.id}>{proj.name}</option>)}
+          </select>
         </div>
 
-        {/* Other Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
-          {/* Status Filter */}
-          <div>
-            <label htmlFor="status-filter" className="sr-only">Status</label>
-            <select 
-              id="status-filter"
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-          
-          {/* Category Filter */}
-           <div>
-             <label htmlFor="category-filter" className="sr-only">Category</label>
-             <select 
-               id="category-filter"
-               value={categoryFilter} 
-               onChange={(e) => setCategoryFilter(e.target.value)}
-               className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-             >
-               <option value="all">All Categories</option>
-               {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-             </select>
-           </div>
+        {/* Business Filter */}
+        <div>
+          <label htmlFor="business-filter" className="sr-only">Business</label>
+          <select 
+            id="business-filter"
+            value={businessFilter} 
+            onChange={(e) => setBusinessFilter(e.target.value)}
+            className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          >
+            <option value="all">All Businesses</option>
+            {businesses.map(biz => <option key={biz.id} value={biz.id}>{biz.name}</option>)}
+          </select>
+        </div>
 
-          {/* Project Filter */}
-          <div>
-            <label htmlFor="project-filter" className="sr-only">Project</label>
-            <select 
-              id="project-filter"
-              value={projectFilter} 
-              onChange={(e) => setProjectFilter(e.target.value)}
-              className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            >
-              <option value="all">All Projects</option>
-              {projects.map(proj => <option key={proj.id} value={proj.id}>{proj.name}</option>)}
-            </select>
-          </div>
-
-          {/* Business Filter */}
-          <div>
-            <label htmlFor="business-filter" className="sr-only">Business</label>
-            <select 
-              id="business-filter"
-              value={businessFilter} 
-              onChange={(e) => setBusinessFilter(e.target.value)}
-              className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            >
-              <option value="all">All Businesses</option>
-              {businesses.map(biz => <option key={biz.id} value={biz.id}>{biz.name}</option>)}
-            </select>
-          </div>
-
-          {/* Due Date Filter */}
-          <div>
-            <label htmlFor="due-filter" className="sr-only">Due Date</label>
-            <select 
-              id="due-filter"
-              value={dueFilter} 
-              onChange={(e) => setDueFilter(e.target.value as DueFilter)}
-              className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            >
-              <option value="all">All Due Dates</option>
-              <option value="overdue">Overdue</option>
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="tomorrow">Tomorrow</option>
-              <option value="this-week">This Week</option>
-              <option value="upcoming">Upcoming</option>
-            </select>
-          </div>
+        {/* Due Date Filter */}
+        <div>
+          <label htmlFor="due-filter" className="sr-only">Due Date</label>
+          <select 
+            id="due-filter"
+            value={dueFilter} 
+            onChange={(e) => setDueFilter(e.target.value as DueFilter)}
+            className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          >
+            <option value="all">All Due Dates</option>
+            <option value="overdue">Overdue</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="tomorrow">Tomorrow</option>
+            <option value="this-week">This Week</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
         </div>
       </div>
 

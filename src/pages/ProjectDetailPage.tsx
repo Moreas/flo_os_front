@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Task } from '../types/task';
-import { Project } from '../types/project';
+import { Project, ProjectNote } from '../types/project';
 import API_BASE from '../apiBase';
 
 const ProjectDetailPage: React.FC = () => {
@@ -11,6 +11,10 @@ const ProjectDetailPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notes, setNotes] = useState<ProjectNote[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editingNoteContent, setEditingNoteContent] = useState('');
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -43,6 +47,41 @@ const ProjectDetailPage: React.FC = () => {
     fetchProject();
     fetchTasks();
   }, [id]);
+
+  useEffect(() => {
+    if (project && project.notes) {
+      setNotes(project.notes);
+    }
+  }, [project]);
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNote.trim() || !id) return;
+    try {
+      const res = await axios.post(`${API_BASE}/api/projects/${id}/notes/`, { content: newNote });
+      setNotes([res.data, ...notes]);
+      setNewNote('');
+    } catch (err) {
+      alert('Failed to add note.');
+    }
+  };
+
+  const handleEditNote = (note: ProjectNote) => {
+    setEditingNoteId(note.id);
+    setEditingNoteContent(note.content);
+  };
+
+  const handleUpdateNote = async (noteId: number) => {
+    if (!editingNoteContent.trim() || !id) return;
+    try {
+      const res = await axios.patch(`${API_BASE}/api/projects/${id}/notes/${noteId}/`, { content: editingNoteContent });
+      setNotes(notes.map(n => n.id === noteId ? res.data : n));
+      setEditingNoteId(null);
+      setEditingNoteContent('');
+    } catch (err) {
+      alert('Failed to update note.');
+    }
+  };
 
   if (loading) {
     return (
@@ -95,6 +134,48 @@ const ProjectDetailPage: React.FC = () => {
                     {task.is_done ? 'Completed' : 'Pending'}
                   </span>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes</h2>
+        <form onSubmit={handleAddNote} className="flex mb-4 space-x-2">
+          <input
+            type="text"
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Add a new note..."
+            value={newNote}
+            onChange={e => setNewNote(e.target.value)}
+          />
+          <button type="submit" className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700">Add</button>
+        </form>
+        {notes.length === 0 ? (
+          <p className="text-gray-500">No notes for this project.</p>
+        ) : (
+          <ul className="space-y-2">
+            {notes.map(note => (
+              <li key={note.id} className="bg-gray-50 rounded-md p-3 flex items-center justify-between">
+                {editingNoteId === note.id ? (
+                  <>
+                    <input
+                      type="text"
+                      className="flex-1 border border-gray-300 rounded-md px-2 py-1 mr-2"
+                      value={editingNoteContent}
+                      onChange={e => setEditingNoteContent(e.target.value)}
+                    />
+                    <button onClick={() => handleUpdateNote(note.id)} className="text-green-600 font-semibold mr-2">Save</button>
+                    <button onClick={() => setEditingNoteId(null)} className="text-gray-500">Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1">{note.content}</span>
+                    <span className="text-xs text-gray-400 ml-2">{new Date(note.created_at).toLocaleString()}</span>
+                    <button onClick={() => handleEditNote(note)} className="ml-4 text-blue-600 hover:underline">Edit</button>
+                  </>
+                )}
               </li>
             ))}
           </ul>

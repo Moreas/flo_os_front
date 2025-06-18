@@ -1,3 +1,9 @@
+export interface ProjectNote {
+  id: number;
+  content: string;
+  created_at: string;
+}
+
 export interface Project {
   id: number;
   name: string;
@@ -15,4 +21,5 @@ export interface Project {
     is_done: boolean;
     due_date?: string;
   }[];
+  notes?: ProjectNote[];
 } 
