@@ -38,7 +38,7 @@ interface Person {
     created_at: string;
     emotion?: string;
   }>;
-  email_addresses?: string[];
+  email_addresses?: Array<{ id: number; email: string; label?: string }>;
 }
 
 const PersonDetailPage: React.FC = () => {
@@ -327,21 +327,28 @@ const PersonDetailPage: React.FC = () => {
           <div className="mb-8">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Assigned Email Addresses</h2>
             <ul className="divide-y divide-gray-200 bg-gray-50 rounded-md border border-gray-200">
-              {person.email_addresses.map((email: string) => (
-                <li key={email} className="flex items-center justify-between px-4 py-2">
-                  <span className="text-sm text-gray-800">{email}</span>
+              {person.email_addresses.map((emailObj: { id: number; email: string; label?: string }) => (
+                <li key={emailObj.id} className="flex items-center justify-between px-4 py-2">
+                  <span className="text-sm text-gray-800">
+                    {emailObj.email}
+                    {emailObj.label && (
+                      <span className="ml-2 text-xs text-gray-500 bg-gray-100 rounded px-2 py-0.5">{emailObj.label}</span>
+                    )}
+                  </span>
                   <button
                     className="ml-4 px-3 py-1 text-xs rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
                     onClick={async () => {
-                      setUnassigning(email);
+                      setUnassigning(emailObj.email);
                       try {
                         await axios.delete(`${API_BASE}/api/people/${id}/unassign_email_address/`, {
-                          data: { email_address: email },
+                          data: { email_address: emailObj.email },
                           headers: { 'Content-Type': 'application/json' },
                         });
                         setPerson(prev => prev && {
                           ...prev,
-                          email_addresses: prev.email_addresses ? prev.email_addresses.filter((e: string) => e !== email) : []
+                          email_addresses: prev.email_addresses
+                            ? prev.email_addresses.filter((e: any) => e.email !== emailObj.email)
+                            : []
                         });
                       } catch (err) {
                         console.error('Failed to unassign email address:', err);
@@ -349,9 +356,9 @@ const PersonDetailPage: React.FC = () => {
                         setUnassigning(null);
                       }
                     }}
-                    disabled={unassigning === email}
+                    disabled={unassigning === emailObj.email}
                   >
-                    {unassigning === email ? 'Unassigning...' : 'Unassign'}
+                    {unassigning === emailObj.email ? 'Unassigning...' : 'Unassign'}
                   </button>
                 </li>
               ))}
