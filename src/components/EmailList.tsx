@@ -67,7 +67,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(false);
+  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
