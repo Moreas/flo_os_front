@@ -316,7 +316,11 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
                     <select
                       value={email.is_handled ? 'handled' : 'needs_handling'}
-                      onChange={e => handleEmailStatusChange(email.id, e.target.value === 'handled')}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => {
+                        e.stopPropagation();
+                        handleEmailStatusChange(email.id, e.target.value === 'handled');
+                      }}
                       className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                     >
                       <option value="needs_handling">Needs Handling</option>
