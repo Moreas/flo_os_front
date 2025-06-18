@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
   const [activeGoals, setActiveGoals] = useState<number>(0);
   const [tasksDueToday, setTasksDueToday] = useState<number>(0);
   const [activeProjects, setActiveProjects] = useState<number>(0);
-  // Optionally: const [monthlyIncome, setMonthlyIncome] = useState<string>("$4,200");
+  const [activeHabits, setActiveHabits] = useState<number>(0);
 
   useEffect(() => {
     // Fetch goals
@@ -57,7 +57,13 @@ const Dashboard: React.FC = () => {
         setActiveProjects(projects.filter((p: any) => p.status === 'active').length);
       })
       .catch(() => setActiveProjects(0));
-    // Optionally: fetch monthly income here
+    // Fetch habits
+    axios.get(`${API_BASE}/api/habits/`)
+      .then(res => {
+        const habits = res.data || [];
+        setActiveHabits(habits.filter((h: any) => h.status === 'active').length);
+      })
+      .catch(() => setActiveHabits(0));
   }, [tasksVersion]);
 
   return (
@@ -95,10 +101,9 @@ const Dashboard: React.FC = () => {
           icon={FolderIcon}
         />
         <StatCard
-          title="Monthly Income"
-          value={"$4,200"}
-          icon={CurrencyDollarIcon}
-          trend={{ value: '+12% from last month', isPositive: true }}
+          title="Active Habits"
+          value={activeHabits}
+          icon={BookOpenIcon}
         />
       </div>
 
