@@ -18,7 +18,6 @@ import {
   CalendarDaysIcon,
   BookmarkIcon,
   ClockIcon,
-  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
