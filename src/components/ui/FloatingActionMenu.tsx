@@ -781,7 +781,7 @@ const FloatingActionMenu: React.FC = () => {
                         disabled={isSubmittingHabit}
                       >
                         <option value="">Select a habit</option>
-                        {habits.map((habit) => (
+                        {Array.isArray(habits) && habits.map((habit) => (
                           <option key={habit.id} value={habit.id}>{habit.name}</option>
                         ))}
                       </select>
