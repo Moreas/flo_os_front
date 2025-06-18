@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 interface StatCardProps {
   title: string;
@@ -8,10 +9,11 @@ interface StatCardProps {
     value: string;
     isPositive: boolean;
   };
+  link?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, trend }) => {
-  return (
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, trend, link }) => {
+  const cardContent = (
     <div className="card">
       <div className="flex items-center justify-between">
         <div>
@@ -29,6 +31,16 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, trend }) 
       </div>
     </div>
   );
+
+  if (link) {
+    return (
+      <Link to={link} className="block hover:scale-105 transition-transform duration-200">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 };
 
 export default StatCard; 

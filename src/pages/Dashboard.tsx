@@ -107,21 +107,25 @@ const Dashboard: React.FC = () => {
           title="Active Goals"
           value={activeGoals}
           icon={FlagIcon}
+          link="/goals"
         />
         <StatCard
           title="Tasks Due Today"
           value={tasksDueToday}
           icon={ClipboardDocumentListIcon}
+          link="/tasks"
         />
         <StatCard
           title="Active Projects"
           value={activeProjects}
           icon={FolderIcon}
+          link="/projects"
         />
         <StatCard
           title="Active Habits"
           value={activeHabits}
           icon={BookOpenIcon}
+          link="/habits"
         />
       </div>
 
