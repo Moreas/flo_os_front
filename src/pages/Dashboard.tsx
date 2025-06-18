@@ -135,44 +135,6 @@ const Dashboard: React.FC = () => {
         <EnergyTracker />
       </div>
 
-      {/* System Status and Recent Activity */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="card lg:col-span-1">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">System Status</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">RAG memory</span>
-              <span className="text-sm font-medium text-green-600">✅</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Last sync</span>
-              <span className="text-sm font-medium text-gray-900">3h ago</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">AI agents running</span>
-              <span className="text-sm font-medium text-gray-900">2</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="card lg:col-span-2">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            {[1, 2, 3].map((item) => (
-              <div key={item} className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <BookOpenIcon className="w-5 h-5 text-gray-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-900">Journal entry created</p>
-                  <p className="text-xs text-gray-500">2 hours ago</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <ProjectList />
     </div>
   );
