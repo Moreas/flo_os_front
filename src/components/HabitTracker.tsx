@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
   CheckCircleIcon, 
@@ -7,7 +7,7 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import API_BASE from '../apiBase';
 
 interface Habit {
@@ -43,7 +43,7 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchHabitData = async () => {
+  const fetchHabitData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -62,11 +62,11 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [habitId]);
 
   useEffect(() => {
     fetchHabitData();
-  }, [habitId]);
+  }, [fetchHabitData]);
 
   const toggleCompletion = async () => {
     if (!habit) return;

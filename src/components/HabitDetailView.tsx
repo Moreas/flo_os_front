@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
   ArrowPathIcon, 
@@ -54,7 +54,7 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
   const [newNote, setNewNote] = useState('');
   const [updatingInstance, setUpdatingInstance] = useState<number | null>(null);
 
-  const fetchHabitData = async () => {
+  const fetchHabitData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -70,11 +70,11 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [habitId]);
 
   useEffect(() => {
     fetchHabitData();
-  }, [habitId]);
+  }, [fetchHabitData]);
 
   const handleEdit = () => {
     setIsEditModalOpen(true);
