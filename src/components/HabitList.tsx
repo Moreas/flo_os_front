@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowPathIcon, ExclamationTriangleIcon, ClockIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, ClockIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
 import API_BASE from '../apiBase';
 import HabitForm from './forms/HabitForm';
 
@@ -148,6 +149,13 @@ const HabitList: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex space-x-2">
+                  <Link
+                    to={`/habits/${habit.id}`}
+                    className="p-1 text-gray-400 hover:text-blue-500 rounded-full hover:bg-gray-100"
+                    title="View details"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                  </Link>
                   <button
                     onClick={() => handleEdit(habit)}
                     className="p-1 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100"
