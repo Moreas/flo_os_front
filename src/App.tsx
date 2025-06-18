@@ -26,6 +26,7 @@ import BooksPage from './pages/BooksPage';
 import HabitsPage from './pages/HabitsPage';
 import HabitDetailPage from './pages/HabitDetailPage';
 import HabitsDashboardPage from './pages/HabitsDashboardPage';
+import DailyHabitsPage from './pages/DailyHabitsPage';
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
               <Route path="/habits" element={<HabitsPage />} />
               <Route path="/habits/:habitId" element={<HabitDetailPage />} />
               <Route path="/habits-dashboard" element={<HabitsDashboardPage />} />
+              <Route path="/daily-habits" element={<DailyHabitsPage />} />
             </Routes>
           </Layout>
         </TaskRefreshProvider>

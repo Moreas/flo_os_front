@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useTaskRefresh } from '../../contexts/TaskRefreshContext';
 import MentionInput from './MentionInput';
 import API_BASE from '../../apiBase';
+import { Link } from 'react-router-dom';
 
 // Define emotions and their corresponding emojis
 const emotionsMap: { [key: string]: string } = {
@@ -42,7 +43,6 @@ const FloatingActionMenu: React.FC = () => {
   const [isJournalModalOpen, setIsJournalModalOpen] = useState(false);
   const [isMoodModalOpen, setIsMoodModalOpen] = useState(false); // New Mood Modal State
   const [isEnergyModalOpen, setIsEnergyModalOpen] = useState(false);
-  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   
   // Task Modal State
   const [quickTaskInput, setQuickTaskInput] = useState('');
@@ -72,14 +72,6 @@ const FloatingActionMenu: React.FC = () => {
   const [isSubmittingEnergy, setIsSubmittingEnergy] = useState(false);
   const [submitEnergyError, setSubmitEnergyError] = useState<string | null>(null);
   const [submitEnergySuccess, setSubmitEnergySuccess] = useState(false);
-
-  // Habit Modal State
-  const [habits, setHabits] = useState<any[]>([]);
-  const [selectedHabitId, setSelectedHabitId] = useState<number | null>(null);
-  const [habitNotes, setHabitNotes] = useState('');
-  const [isSubmittingHabit, setIsSubmittingHabit] = useState(false);
-  const [submitHabitError, setSubmitHabitError] = useState<string | null>(null);
-  const [submitHabitSuccess, setSubmitHabitSuccess] = useState(false);
 
   // New state for selected person IDs
   const [selectedTaskPersonIds, setSelectedTaskPersonIds] = useState<number[]>([]);
@@ -263,62 +255,6 @@ const FloatingActionMenu: React.FC = () => {
   };
   // --- End Energy Modal Logic ---
 
-  // --- Habit Modal Logic ---
-  const openHabitModal = async () => {
-    setIsHabitModalOpen(true);
-    setSubmitHabitError(null);
-    setSubmitHabitSuccess(false);
-    setSelectedHabitId(null);
-    setHabitNotes('');
-    
-    try {
-      const response = await axios.get(`${API_BASE}/api/habits/manual_habits/`);
-      setHabits(response.data || []);
-    } catch (err) {
-      setSubmitHabitError('Failed to load habits.');
-    }
-  };
-
-  const closeHabitModal = useCallback(() => {
-    if (isSubmittingHabit) return;
-    setIsHabitModalOpen(false);
-    setTimeout(() => {
-      setSelectedHabitId(null);
-      setHabitNotes('');
-      setSubmitHabitError(null);
-      setSubmitHabitSuccess(false);
-    }, 300);
-  }, [isSubmittingHabit]);
-
-  const handleHabitSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedHabitId) {
-      setSubmitHabitError("Please select a habit.");
-      return;
-    }
-    
-    setIsSubmittingHabit(true);
-    setSubmitHabitError(null);
-    setSubmitHabitSuccess(false);
-    
-    try {
-      await axios.post(`${API_BASE}/api/habits/${selectedHabitId}/complete_manual/`, {
-        notes: habitNotes.trim() || null
-      });
-      
-      setSubmitHabitSuccess(true);
-      setSelectedHabitId(null);
-      setHabitNotes('');
-      setTimeout(() => { closeHabitModal(); }, 1000);
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to track habit.';
-      setSubmitHabitError(errorMsg);
-    } finally {
-      setIsSubmittingHabit(false);
-    }
-  };
-  // --- End Habit Modal Logic ---
-
   return (
     <>
       {/* Main FAB using Popover */}
@@ -372,13 +308,14 @@ const FloatingActionMenu: React.FC = () => {
                     <BoltIcon className="mr-3 h-5 w-5 text-gray-400" aria-hidden="true" />
                     Track Energy
                   </button>
-                  <button
-                    onClick={() => { openHabitModal(); close(); }}
+                  <Link
+                    to="/daily-habits"
+                    onClick={() => close()}
                     className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                   >
                     <ClockIcon className="mr-3 h-5 w-5 text-gray-400" aria-hidden="true" />
-                    Track Habit
-                  </button>
+                    Daily Habits
+                  </Link>
                   {/* Add more quick actions here later */}
                 </div>
               </Popover.Panel>
@@ -731,99 +668,6 @@ const FloatingActionMenu: React.FC = () => {
                           <><ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />Submitting...</>
                         ) : (
                           'Track Energy'
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
-
-      {/* Habit Modal */}
-      <Transition appear show={isHabitModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={closeHabitModal}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
-            leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-30" />
-          </Transition.Child>
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-end sm:items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300" enterFrom="opacity-0 scale-95 sm:translate-y-full" enterTo="opacity-100 scale-100 sm:translate-y-0"
-                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100 sm:translate-y-0" leaveTo="opacity-0 scale-95 sm:translate-y-full"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <Dialog.Title as="h3" className="text-lg font-medium text-gray-900">Track Your Habit</Dialog.Title>
-                    <button 
-                      type="button" 
-                      className="text-gray-400 hover:text-gray-500 disabled:opacity-50" 
-                      onClick={closeHabitModal} 
-                      disabled={isSubmittingHabit}
-                    >
-                      <XMarkIcon className="h-6 w-6" />
-                    </button>
-                  </div>
-                  <form onSubmit={handleHabitSubmit} className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select a habit</label>
-                      <select
-                        value={selectedHabitId ? selectedHabitId.toString() : ''}
-                        onChange={(e) => setSelectedHabitId(e.target.value ? parseInt(e.target.value) : null)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm disabled:opacity-50"
-                        disabled={isSubmittingHabit}
-                      >
-                        <option value="">Select a habit</option>
-                        {Array.isArray(habits) && habits.map((habit) => (
-                          <option key={habit.id} value={habit.id}>{habit.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="habitNotes" className="block text-sm font-medium text-gray-700">
-                        Add notes (Optional)
-                      </label>
-                      <textarea
-                        id="habitNotes"
-                        rows={3}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm disabled:opacity-50"
-                        placeholder="Any thoughts to add?"
-                        value={habitNotes}
-                        onChange={(e) => setHabitNotes(e.target.value)}
-                        disabled={isSubmittingHabit}
-                      />
-                    </div>
-
-                    <div className="space-y-3 pt-2">
-                      {submitHabitSuccess && (
-                        <div className="p-3 text-sm text-green-700 bg-green-50 rounded-md border border-green-200 flex items-center">
-                          <CheckCircleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
-                          Habit tracked successfully!
-                        </div>
-                      )}
-                      {submitHabitError && (
-                        <div className="p-3 text-sm text-red-700 bg-red-50 rounded-md border border-red-200 flex items-center">
-                          <ExclamationCircleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
-                          {submitHabitError}
-                        </div>
-                      )}
-                      <button
-                        type="submit"
-                        className="inline-flex w-full justify-center items-center rounded-md border border-transparent bg-primary-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={isSubmittingHabit || !selectedHabitId}
-                      >
-                        {isSubmittingHabit ? (
-                          <><ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />Submitting...</>
-                        ) : (
-                          'Track Habit'
                         )}
                       </button>
                     </div>
