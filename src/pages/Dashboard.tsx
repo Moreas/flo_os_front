@@ -22,11 +22,11 @@ const Dashboard: React.FC = () => {
   }
 
   // State for metrics
-  const [activeGoals, setActiveGoals] = useState<number>(0);
-  const [tasksDueToday, setTasksDueToday] = useState<number>(0);
-  const [activeProjects, setActiveProjects] = useState<number>(0);
-  const [activeHabits, setActiveHabits] = useState<number>(0);
-  const [unhandledEmails, setUnhandledEmails] = useState<number>(0);
+  const [activeGoals, setActiveGoals] = useState<number | null>(null);
+  const [tasksDueToday, setTasksDueToday] = useState<number | null>(null);
+  const [activeProjects, setActiveProjects] = useState<number | null>(null);
+  const [activeHabits, setActiveHabits] = useState<number | null>(null);
+  const [unhandledEmails, setUnhandledEmails] = useState<number | null>(null);
 
   useEffect(() => {
     // Fetch goals
@@ -120,31 +120,31 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Active Goals"
-          value={activeGoals}
+          value={activeGoals !== null ? activeGoals : "Loading..."}
           icon={FlagIcon}
           link="/goals"
         />
         <StatCard
           title="Tasks Due Today"
-          value={tasksDueToday}
+          value={tasksDueToday !== null ? tasksDueToday : "Loading..."}
           icon={ClipboardDocumentListIcon}
           link="/tasks"
         />
         <StatCard
           title="Active Projects"
-          value={activeProjects}
+          value={activeProjects !== null ? activeProjects : "Loading..."}
           icon={FolderIcon}
           link="/projects"
         />
         <StatCard
           title="Active Habits"
-          value={activeHabits}
+          value={activeHabits !== null ? activeHabits : "Loading..."}
           icon={BookOpenIcon}
           link="/habits"
         />
         <StatCard
           title="Emails Not Handled"
-          value={unhandledEmails}
+          value={unhandledEmails !== null ? unhandledEmails : "Loading..."}
           icon={EnvelopeIcon}
           link="/emails"
         />

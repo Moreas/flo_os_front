@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface StatCardProps {
   title: string;
@@ -13,13 +14,22 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, trend, link }) => {
+  const isLoading = value === "Loading...";
+  
   const cardContent = (
     <div className="card">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
-          {trend && (
+          {isLoading ? (
+            <div className="mt-1 flex items-center">
+              <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin mr-2" />
+              <span className="text-lg font-semibold text-gray-400">Loading</span>
+            </div>
+          ) : (
+            <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
+          )}
+          {trend && !isLoading && (
             <p className={`mt-1 text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
               {trend.value}
             </p>
