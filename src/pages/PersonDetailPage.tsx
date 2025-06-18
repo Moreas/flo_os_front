@@ -73,6 +73,7 @@ const PersonDetailPage: React.FC = () => {
       try {
         const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
         setEmails(res.data || []);
+        console.log('Person emails:', res.data);
       } catch (err) {
         console.error('Error fetching emails for person:', err);
       }
