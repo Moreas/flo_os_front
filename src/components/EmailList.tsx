@@ -67,7 +67,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showNeedsReplyOnly, setShowNeedsReplyOnly] = useState(false);
+  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -152,19 +152,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   // Filter emails based on state
   const filteredEmails = useMemo(() => {
     return emails.filter(email => {
-      // Needs Reply Filter
-      if (showNeedsReplyOnly && !email.needs_reply) {
+      // Needs Handling Filter
+      if (showNeedsHandlingOnly && email.is_handled) {
         return false;
       }
       // Category Filter: Check if email has ANY of the selected categories
-      // If no categories are selected, this filter passes (shows all categories)
       if (selectedCategories.length > 0 && 
           !selectedCategories.some(selCat => email.categories?.includes(selCat))) {
         return false;
       }
       return true; // Show if all filters pass
     });
-  }, [emails, showNeedsReplyOnly, selectedCategories]); // Depend on selectedCategories
+  }, [emails, showNeedsHandlingOnly, selectedCategories]);
 
   const openAssignModal = async (emailId: number) => {
     setAssigningEmailId(emailId);
@@ -264,18 +263,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
             )}
           </div>
 
-          {/* Needs Reply Checkbox (moved for better grouping) */}
+          {/* Needs Handling Checkbox (moved for better grouping) */}
           <div className="flex items-center flex-shrink-0 pt-2 md:pt-0 md:self-end">
             <input
-              id="needs-reply-filter"
-              name="needs-reply-filter"
+              id="needs-handling-filter"
+              name="needs-handling-filter"
               type="checkbox"
               className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              checked={showNeedsReplyOnly}
-              onChange={(e) => setShowNeedsReplyOnly(e.target.checked)}
+              checked={showNeedsHandlingOnly}
+              onChange={(e) => setShowNeedsHandlingOnly(e.target.checked)}
             />
-            <label htmlFor="needs-reply-filter" className="ml-2 block text-sm text-gray-900">
-              Show only needs reply
+            <label htmlFor="needs-handling-filter" className="ml-2 block text-sm text-gray-900">
+              Show only needs handling
             </label>
           </div>
         </div>
@@ -285,7 +284,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
          <div className="text-center py-8 bg-gray-50 rounded-lg">
             <InboxIcon className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-2 text-sm font-medium text-gray-900">
-                {showNeedsReplyOnly || selectedCategories.length > 0 ? 'No emails match the current filters.' : 'No emails found.'}
+                {showNeedsHandlingOnly || selectedCategories.length > 0 ? 'No emails match the current filters.' : 'No emails found.'}
             </p>
          </div>
       )}
