@@ -8,13 +8,19 @@ interface Habit {
   id: number;
   name: string;
   description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
   target_count: number;
   current_streak: number;
   longest_streak: number;
   is_active: boolean;
+  tracking_type: 'manual' | 'automated' | 'hybrid';
+  good_bad: 'good' | 'bad';
   reminder_time?: string;
+  reminder_enabled?: boolean;
   category?: number;
+  automation_config?: Record<string, any>;
+  goal_description?: string;
+  motivation_quote?: string;
 }
 
 interface HabitFormProps {
@@ -40,8 +46,14 @@ const HabitForm: React.FC<HabitFormProps> = ({
     current_streak: 0,
     longest_streak: 0,
     is_active: true,
+    tracking_type: 'manual',
+    good_bad: 'good',
     reminder_time: '',
-    category: undefined
+    reminder_enabled: true,
+    category: undefined,
+    automation_config: {},
+    goal_description: '',
+    motivation_quote: ''
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +68,14 @@ const HabitForm: React.FC<HabitFormProps> = ({
       current_streak: 0,
       longest_streak: 0,
       is_active: true,
+      tracking_type: 'manual',
+      good_bad: 'good',
       reminder_time: '',
-      category: undefined
+      reminder_enabled: true,
+      category: undefined,
+      automation_config: {},
+      goal_description: '',
+      motivation_quote: ''
     });
     setError(null);
   };
@@ -81,6 +99,31 @@ const HabitForm: React.FC<HabitFormProps> = ({
       ...prev,
       [name]: type === 'number' ? parseInt(value) : value
     }));
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'automation_config') {
+      try {
+        const parsed = JSON.parse(value);
+        setFormData(prev => ({
+          ...prev,
+          [name]: parsed
+        }));
+      } catch {
+        // If invalid JSON, store as empty object
+        setFormData(prev => ({
+          ...prev,
+          [name]: {}
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const validateReminderTime = (time: string): boolean => {
@@ -215,6 +258,7 @@ const HabitForm: React.FC<HabitFormProps> = ({
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>
                       <option value="monthly">Monthly</option>
+                      <option value="custom">Custom</option>
                     </select>
                   </div>
 
@@ -276,6 +320,41 @@ const HabitForm: React.FC<HabitFormProps> = ({
                   </div>
 
                   <div>
+                    <label htmlFor="tracking_type" className="block text-sm font-medium text-gray-700">
+                      Tracking Type *
+                    </label>
+                    <select
+                      id="tracking_type"
+                      name="tracking_type"
+                      required
+                      value={formData.tracking_type}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    >
+                      <option value="manual">Manual</option>
+                      <option value="automated">Automated</option>
+                      <option value="hybrid">Hybrid</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="good_bad" className="block text-sm font-medium text-gray-700">
+                      Good/Bad *
+                    </label>
+                    <select
+                      id="good_bad"
+                      name="good_bad"
+                      required
+                      value={formData.good_bad}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    >
+                      <option value="good">Good</option>
+                      <option value="bad">Bad</option>
+                    </select>
+                  </div>
+
+                  <div>
                     <label htmlFor="reminder_time" className="block text-sm font-medium text-gray-700">
                       Reminder Time (optional, HH:MM format)
                     </label>
@@ -291,6 +370,20 @@ const HabitForm: React.FC<HabitFormProps> = ({
                   </div>
 
                   <div>
+                    <label htmlFor="reminder_enabled" className="block text-sm font-medium text-gray-700">
+                      Reminder Enabled
+                    </label>
+                    <input
+                      type="checkbox"
+                      id="reminder_enabled"
+                      name="reminder_enabled"
+                      checked={formData.reminder_enabled}
+                      onChange={(e) => setFormData(prev => ({ ...prev, reminder_enabled: e.target.checked }))}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
                     <label htmlFor="category" className="block text-sm font-medium text-gray-700">
                       Category ID (optional)
                     </label>
@@ -299,6 +392,49 @@ const HabitForm: React.FC<HabitFormProps> = ({
                       id="category"
                       name="category"
                       value={formData.category || ''}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="automation_config" className="block text-sm font-medium text-gray-700">
+                      Automation Config (optional, JSON format)
+                    </label>
+                    <textarea
+                      id="automation_config"
+                      name="automation_config"
+                      value={JSON.stringify(formData.automation_config, null, 2) || '{}'}
+                      onChange={handleTextareaChange}
+                      rows={3}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      placeholder='{"key": "value"}'
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="goal_description" className="block text-sm font-medium text-gray-700">
+                      Goal Description (optional)
+                    </label>
+                    <input
+                      type="text"
+                      id="goal_description"
+                      name="goal_description"
+                      value={formData.goal_description || ''}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="motivation_quote" className="block text-sm font-medium text-gray-700">
+                      Motivation Quote (optional)
+                    </label>
+                    <input
+                      type="text"
+                      id="motivation_quote"
+                      name="motivation_quote"
+                      value={formData.motivation_quote || ''}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     />

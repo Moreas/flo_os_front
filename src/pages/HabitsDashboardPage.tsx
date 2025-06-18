@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import API_BASE from '../apiBase';
 import HabitForm from '../components/forms/HabitForm';
 import HabitTracker from '../components/HabitTracker';
+import QuickHabitTracker from '../components/QuickHabitTracker';
 
 interface Habit {
   id: number;
@@ -241,6 +242,11 @@ const HabitsDashboardPage: React.FC = () => {
               ))}
           </div>
         )}
+      </div>
+
+      {/* Quick Habit Tracker */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <QuickHabitTracker onUpdate={handleHabitUpdated} />
       </div>
 
       {/* Habit Form Modal */}
