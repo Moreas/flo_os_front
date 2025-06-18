@@ -205,6 +205,16 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     }
   };
 
+  const handleEmailStatusChange = async (emailId: number, newStatus: boolean) => {
+    try {
+      await axios.patch(`${API_BASE}/api/emails/${emailId}/`, { is_handled: newStatus });
+      // Refresh emails after update
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      console.error('Failed to update email status:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -303,14 +313,15 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">
                     {format(parseISO(email.received_at), 'MMM d, yyyy h:mm a')}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right sm:pr-6">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                      email.is_handled
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {email.is_handled ? 'Handled' : 'Needs Handling'}
-                    </span>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
+                    <select
+                      value={email.is_handled ? 'handled' : 'needs_handling'}
+                      onChange={e => handleEmailStatusChange(email.id, e.target.value === 'handled')}
+                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="needs_handling">Needs Handling</option>
+                      <option value="handled">Handled</option>
+                    </select>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">
                     {email.person ? (
@@ -323,20 +334,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                         {email.person.name}
                       </Link>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-xs font-medium">
-                        Unassigned
-                      </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right sm:pr-6">
-                    {!email.person && (
-                      <button
-                        className="ml-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                        onClick={e => { e.stopPropagation(); openAssignModal(email.id); }}
-                        title="Assign sender to person"
-                      >
-                        Assign to Person
-                      </button>
+                      <>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-xs font-medium">
+                          Unassigned
+                        </span>
+                        <button
+                          className="ml-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                          onClick={e => { e.stopPropagation(); openAssignModal(email.id); }}
+                          title="Assign sender to person"
+                        >
+                          Assign to Person
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
