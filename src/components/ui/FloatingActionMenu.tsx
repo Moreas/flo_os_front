@@ -272,11 +272,8 @@ const FloatingActionMenu: React.FC = () => {
     setHabitNotes('');
     
     try {
-      const response = await axios.get(`${API_BASE}/api/habits/`);
-      const manualHabits = (response.data || []).filter((habit: any) => 
-        habit.is_active && habit.tracking_type !== 'automated'
-      );
-      setHabits(manualHabits);
+      const response = await axios.get(`${API_BASE}/api/habits/manual_habits/`);
+      setHabits(response.data || []);
     } catch (err) {
       setSubmitHabitError('Failed to load habits.');
     }
@@ -305,12 +302,8 @@ const FloatingActionMenu: React.FC = () => {
     setSubmitHabitSuccess(false);
     
     try {
-      const today = new Date().toISOString().split('T')[0];
-      await axios.post(`${API_BASE}/api/habit-instances/`, {
-        habit_id: selectedHabitId,
-        date: today,
-        notes: habitNotes.trim() || null,
-        is_automated: false
+      await axios.post(`${API_BASE}/api/habits/${selectedHabitId}/complete_manual/`, {
+        notes: habitNotes.trim() || null
       });
       
       setSubmitHabitSuccess(true);

@@ -14,6 +14,7 @@ import API_BASE from '../apiBase';
 import HabitForm from '../components/forms/HabitForm';
 import HabitTracker from '../components/HabitTracker';
 import QuickHabitTracker from '../components/QuickHabitTracker';
+import TodayHabitsSummary from '../components/TodayHabitsSummary';
 
 interface Habit {
   id: number;
@@ -216,6 +217,11 @@ const HabitsDashboardPage: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Today's Summary */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <TodayHabitsSummary onUpdate={handleHabitUpdated} />
       </div>
 
       {/* Today's Habits */}
