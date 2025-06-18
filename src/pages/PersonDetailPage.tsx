@@ -38,6 +38,7 @@ interface Person {
     created_at: string;
     emotion?: string;
   }>;
+  email_addresses?: string[];
 }
 
 const PersonDetailPage: React.FC = () => {
@@ -48,7 +49,6 @@ const PersonDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [emails, setEmails] = useState<any[]>([]);
-  const [assignedEmails, setAssignedEmails] = useState<string[]>([]);
   const [unassigning, setUnassigning] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,20 +83,6 @@ const PersonDetailPage: React.FC = () => {
     fetchEmails();
   }, [id]);
 
-  useEffect(() => {
-    const fetchAssignedEmails = async () => {
-      if (!id) return;
-      try {
-        const res = await axios.get(`${API_BASE}/api/people/${id}/email_addresses/`);
-        console.log('Assigned email addresses:', res.data);
-        setAssignedEmails(res.data || []);
-      } catch (err) {
-        console.error('Error fetching assigned email addresses:', err);
-      }
-    };
-    fetchAssignedEmails();
-  }, [id]);
-
   const handlePersonUpdated = (updatedPerson: Person) => {
     setPerson(updatedPerson);
     setIsEditModalOpen(false);
@@ -119,21 +105,6 @@ const PersonDetailPage: React.FC = () => {
       setEmails(res.data || []);
     } catch (err) {
       console.error('Failed to update email status:', err);
-    }
-  };
-
-  const handleUnassignEmail = async (email: string) => {
-    setUnassigning(email);
-    try {
-      await axios.delete(`${API_BASE}/api/people/${id}/unassign_email_address/`, {
-        data: { email_address: email },
-        headers: { 'Content-Type': 'application/json' },
-      });
-      setAssignedEmails(prev => prev.filter(e => e !== email));
-    } catch (err) {
-      console.error('Failed to unassign email address:', err);
-    } finally {
-      setUnassigning(null);
     }
   };
 
@@ -352,16 +323,32 @@ const PersonDetailPage: React.FC = () => {
           </div>
         )}
 
-        {assignedEmails.length > 0 && (
+        {person.email_addresses && person.email_addresses.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Assigned Email Addresses</h2>
             <ul className="divide-y divide-gray-200 bg-gray-50 rounded-md border border-gray-200">
-              {assignedEmails.map(email => (
+              {person.email_addresses.map((email: string) => (
                 <li key={email} className="flex items-center justify-between px-4 py-2">
                   <span className="text-sm text-gray-800">{email}</span>
                   <button
                     className="ml-4 px-3 py-1 text-xs rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
-                    onClick={() => handleUnassignEmail(email)}
+                    onClick={async () => {
+                      setUnassigning(email);
+                      try {
+                        await axios.delete(`${API_BASE}/api/people/${id}/unassign_email_address/`, {
+                          data: { email_address: email },
+                          headers: { 'Content-Type': 'application/json' },
+                        });
+                        setPerson(prev => prev && {
+                          ...prev,
+                          email_addresses: prev.email_addresses ? prev.email_addresses.filter((e: string) => e !== email) : []
+                        });
+                      } catch (err) {
+                        console.error('Failed to unassign email address:', err);
+                      } finally {
+                        setUnassigning(null);
+                      }
+                    }}
                     disabled={unassigning === email}
                   >
                     {unassigning === email ? 'Unassigning...' : 'Unassign'}
