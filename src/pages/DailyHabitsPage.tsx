@@ -113,23 +113,32 @@ const DailyHabitsPage: React.FC = () => {
     fetchTodaySummary();
   }, [fetchTodaySummary]);
 
-  const handleMarkAsDone = async (habit: Habit) => {
-    if (habit.is_completed_today) {
-      // Undo today's completion
-      await handleUndoCompletion(habit.id);
-    } else {
-      // Mark as done
-      await handleCompleteHabit(habit.id);
-    }
-  };
-
   const handleCompleteHabit = async (habitId: number) => {
     setUpdatingHabitId(habitId);
     try {
-      await axios.post(`${API_BASE}/api/habits/${habitId}/complete_manual/`);
+      console.log('Marking habit as done:', habitId);
+      const payload = {
+        notes: null,
+        effort: 3,
+        mood: 3,
+        duration: null,
+        location: null
+      };
+      console.log('Sending payload:', payload);
+      const response = await axios.post(`${API_BASE}/api/habits/${habitId}/complete_manual/`, payload);
+      console.log('Complete habit response:', response.data);
       await fetchTodaySummary();
     } catch (err) {
       console.error("Error marking habit as done:", err);
+      if (axios.isAxiosError(err)) {
+        console.error('API Error details:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          method: err.config?.method,
+          headers: err.config?.headers
+        });
+      }
       setError("Failed to mark habit as done.");
       setTimeout(() => setError(null), 3000);
     } finally {
@@ -140,10 +149,18 @@ const DailyHabitsPage: React.FC = () => {
   const handleUndoCompletion = async (habitId: number) => {
     setUpdatingHabitId(habitId);
     try {
+      console.log('Undoing habit completion:', habitId);
       await axios.delete(`${API_BASE}/api/habits/${habitId}/remove_today_instance/`);
       await fetchTodaySummary();
     } catch (err) {
       console.error("Error undoing habit completion:", err);
+      if (axios.isAxiosError(err)) {
+        console.error('API Error details:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url
+        });
+      }
       setError("Failed to undo completion.");
       setTimeout(() => setError(null), 3000);
     } finally {
@@ -305,16 +322,15 @@ const DailyHabitsPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Manual Habits</h2>
-            <p className="text-sm text-gray-500">Click on any habit to mark it as done or undo</p>
+            <p className="text-sm text-gray-500">Use the buttons to mark habits as done or undone</p>
           </div>
           <div className="divide-y divide-gray-200">
             {manualHabits.map(habit => (
               <div 
                 key={habit.id}
-                className={`p-6 transition-all duration-200 cursor-pointer hover:bg-gray-50 ${
+                className={`p-6 transition-all duration-200 ${
                   habit.is_completed_today ? 'bg-green-50' : ''
                 }`}
-                onClick={() => handleMarkAsDone(habit)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -354,17 +370,51 @@ const DailyHabitsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`text-lg font-semibold ${
-                      habit.is_completed_today ? 'text-green-600' : 'text-gray-400'
-                    }`}>
-                      {habit.is_completed_today ? 'Done' : 'Not Done'}
+                  <div className="flex flex-col items-end space-y-2">
+                    <div className="text-right">
+                      <div className={`text-lg font-semibold ${
+                        habit.is_completed_today ? 'text-green-600' : 'text-gray-400'
+                      }`}>
+                        {habit.is_completed_today ? 'Done' : 'Not Done'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Streak: {habit.current_streak} days
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Total: {habit.total_instances} times
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Streak: {habit.current_streak} days
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      Total: {habit.total_instances} times
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleCompleteHabit(habit.id)}
+                        disabled={updatingHabitId === habit.id || habit.is_completed_today}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          habit.is_completed_today
+                            ? 'bg-green-100 text-green-600 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
+                        }`}
+                      >
+                        {updatingHabitId === habit.id && !habit.is_completed_today ? (
+                          <ClockIcon className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Done'
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleUndoCompletion(habit.id)}
+                        disabled={updatingHabitId === habit.id || !habit.is_completed_today}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          !habit.is_completed_today
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
+                        }`}
+                      >
+                        {updatingHabitId === habit.id && habit.is_completed_today ? (
+                          <ClockIcon className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Undo'
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
