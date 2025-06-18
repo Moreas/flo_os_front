@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import PersonForm from '../components/forms/PersonForm';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
@@ -47,6 +47,7 @@ const PersonDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [emails, setEmails] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchPerson = async () => {
@@ -66,6 +67,19 @@ const PersonDetailPage: React.FC = () => {
     fetchPerson();
   }, [id]);
 
+  useEffect(() => {
+    const fetchEmails = async () => {
+      if (!id) return;
+      try {
+        const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
+        setEmails(res.data || []);
+      } catch (err) {
+        console.error('Error fetching emails for person:', err);
+      }
+    };
+    fetchEmails();
+  }, [id]);
+
   const handlePersonUpdated = (updatedPerson: Person) => {
     setPerson(updatedPerson);
     setIsEditModalOpen(false);
@@ -77,6 +91,17 @@ const PersonDetailPage: React.FC = () => {
       return format(parseISO(dateString), 'MMM d, yyyy');
     } catch { 
       return "Invalid Date"; 
+    }
+  };
+
+  const handleEmailStatusChange = async (emailId: number, newStatus: boolean) => {
+    try {
+      await axios.patch(`${API_BASE}/api/emails/${emailId}/`, { is_handled: newStatus });
+      // Refresh emails after update
+      const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
+      setEmails(res.data || []);
+    } catch (err) {
+      console.error('Failed to update email status:', err);
     }
   };
 
@@ -249,6 +274,48 @@ const PersonDetailPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {emails.length > 0 && (
+          <div>
+            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <InboxIcon className="w-5 h-5 mr-2 text-primary-600" />
+              Emails
+            </h2>
+            <div className="overflow-x-auto border border-gray-200 rounded-md">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {emails.map(email => (
+                    <tr key={email.id}>
+                      <td className="px-3 py-2 text-sm text-primary-700 font-medium">
+                        {email.subject}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900">{email.sender_name || email.sender}</td>
+                      <td className="px-3 py-2 text-sm text-gray-500">{email.received_at ? new Date(email.received_at).toLocaleString() : ''}</td>
+                      <td className="px-3 py-2 text-sm text-gray-500">
+                        <select
+                          value={email.is_handled ? 'handled' : 'needs_handling'}
+                          onChange={e => handleEmailStatusChange(email.id, e.target.value === 'handled')}
+                          className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                        >
+                          <option value="needs_handling">Needs Handling</option>
+                          <option value="handled">Handled</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
