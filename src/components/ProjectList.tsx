@@ -13,8 +13,11 @@ import {
   ExclamationCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
+import ProjectForm from './forms/ProjectForm';
 
 interface Project {
   id: number;
@@ -61,6 +64,8 @@ const ProjectList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedProjectId, setExpandedProjectId] = useState<number | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -193,6 +198,21 @@ const ProjectList: React.FC = () => {
 
     return filtered;
   }, [projects, statusFilter, driverTypeFilter, sortField, sortDirection]);
+
+  const handleEdit = (project: Project) => {
+    setEditProject(project);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = async (projectId: number) => {
+    if (!window.confirm('Are you sure you want to delete this project?')) return;
+    try {
+      await axios.delete(`${API_BASE}/api/projects/${projectId}/`);
+      setProjects(projects.filter(p => p.id !== projectId));
+    } catch (err) {
+      alert('Failed to delete project.');
+    }
+  };
 
   if (loading) {
     return (
@@ -328,6 +348,22 @@ const ProjectList: React.FC = () => {
                   </span>
                 ))}
               </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={e => { e.stopPropagation(); handleEdit(project); }}
+                  className="p-1 text-gray-400 hover:text-blue-500 rounded-full hover:bg-gray-100"
+                  title="Edit project"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); handleDelete(project.id); }}
+                  className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100"
+                  title="Delete project"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             {/* Expanded Content */}
             <div
@@ -391,6 +427,21 @@ const ProjectList: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* ProjectForm modal for editing */}
+      {isEditModalOpen && (
+        <ProjectForm
+          isOpen={isEditModalOpen}
+          onClose={() => { setIsEditModalOpen(false); setEditProject(null); }}
+          initialProject={editProject}
+          isEditMode={true}
+          onProjectUpdated={() => {
+            setIsEditModalOpen(false);
+            setEditProject(null);
+            // Optionally refetch projects or update state
+          }}
+        />
+      )}
     </div>
   );
 };

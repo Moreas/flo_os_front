@@ -7,6 +7,9 @@ import API_BASE from '../../apiBase';
 interface ProjectFormProps {
   isOpen: boolean;
   onClose: () => void;
+  initialProject?: any;
+  isEditMode?: boolean;
+  onProjectUpdated?: () => void;
 }
 
 interface Category {
@@ -32,7 +35,7 @@ const getTodayDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
-const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose }) => {
+const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProject = null, isEditMode = false, onProjectUpdated }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]); // State for businesses
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
@@ -59,102 +62,96 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose }) => {
     const fetchData = async () => {
       setIsLoadingCategories(true);
       setIsLoadingBusinesses(true);
-      setCategoryError(null); // Clear previous category error
-      setBusinessError(null); // Clear previous business error
+      setCategoryError(null);
+      setBusinessError(null);
       try {
-        // Fetch categories and businesses concurrently
         const [catResponse, bizResponse] = await Promise.all([
           axios.get(`${API_BASE}/api/categories/`).catch(err => {
             console.error('Error fetching categories:', err);
             setCategoryError('Failed to load categories. Select later if needed.');
-            return { data: [] }; // Return empty data on error
+            return { data: [] };
           }),
           axios.get(`${API_BASE}/api/businesses/`).catch(err => {
             console.error('Error fetching businesses:', err);
             setBusinessError('Failed to load businesses. Select later if needed.');
-            return { data: [] }; // Return empty data on error
+            return { data: [] };
           })
         ]);
-
         setCategories(catResponse.data);
         setBusinesses(bizResponse.data);
-
       } catch (err) {
-        // Catch potential errors from Promise.all itself, though individual catches handle specific fetch errors
         console.error('Error fetching form data:', err);
-        // Errors are handled in individual catches now
       } finally {
         setIsLoadingCategories(false);
         setIsLoadingBusinesses(false);
       }
     };
-
     if (isOpen) {
-      fetchData(); // Fetch both categories and businesses
-      // Reset form state when modal opens
-      setProjectName('');
-      setSelectedCategory('');
-      setSelectedBusiness(''); // Reset selected business
-      setDescription('');
-      setStartDate(getTodayDateString()); // Set start date to today
-      setEndDate(undefined);
-      setStatus('active'); // Reset state to 'active'
-      setPriority('medium');
-      setTags('');
+      fetchData();
+      if (isEditMode && initialProject) {
+        setProjectName(initialProject.name || '');
+        setSelectedCategory(initialProject.categories?.[0]?.id?.toString() || '');
+        setSelectedBusiness(initialProject.business?.id?.toString() || '');
+        setDescription(initialProject.description || '');
+        setStartDate(initialProject.start_date ? initialProject.start_date.split('T')[0] : getTodayDateString());
+        setEndDate(initialProject.end_date ? initialProject.end_date.split('T')[0] : undefined);
+        setStatus(initialProject.status || 'active');
+        setPriority(initialProject.priority || 'medium');
+        setTags(initialProject.tags ? initialProject.tags.join(', ') : '');
+      } else {
+        setProjectName('');
+        setSelectedCategory('');
+        setSelectedBusiness('');
+        setDescription('');
+        setStartDate(getTodayDateString());
+        setEndDate(undefined);
+        setStatus('active');
+        setPriority('medium');
+        setTags('');
+      }
       setIsSubmitting(false);
       setSubmitError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, isEditMode, initialProject]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitError(null);
-
-    // Basic validation (more robust validation can be added)
     if (!projectName || !startDate) {
       setSubmitError('Project Name and Start Date are required.');
       setIsSubmitting(false);
       return;
     }
-
-    // Format data for API
     const projectData = {
       name: projectName,
-      description: description || null, // Send null if empty
+      description: description || null,
       start_date: startDate,
-      end_date: endDate || null, // Send null if empty
+      end_date: endDate || null,
       status: status,
       priority: priority,
-      // Assuming backend expects a list of category IDs. Adjust if needed.
       categories: selectedCategory ? [parseInt(selectedCategory)] : [],
-      business_id: selectedBusiness ? parseInt(selectedBusiness) : null, // Add business_id (optional)
-      // Assuming backend handles tags as a list of strings (split by comma)
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') 
-      // Add other fields like business_id, goal_id if needed in the form
+      business_id: selectedBusiness ? parseInt(selectedBusiness) : null,
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
     };
-
-    console.log("Submitting project data:", projectData);
-
     try {
-        const response = await axios.post(`${API_BASE}/api/projects/`, projectData);
-        console.log("Project created successfully:", response.data);
-        // Optionally: Trigger a refresh of the project list here
-        // e.g., call a function passed via props or use a context
-        onClose(); // Close modal on success
-
+      if (isEditMode && initialProject) {
+        await axios.put(`${API_BASE}/api/projects/${initialProject.id}/`, projectData);
+        if (onProjectUpdated) onProjectUpdated();
+      } else {
+        await axios.post(`${API_BASE}/api/projects/`, projectData);
+        onClose();
+      }
     } catch (err: any) {
-        console.error("Error creating project:", err);
-        let errorMsg = 'Failed to create project. Please try again.';
-        if (err.response?.data) {
-           // Try to get specific error details from backend response
-           const errors = err.response.data;
-           const details = Object.entries(errors).map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`).join('; ');
-           if (details) errorMsg = details;
-        }
-        setSubmitError(errorMsg);
+      let errorMsg = 'Failed to save project. Please try again.';
+      if (err.response?.data) {
+        const errors = err.response.data;
+        const details = Object.entries(errors).map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`).join('; ');
+        if (details) errorMsg = details;
+      }
+      setSubmitError(errorMsg);
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -187,7 +184,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose }) => {
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title as="h3" className="text-lg font-medium text-gray-900">
-                    Create New Project
+                    {isEditMode ? 'Edit Project' : 'Create New Project'}
                   </Dialog.Title>
                   <button
                     type="button"
@@ -408,7 +405,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose }) => {
                       className="inline-flex justify-center rounded-md border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? 'Creating...' : 'Create Project'}
+                      {isSubmitting ? 'Saving...' : 'Save Project'}
                     </button>
                   </div>
                 </form>
