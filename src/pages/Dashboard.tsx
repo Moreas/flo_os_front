@@ -31,13 +31,21 @@ const Dashboard: React.FC = () => {
     // Fetch goals
     axios.get(`${API_BASE}/api/goals/`)
       .then(res => {
+        console.log('Goals API response:', res.data);
         const goals = res.data || [];
-        setActiveGoals(goals.filter((g: any) => g.status === 'active').length);
+        const activeGoalsCount = goals.filter((g: any) => g.status === 'active').length;
+        console.log('Active goals count:', activeGoalsCount);
+        setActiveGoals(activeGoalsCount);
       })
-      .catch(() => setActiveGoals(0));
+      .catch((error) => {
+        console.error('Goals API error:', error);
+        setActiveGoals(0);
+      });
+    
     // Fetch tasks
     axios.get(`${API_BASE}/api/tasks/`)
       .then(res => {
+        console.log('Tasks API response:', res.data);
         const tasks = res.data || [];
         const todayCount = tasks.filter((t: any) => {
           if (!t.due_date || t.is_done) return false;
@@ -47,23 +55,41 @@ const Dashboard: React.FC = () => {
             return false;
           }
         }).length;
+        console.log('Tasks due today count:', todayCount);
         setTasksDueToday(todayCount);
       })
-      .catch(() => setTasksDueToday(0));
+      .catch((error) => {
+        console.error('Tasks API error:', error);
+        setTasksDueToday(0);
+      });
+    
     // Fetch projects
     axios.get(`${API_BASE}/api/projects/`)
       .then(res => {
+        console.log('Projects API response:', res.data);
         const projects = res.data || [];
-        setActiveProjects(projects.filter((p: any) => p.status === 'active').length);
+        const activeProjectsCount = projects.filter((p: any) => p.status === 'active').length;
+        console.log('Active projects count:', activeProjectsCount);
+        setActiveProjects(activeProjectsCount);
       })
-      .catch(() => setActiveProjects(0));
+      .catch((error) => {
+        console.error('Projects API error:', error);
+        setActiveProjects(0);
+      });
+    
     // Fetch habits
     axios.get(`${API_BASE}/api/habits/`)
       .then(res => {
+        console.log('Habits API response:', res.data);
         const habits = res.data || [];
-        setActiveHabits(habits.filter((h: any) => h.status === 'active').length);
+        const activeHabitsCount = habits.filter((h: any) => h.status === 'active').length;
+        console.log('Active habits count:', activeHabitsCount);
+        setActiveHabits(activeHabitsCount);
       })
-      .catch(() => setActiveHabits(0));
+      .catch((error) => {
+        console.error('Habits API error:', error);
+        setActiveHabits(0);
+      });
   }, [tasksVersion]);
 
   return (
