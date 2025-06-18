@@ -53,8 +53,29 @@ const DailyHabitsPage: React.FC = () => {
       const response = await axios.get(`${API_BASE}/api/habits/manual_habits/`);
       console.log('Manual habits response:', response.data);
       
+      // Handle different response structures
+      let habits = [];
+      if (Array.isArray(response.data)) {
+        habits = response.data;
+      } else if (response.data && Array.isArray(response.data.results)) {
+        habits = response.data.results;
+      } else if (response.data && Array.isArray(response.data.habits)) {
+        habits = response.data.habits;
+      } else if (response.data && typeof response.data === 'object') {
+        // If it's an object, try to extract habits from common properties
+        habits = response.data.data || response.data.items || [];
+      }
+      
+      console.log('Extracted habits:', habits);
+      
+      // If no habits were extracted, log the full response for debugging
+      if (habits.length === 0) {
+        console.warn('No habits extracted from response. Full response structure:', response.data);
+        console.warn('Response data type:', typeof response.data);
+        console.warn('Response data keys:', response.data ? Object.keys(response.data) : 'null/undefined');
+      }
+      
       // Transform the data to match our expected format
-      const habits = response.data || [];
       const todaySummary = {
         date: new Date().toISOString().split('T')[0],
         summary: habits.map((habit: any) => ({
