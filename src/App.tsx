@@ -25,6 +25,7 @@ import CalendarPage from './pages/CalendarPage';
 import BooksPage from './pages/BooksPage';
 import HabitsPage from './pages/HabitsPage';
 import HabitDetailPage from './pages/HabitDetailPage';
+import HabitsDashboardPage from './pages/HabitsDashboardPage';
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
               <Route path="/books" element={<BooksPage />} />
               <Route path="/habits" element={<HabitsPage />} />
               <Route path="/habits/:habitId" element={<HabitDetailPage />} />
+              <Route path="/habits-dashboard" element={<HabitsDashboardPage />} />
             </Routes>
           </Layout>
         </TaskRefreshProvider>
