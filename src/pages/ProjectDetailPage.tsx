@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Task } from '../types/task';
 import { Project, ProjectNote } from '../types/project';
 import API_BASE from '../apiBase';
+import ProjectForm from '../components/forms/ProjectForm';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +18,7 @@ const ProjectDetailPage: React.FC = () => {
   const [newNote, setNewNote] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -83,6 +87,21 @@ const ProjectDetailPage: React.FC = () => {
     }
   };
 
+  const handleEditProject = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteProject = async () => {
+    if (!id) return;
+    if (!window.confirm('Are you sure you want to delete this project?')) return;
+    try {
+      await axios.delete(`${API_BASE}/api/projects/${id}/`);
+      navigate('/projects');
+    } catch (err) {
+      alert('Failed to delete project.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -102,13 +121,33 @@ const ProjectDetailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-        {project.description && (
-          <p className="mt-2 text-gray-600">{project.description}</p>
-        )}
-        {project.status && (
-          <p className="mt-2 text-sm text-gray-500">Status: {project.status}</p>
-        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+            {project.description && (
+              <p className="mt-2 text-gray-600">{project.description}</p>
+            )}
+            {project.status && (
+              <p className="mt-2 text-sm text-gray-500">Status: {project.status}</p>
+            )}
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={handleEditProject}
+              className="p-2 text-gray-400 hover:text-blue-500 rounded-full hover:bg-gray-100"
+              title="Edit project"
+            >
+              <PencilIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleDeleteProject}
+              className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100"
+              title="Delete project"
+            >
+              <TrashIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white shadow-sm rounded-lg p-6">
@@ -143,12 +182,12 @@ const ProjectDetailPage: React.FC = () => {
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes</h2>
         <form onSubmit={handleAddNote} className="flex mb-4 space-x-2">
-          <input
-            type="text"
-            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+          <textarea
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 min-h-[80px]"
             placeholder="Add a new note..."
             value={newNote}
             onChange={e => setNewNote(e.target.value)}
+            rows={4}
           />
           <button type="submit" className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700">Add</button>
         </form>
@@ -160,18 +199,18 @@ const ProjectDetailPage: React.FC = () => {
               <li key={note.id} className="bg-gray-50 rounded-md p-3 flex items-center justify-between">
                 {editingNoteId === note.id ? (
                   <>
-                    <input
-                      type="text"
-                      className="flex-1 border border-gray-300 rounded-md px-2 py-1 mr-2"
+                    <textarea
+                      className="flex-1 border border-gray-300 rounded-md px-2 py-1 mr-2 min-h-[60px]"
                       value={editingNoteContent}
                       onChange={e => setEditingNoteContent(e.target.value)}
+                      rows={3}
                     />
                     <button onClick={() => handleUpdateNote(note.id)} className="text-green-600 font-semibold mr-2">Save</button>
                     <button onClick={() => setEditingNoteId(null)} className="text-gray-500">Cancel</button>
                   </>
                 ) : (
                   <>
-                    <span className="flex-1">{note.content}</span>
+                    <span className="flex-1 break-words whitespace-pre-line">{note.content}</span>
                     <span className="text-xs text-gray-400 ml-2">{new Date(note.created_at).toLocaleString()}</span>
                     <button onClick={() => handleEditNote(note)} className="ml-4 text-blue-600 hover:underline">Edit</button>
                   </>
@@ -181,6 +220,20 @@ const ProjectDetailPage: React.FC = () => {
           </ul>
         )}
       </div>
+
+      {isEditModalOpen && (
+        <ProjectForm
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          initialProject={project}
+          isEditMode={true}
+          onProjectUpdated={() => {
+            setIsEditModalOpen(false);
+            // Refetch project details after edit
+            axios.get(`${API_BASE}/api/projects/${id}/`).then(res => setProject(res.data));
+          }}
+        />
+      )}
     </div>
   );
 };
