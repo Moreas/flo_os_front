@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon } from '@heroicons/react/24/outline';
@@ -51,6 +51,9 @@ const PersonDetailPage: React.FC = () => {
   const [emails, setEmails] = useState<any[]>([]);
   const [unassigning, setUnassigning] = useState<string | null>(null);
   const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
+  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(false);
+  const [showInternalHandlingOnly, setShowInternalHandlingOnly] = useState(false);
+  const [showExternalHandlingOnly, setShowExternalHandlingOnly] = useState(false);
 
   const fetchPerson = useCallback(async () => {
     setLoading(true);
@@ -159,6 +162,28 @@ const PersonDetailPage: React.FC = () => {
       setUpdatingTaskId(null);
     }
   };
+
+  // Filter emails based on state
+  const filteredEmails = useMemo(() => {
+    return emails.filter(email => {
+      // Needs Handling Filter - exclude emails that are marked as handled
+      if (showNeedsHandlingOnly && email.is_handled === true) {
+        return false;
+      }
+      
+      // Internal Handling Filter - show only emails that need internal handling
+      if (showInternalHandlingOnly && email.needs_internal_handling !== true) {
+        return false;
+      }
+      
+      // External Handling Filter - show only emails that are waiting for external handling
+      if (showExternalHandlingOnly && email.waiting_external_handling !== true) {
+        return false;
+      }
+      
+      return true; // Show if all filters pass
+    });
+  }, [emails, showNeedsHandlingOnly, showInternalHandlingOnly, showExternalHandlingOnly]);
 
   if (loading) {
     return (
@@ -337,62 +362,122 @@ const PersonDetailPage: React.FC = () => {
 
         {emails.length > 0 && (
           <div>
-            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <InboxIcon className="w-5 h-5 mr-2 text-primary-600" />
-              Emails
-            </h2>
-            <div className="overflow-x-auto border border-gray-200 rounded-md">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {emails.map(email => (
-                    <tr key={email.id}>
-                      <td className="px-3 py-2 text-sm text-primary-700 font-medium">
-                        {email.subject}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{email.sender_name || email.sender}</td>
-                      <td className="px-3 py-2 text-sm text-gray-500">{email.received_at ? new Date(email.received_at).toLocaleString() : ''}</td>
-                      <td className="px-3 py-2 text-sm text-gray-500">
-                        <select
-                          value={(() => {
-                            let value = "";
-                            if (email.is_handled) {
-                              value = "handled";
-                            } else if (email.needs_internal_handling) {
-                              value = "internal";
-                            } else if (email.waiting_external_handling) {
-                              value = "external";
-                            }
-                            return value;
-                          })()}
-                          onChange={e => {
-                            const value = e.target.value;
-                            if (value === "handled") {
-                              handleEmailStatusChange(email.id, true);
-                            } else if (value === "external" || value === "internal") {
-                              handleHandlingTypeChange(email.id, value as 'external' | 'internal');
-                            }
-                          }}
-                          className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="">Select Handling Type</option>
-                          <option value="handled">Handled</option>
-                          <option value="external">External Handling</option>
-                          <option value="internal">Internal Handling</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                <InboxIcon className="w-5 h-5 mr-2 text-primary-600" />
+                Emails
+              </h2>
+              
+              {/* Handling Filters */}
+              <div className="flex flex-col space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Filter by Handling Status:
+                </label>
+                <div className="flex flex-col space-y-1">
+                  <div className="flex items-center">
+                    <input
+                      id="needs-handling-filter"
+                      name="needs-handling-filter"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      checked={showNeedsHandlingOnly}
+                      onChange={(e) => setShowNeedsHandlingOnly(e.target.checked)}
+                    />
+                    <label htmlFor="needs-handling-filter" className="ml-2 block text-sm text-gray-900">
+                      Exclude handled emails
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="internal-handling-filter"
+                      name="internal-handling-filter"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      checked={showInternalHandlingOnly}
+                      onChange={(e) => setShowInternalHandlingOnly(e.target.checked)}
+                    />
+                    <label htmlFor="internal-handling-filter" className="ml-2 block text-sm text-gray-900">
+                      Internal handling only
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="external-handling-filter"
+                      name="external-handling-filter"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      checked={showExternalHandlingOnly}
+                      onChange={(e) => setShowExternalHandlingOnly(e.target.checked)}
+                    />
+                    <label htmlFor="external-handling-filter" className="ml-2 block text-sm text-gray-900">
+                      External handling only
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {filteredEmails.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <InboxIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-sm font-medium text-gray-900">
+                  {showNeedsHandlingOnly || showInternalHandlingOnly || showExternalHandlingOnly ? 'No emails match the current filters.' : 'No emails found.'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-gray-200 rounded-md">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {filteredEmails.map(email => (
+                      <tr key={email.id}>
+                        <td className="px-3 py-2 text-sm text-primary-700 font-medium">
+                          {email.subject}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">{email.sender_name || email.sender}</td>
+                        <td className="px-3 py-2 text-sm text-gray-500">{email.received_at ? new Date(email.received_at).toLocaleString() : ''}</td>
+                        <td className="px-3 py-2 text-sm text-gray-500">
+                          <select
+                            value={(() => {
+                              let value = "";
+                              if (email.is_handled) {
+                                value = "handled";
+                              } else if (email.needs_internal_handling) {
+                                value = "internal";
+                              } else if (email.waiting_external_handling) {
+                                value = "external";
+                              }
+                              return value;
+                            })()}
+                            onChange={e => {
+                              const value = e.target.value;
+                              if (value === "handled") {
+                                handleEmailStatusChange(email.id, true);
+                              } else if (value === "external" || value === "internal") {
+                                handleHandlingTypeChange(email.id, value as 'external' | 'internal');
+                              }
+                            }}
+                            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          >
+                            <option value="">Select Handling Type</option>
+                            <option value="handled">Handled</option>
+                            <option value="external">External Handling</option>
+                            <option value="internal">Internal Handling</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
