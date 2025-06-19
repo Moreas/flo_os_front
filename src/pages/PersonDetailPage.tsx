@@ -50,24 +50,21 @@ const PersonDetailPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [emails, setEmails] = useState<any[]>([]);
   const [unassigning, setUnassigning] = useState<string | null>(null);
+  const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchPerson = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get(`${API_BASE}/api/people/${id}/`);
-        setPerson(response.data);
-      } catch (err) {
-        console.error("Error fetching person:", err);
-        setError("Failed to load person details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPerson();
-  }, [id]);
+  const fetchPerson = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_BASE}/api/people/${id}/`);
+      setPerson(response.data);
+    } catch (err) {
+      console.error("Error fetching person:", err);
+      setError("Failed to load person details.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchEmails = async () => {
@@ -80,6 +77,8 @@ const PersonDetailPage: React.FC = () => {
         console.error('Error fetching emails for person:', err);
       }
     };
+
+    fetchPerson();
     fetchEmails();
   }, [id]);
 
@@ -122,6 +121,19 @@ const PersonDetailPage: React.FC = () => {
       setEmails(res.data || []);
     } catch (err) {
       console.error(`Failed to mark email as ${handlingType} handling:`, err);
+    }
+  };
+
+  const handleTaskToggle = async (taskId: number, currentStatus: boolean) => {
+    setUpdatingTaskId(taskId);
+    try {
+      await axios.patch(`${API_BASE}/api/tasks/${taskId}/`, { is_done: !currentStatus });
+      // Refresh person data to get updated tasks
+      await fetchPerson();
+    } catch (err) {
+      console.error('Failed to update task:', err);
+    } finally {
+      setUpdatingTaskId(null);
     }
   };
 
@@ -232,6 +244,8 @@ const PersonDetailPage: React.FC = () => {
               }))}
               type="tasks"
               onItemClick={(task) => navigate(`/tasks/${task.id}`)}
+              onTaskToggle={handleTaskToggle}
+              isUpdatingTask={updatingTaskId}
             />
           </div>
         )}
