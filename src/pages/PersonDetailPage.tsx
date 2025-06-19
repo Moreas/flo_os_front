@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon } from '@heroicons/react/24/outline';
@@ -52,7 +52,7 @@ const PersonDetailPage: React.FC = () => {
   const [unassigning, setUnassigning] = useState<string | null>(null);
   const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
 
-  const fetchPerson = async () => {
+  const fetchPerson = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -64,7 +64,7 @@ const PersonDetailPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     const fetchEmails = async () => {
@@ -80,7 +80,7 @@ const PersonDetailPage: React.FC = () => {
 
     fetchPerson();
     fetchEmails();
-  }, [id]);
+  }, [id, fetchPerson]);
 
   const handlePersonUpdated = (updatedPerson: Person) => {
     setPerson(updatedPerson);
