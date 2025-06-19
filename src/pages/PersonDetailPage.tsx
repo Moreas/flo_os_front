@@ -361,7 +361,17 @@ const PersonDetailPage: React.FC = () => {
                       <td className="px-3 py-2 text-sm text-gray-500">{email.received_at ? new Date(email.received_at).toLocaleString() : ''}</td>
                       <td className="px-3 py-2 text-sm text-gray-500">
                         <select
-                          value={email.needs_internal_handling ? "internal" : email.waiting_external_handling ? "external" : email.is_handled ? "handled" : ""}
+                          value={(() => {
+                            let value = "";
+                            if (email.is_handled) {
+                              value = "handled";
+                            } else if (email.needs_internal_handling) {
+                              value = "internal";
+                            } else if (email.waiting_external_handling) {
+                              value = "external";
+                            }
+                            return value;
+                          })()}
                           onChange={e => {
                             const value = e.target.value;
                             if (value === "handled") {

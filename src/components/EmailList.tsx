@@ -223,17 +223,17 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       
       // Log current email state before update
       const currentEmail = emails.find(e => e.id === emailId);
-      console.log('Current email state:', currentEmail);
+      console.log('Current email state:', JSON.stringify(currentEmail, null, 2));
       
       if (isHandled) {
         console.log(`Making POST request to: ${API_BASE}/api/emails/${emailId}/mark_handled/`);
         
         // Use the specific endpoint for marking as handled
         const response = await axios.post(`${API_BASE}/api/emails/${emailId}/mark_handled/`);
-        console.log('Mark handled endpoint response:', response.data);
+        console.log('Mark handled endpoint response data:', JSON.stringify(response.data, null, 2));
         console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-        console.log('Full response object:', response);
+        console.log('Response headers:', JSON.stringify(response.headers, null, 2));
+        console.log('Full response object keys:', Object.keys(response));
         
         // Add a small delay to ensure backend has processed
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -243,12 +243,13 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
           const updatedEmails = prevEmails.map(email =>
             email.id === emailId ? { 
               ...email, 
-              is_handled: true,
-              needs_internal_handling: false,
-              waiting_external_handling: false
+              is_handled: true
+              // Note: We don't clear needs_internal_handling or waiting_external_handling
+              // because the backend doesn't do this either
             } : email
           );
-          console.log('Updated emails state:', updatedEmails.find(e => e.id === emailId));
+          const updatedEmail = updatedEmails.find(e => e.id === emailId);
+          console.log('Updated emails state:', JSON.stringify(updatedEmail, null, 2));
           return updatedEmails;
         });
         
@@ -261,7 +262,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         
         // Check if the email was actually updated in the backend
         const refreshedEmail = emails.find(e => e.id === emailId);
-        console.log('Refreshed email state from backend:', refreshedEmail);
+        console.log('Refreshed email state from backend:', JSON.stringify(refreshedEmail, null, 2));
         console.log('Expected state vs actual state:', {
           expected: { is_handled: true, needs_internal_handling: false, waiting_external_handling: false },
           actual: refreshedEmail ? {
@@ -295,7 +296,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       // Log updated email state
       const updatedEmails = emails.map(e => e.id === emailId ? { ...e, is_handled: isHandled } : e);
       const updatedEmail = updatedEmails.find(e => e.id === emailId);
-      console.log('Updated email state:', updatedEmail);
+      console.log('Final updated email state:', JSON.stringify(updatedEmail, null, 2));
       console.log(`=== END DEBUG ===`);
       
     } catch (err) {
@@ -439,7 +440,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
                     <select
                       value={(() => {
-                        const value = email.needs_internal_handling ? "internal" : email.waiting_external_handling ? "external" : email.is_handled ? "handled" : "";
+                        // Updated logic to handle backend behavior:
+                        // - mark_handled only sets is_handled=True, doesn't clear other flags
+                        // - So we need to prioritize is_handled over other flags
+                        let value = "";
+                        if (email.is_handled) {
+                          value = "handled";
+                        } else if (email.needs_internal_handling) {
+                          value = "internal";
+                        } else if (email.waiting_external_handling) {
+                          value = "external";
+                        }
+                        
                         console.log(`Email ${email.id} dropdown value calculation:`, {
                           needs_internal_handling: email.needs_internal_handling,
                           waiting_external_handling: email.waiting_external_handling,
