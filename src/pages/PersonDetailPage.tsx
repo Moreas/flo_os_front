@@ -100,15 +100,19 @@ const PersonDetailPage: React.FC = () => {
     try {
       console.log(`Marking email ${emailId} as handled: ${newStatus}`);
       
-      // When marking as handled, also clear the handling type fields
-      const payload = {
-        is_handled: newStatus,
-        needs_internal_handling: false,
-        waiting_external_handling: false
-      };
-      
-      const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
-      console.log('Email status update response:', response.data);
+      if (newStatus) {
+        // Use the specific endpoint for marking as handled
+        const response = await axios.post(`${API_BASE}/api/emails/${emailId}/mark_handled/`);
+        console.log('Mark handled endpoint response:', response.data);
+      } else {
+        // For unhandling, use PATCH to set is_handled to false
+        const payload = {
+          is_handled: false
+        };
+        
+        const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
+        console.log('Unhandled PATCH response:', response.data);
+      }
       
       // Refresh emails after update
       const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
@@ -119,7 +123,8 @@ const PersonDetailPage: React.FC = () => {
         console.error('API Error details:', {
           status: err.response?.status,
           data: err.response?.data,
-          url: err.config?.url
+          url: err.config?.url,
+          method: err.config?.method
         });
       }
     }

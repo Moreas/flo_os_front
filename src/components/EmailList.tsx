@@ -220,32 +220,46 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     try {
       console.log(`Marking email ${emailId} as handled: ${isHandled}`);
       
-      // When marking as handled, also clear the handling type fields
-      const payload = {
-        is_handled: isHandled,
-        needs_internal_handling: false,
-        waiting_external_handling: false
-      };
-      
-      const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
-      console.log('Email status update response:', response.data);
-      
-      // Update local state to reflect the change immediately
-      setEmails(prevEmails => prevEmails.map(email =>
-        email.id === emailId ? { 
-          ...email, 
-          is_handled: isHandled,
-          needs_internal_handling: false,
-          waiting_external_handling: false
-        } : email
-      ));
+      if (isHandled) {
+        // Use the specific endpoint for marking as handled
+        const response = await axios.post(`${API_BASE}/api/emails/${emailId}/mark_handled/`);
+        console.log('Mark handled endpoint response:', response.data);
+        
+        // Update local state to reflect the change immediately
+        setEmails(prevEmails => prevEmails.map(email =>
+          email.id === emailId ? { 
+            ...email, 
+            is_handled: true,
+            needs_internal_handling: false,
+            waiting_external_handling: false
+          } : email
+        ));
+      } else {
+        // For unhandling, we might need a different approach
+        // For now, let's use PATCH to set is_handled to false
+        const payload = {
+          is_handled: false
+        };
+        
+        const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
+        console.log('Unhandled PATCH response:', response.data);
+        
+        // Update local state
+        setEmails(prevEmails => prevEmails.map(email =>
+          email.id === emailId ? { 
+            ...email, 
+            is_handled: false
+          } : email
+        ));
+      }
     } catch (err) {
       console.error('Failed to update email status:', err);
       if (axios.isAxiosError(err)) {
         console.error('API Error details:', {
           status: err.response?.status,
           data: err.response?.data,
-          url: err.config?.url
+          url: err.config?.url,
+          method: err.config?.method
         });
       }
     }
