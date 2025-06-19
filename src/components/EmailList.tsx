@@ -318,22 +318,38 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
 
   const handleHandlingTypeChange = async (emailId: number, handlingType: 'external' | 'internal') => {
     try {
+      console.log(`=== HANDLING TYPE CHANGE DEBUG ===`);
+      console.log(`Email ID: ${emailId}, Changing to: ${handlingType}`);
+      
+      // Log current email state before update
+      const currentEmail = emails.find(e => e.id === emailId);
+      console.log('Current email state before change:', JSON.stringify(currentEmail, null, 2));
+      
       const endpoint = handlingType === 'external' 
         ? `${API_BASE}/api/emails/${emailId}/mark_external_handling/`
         : `${API_BASE}/api/emails/${emailId}/mark_internal_handling/`;
       
-      await axios.post(endpoint);
+      console.log(`Making POST request to: ${endpoint}`);
+      const response = await axios.post(endpoint);
+      console.log(`API response:`, JSON.stringify(response.data, null, 2));
       console.log(`Email ${emailId} marked as ${handlingType} handling`);
       
       // Update local state to reflect the change immediately
-      setEmails(prevEmails => prevEmails.map(email =>
-        email.id === emailId ? { 
-          ...email, 
-          needs_internal_handling: handlingType === 'internal',
-          waiting_external_handling: handlingType === 'external',
-          is_handled: true 
-        } : email
-      ));
+      setEmails(prevEmails => {
+        const updatedEmails = prevEmails.map(email =>
+          email.id === emailId ? { 
+            ...email, 
+            needs_internal_handling: handlingType === 'internal',
+            waiting_external_handling: handlingType === 'external',
+            is_handled: false // Don't set as handled when marking as internal/external
+          } : email
+        );
+        const updatedEmail = updatedEmails.find(e => e.id === emailId);
+        console.log('Updated email state after local change:', JSON.stringify(updatedEmail, null, 2));
+        return updatedEmails;
+      });
+      
+      console.log(`=== END HANDLING TYPE CHANGE DEBUG ===`);
     } catch (err) {
       console.error(`Failed to mark email as ${handlingType} handling:`, err);
     }
