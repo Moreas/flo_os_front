@@ -69,7 +69,9 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(true);
+  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(false);
+  const [showInternalHandlingOnly, setShowInternalHandlingOnly] = useState(false);
+  const [showExternalHandlingOnly, setShowExternalHandlingOnly] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -161,13 +163,21 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
   // Filter emails based on state
   const filteredEmails = useMemo(() => {
     return emails.filter(email => {
-      // Needs Handling Filter - show emails that need internal/external handling OR haven't been assigned any handling type yet
-      if (showNeedsHandlingOnly && 
-          email.needs_internal_handling === false && 
-          email.waiting_external_handling === false && 
-          email.is_handled === true) {
+      // Needs Handling Filter - exclude emails that are marked as handled
+      if (showNeedsHandlingOnly && email.is_handled === true) {
         return false;
       }
+      
+      // Internal Handling Filter - show only emails that need internal handling
+      if (showInternalHandlingOnly && email.needs_internal_handling !== true) {
+        return false;
+      }
+      
+      // External Handling Filter - show only emails that are waiting for external handling
+      if (showExternalHandlingOnly && email.waiting_external_handling !== true) {
+        return false;
+      }
+      
       // Category Filter: Check if email has ANY of the selected categories
       if (selectedCategories.length > 0 && 
           !selectedCategories.some(selCat => email.categories?.includes(selCat))) {
@@ -175,7 +185,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       }
       return true; // Show if all filters pass
     });
-  }, [emails, showNeedsHandlingOnly, selectedCategories]);
+  }, [emails, showNeedsHandlingOnly, showInternalHandlingOnly, showExternalHandlingOnly, selectedCategories]);
 
   const openAssignModal = async (emailId: number) => {
     setAssigningEmailId(emailId);
@@ -404,19 +414,52 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
             )}
           </div>
 
-          {/* Needs Handling Checkbox (moved for better grouping) */}
-          <div className="flex items-center flex-shrink-0 pt-2 md:pt-0 md:self-end">
-            <input
-              id="needs-handling-filter"
-              name="needs-handling-filter"
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              checked={showNeedsHandlingOnly}
-              onChange={(e) => setShowNeedsHandlingOnly(e.target.checked)}
-            />
-            <label htmlFor="needs-handling-filter" className="ml-2 block text-sm text-gray-900">
-              Show only needs handling
+          {/* Handling Filters */}
+          <div className="flex flex-col space-y-2 flex-shrink-0 pt-2 md:pt-0 md:self-end">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Handling Status:
             </label>
+            <div className="flex flex-col space-y-1">
+              <div className="flex items-center">
+                <input
+                  id="needs-handling-filter"
+                  name="needs-handling-filter"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  checked={showNeedsHandlingOnly}
+                  onChange={(e) => setShowNeedsHandlingOnly(e.target.checked)}
+                />
+                <label htmlFor="needs-handling-filter" className="ml-2 block text-sm text-gray-900">
+                  Exclude handled emails
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="internal-handling-filter"
+                  name="internal-handling-filter"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  checked={showInternalHandlingOnly}
+                  onChange={(e) => setShowInternalHandlingOnly(e.target.checked)}
+                />
+                <label htmlFor="internal-handling-filter" className="ml-2 block text-sm text-gray-900">
+                  Internal handling only
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="external-handling-filter"
+                  name="external-handling-filter"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  checked={showExternalHandlingOnly}
+                  onChange={(e) => setShowExternalHandlingOnly(e.target.checked)}
+                />
+                <label htmlFor="external-handling-filter" className="ml-2 block text-sm text-gray-900">
+                  External handling only
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -425,7 +468,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
          <div className="text-center py-8 bg-gray-50 rounded-lg">
             <InboxIcon className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-2 text-sm font-medium text-gray-900">
-                {showNeedsHandlingOnly || selectedCategories.length > 0 ? 'No emails match the current filters.' : 'No emails found.'}
+                {showNeedsHandlingOnly || showInternalHandlingOnly || showExternalHandlingOnly || selectedCategories.length > 0 ? 'No emails match the current filters.' : 'No emails found.'}
             </p>
          </div>
       )}
