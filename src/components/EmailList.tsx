@@ -237,14 +237,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Update local state to reflect the change immediately
-        setEmails(prevEmails => prevEmails.map(email =>
-          email.id === emailId ? { 
-            ...email, 
-            is_handled: true,
-            needs_internal_handling: false,
-            waiting_external_handling: false
-          } : email
-        ));
+        setEmails(prevEmails => {
+          const updatedEmails = prevEmails.map(email =>
+            email.id === emailId ? { 
+              ...email, 
+              is_handled: true,
+              needs_internal_handling: false,
+              waiting_external_handling: false
+            } : email
+          );
+          console.log('Updated emails state:', updatedEmails.find(e => e.id === emailId));
+          return updatedEmails;
+        });
         
         console.log('Local state updated');
         
@@ -281,6 +285,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       console.log(`=== END DEBUG ===`);
       
     } catch (err) {
+      console.error('=== EMAIL STATUS CHANGE ERROR ===');
       console.error('Failed to update email status:', err);
       if (axios.isAxiosError(err)) {
         console.error('API Error details:', {
@@ -292,6 +297,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
           headers: err.config?.headers
         });
       }
+      console.error('=== END ERROR ===');
     }
   };
 
@@ -432,12 +438,23 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                       onChange={e => {
                         e.stopPropagation();
                         const value = e.target.value;
-                        console.log(`Dropdown changed for email ${email.id}:`, value);
+                        console.log(`=== DROPDOWN CHANGE DEBUG ===`);
+                        console.log(`Email ID: ${email.id}`);
+                        console.log(`Selected value: ${value}`);
+                        console.log(`Current email state:`, {
+                          is_handled: email.is_handled,
+                          needs_internal_handling: email.needs_internal_handling,
+                          waiting_external_handling: email.waiting_external_handling
+                        });
+                        
                         if (value === "handled") {
+                          console.log(`Calling handleEmailStatusChange(${email.id}, true)`);
                           handleEmailStatusChange(email.id, true);
                         } else if (value === "external" || value === "internal") {
+                          console.log(`Calling handleHandlingTypeChange(${email.id}, ${value})`);
                           handleHandlingTypeChange(email.id, value as 'external' | 'internal');
                         }
+                        console.log(`=== END DROPDOWN CHANGE DEBUG ===`);
                       }}
                       className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                     >
