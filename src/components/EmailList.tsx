@@ -232,6 +232,8 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         const response = await axios.post(`${API_BASE}/api/emails/${emailId}/mark_handled/`);
         console.log('Mark handled endpoint response:', response.data);
         console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        console.log('Full response object:', response);
         
         // Add a small delay to ensure backend has processed
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -256,6 +258,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         console.log('Refreshing email list to verify backend update...');
         await fetchEmails();
         console.log('Email list refreshed');
+        
+        // Check if the email was actually updated in the backend
+        const refreshedEmail = emails.find(e => e.id === emailId);
+        console.log('Refreshed email state from backend:', refreshedEmail);
+        console.log('Expected state vs actual state:', {
+          expected: { is_handled: true, needs_internal_handling: false, waiting_external_handling: false },
+          actual: refreshedEmail ? {
+            is_handled: refreshedEmail.is_handled,
+            needs_internal_handling: refreshedEmail.needs_internal_handling,
+            waiting_external_handling: refreshedEmail.waiting_external_handling
+          } : 'Email not found'
+        });
       } else {
         console.log(`Making PATCH request to: ${API_BASE}/api/emails/${emailId}/`);
         
