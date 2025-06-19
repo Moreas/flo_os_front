@@ -213,6 +213,23 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     }
   };
 
+  const handleEmailStatusChange = async (emailId: number, isHandled: boolean) => {
+    try {
+      await axios.patch(`${API_BASE}/api/emails/${emailId}/`, { is_handled: isHandled });
+      // Update local state to reflect the change immediately
+      setEmails(prevEmails => prevEmails.map(email =>
+        email.id === emailId ? { 
+          ...email, 
+          is_handled: isHandled,
+          needs_internal_handling: false,
+          waiting_external_handling: false
+        } : email
+      ));
+    } catch (err) {
+      console.error('Failed to update email status:', err);
+    }
+  };
+
   const handleHandlingTypeChange = async (emailId: number, handlingType: 'external' | 'internal') => {
     try {
       const endpoint = handlingType === 'external' 
@@ -336,16 +353,21 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
                     <select
-                      value={email.needs_internal_handling ? "internal" : email.waiting_external_handling ? "external" : ""}
+                      value={email.needs_internal_handling ? "internal" : email.waiting_external_handling ? "external" : email.is_handled ? "handled" : ""}
                       onClick={e => e.stopPropagation()}
                       onChange={e => {
                         e.stopPropagation();
                         const value = e.target.value;
-                        handleHandlingTypeChange(email.id, value as 'external' | 'internal');
+                        if (value === "handled") {
+                          handleEmailStatusChange(email.id, true);
+                        } else if (value === "external" || value === "internal") {
+                          handleHandlingTypeChange(email.id, value as 'external' | 'internal');
+                        }
                       }}
                       className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                     >
                       <option value="">Select Handling Type</option>
+                      <option value="handled">Handled</option>
                       <option value="external">External Handling</option>
                       <option value="internal">Internal Handling</option>
                     </select>
