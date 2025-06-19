@@ -218,12 +218,23 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
 
   const handleEmailStatusChange = async (emailId: number, isHandled: boolean) => {
     try {
-      console.log(`Marking email ${emailId} as handled: ${isHandled}`);
+      console.log(`=== EMAIL STATUS CHANGE DEBUG ===`);
+      console.log(`Email ID: ${emailId}, Setting handled: ${isHandled}`);
+      
+      // Log current email state before update
+      const currentEmail = emails.find(e => e.id === emailId);
+      console.log('Current email state:', currentEmail);
       
       if (isHandled) {
+        console.log(`Making POST request to: ${API_BASE}/api/emails/${emailId}/mark_handled/`);
+        
         // Use the specific endpoint for marking as handled
         const response = await axios.post(`${API_BASE}/api/emails/${emailId}/mark_handled/`);
         console.log('Mark handled endpoint response:', response.data);
+        console.log('Response status:', response.status);
+        
+        // Add a small delay to ensure backend has processed
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Update local state to reflect the change immediately
         setEmails(prevEmails => prevEmails.map(email =>
@@ -234,7 +245,16 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
             waiting_external_handling: false
           } : email
         ));
+        
+        console.log('Local state updated');
+        
+        // Manually refresh to verify backend update
+        console.log('Refreshing email list to verify backend update...');
+        await fetchEmails();
+        console.log('Email list refreshed');
       } else {
+        console.log(`Making PATCH request to: ${API_BASE}/api/emails/${emailId}/`);
+        
         // For unhandling, we might need a different approach
         // For now, let's use PATCH to set is_handled to false
         const payload = {
@@ -243,6 +263,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         
         const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
         console.log('Unhandled PATCH response:', response.data);
+        console.log('Response status:', response.status);
         
         // Update local state
         setEmails(prevEmails => prevEmails.map(email =>
@@ -252,14 +273,23 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
           } : email
         ));
       }
+      
+      // Log updated email state
+      const updatedEmails = emails.map(e => e.id === emailId ? { ...e, is_handled: isHandled } : e);
+      const updatedEmail = updatedEmails.find(e => e.id === emailId);
+      console.log('Updated email state:', updatedEmail);
+      console.log(`=== END DEBUG ===`);
+      
     } catch (err) {
       console.error('Failed to update email status:', err);
       if (axios.isAxiosError(err)) {
         console.error('API Error details:', {
           status: err.response?.status,
+          statusText: err.response?.statusText,
           data: err.response?.data,
           url: err.config?.url,
-          method: err.config?.method
+          method: err.config?.method,
+          headers: err.config?.headers
         });
       }
     }
@@ -388,11 +418,21 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
                     <select
-                      value={email.needs_internal_handling ? "internal" : email.waiting_external_handling ? "external" : email.is_handled ? "handled" : ""}
+                      value={(() => {
+                        const value = email.needs_internal_handling ? "internal" : email.waiting_external_handling ? "external" : email.is_handled ? "handled" : "";
+                        console.log(`Email ${email.id} dropdown value calculation:`, {
+                          needs_internal_handling: email.needs_internal_handling,
+                          waiting_external_handling: email.waiting_external_handling,
+                          is_handled: email.is_handled,
+                          calculated_value: value
+                        });
+                        return value;
+                      })()}
                       onClick={e => e.stopPropagation()}
                       onChange={e => {
                         e.stopPropagation();
                         const value = e.target.value;
+                        console.log(`Dropdown changed for email ${email.id}:`, value);
                         if (value === "handled") {
                           handleEmailStatusChange(email.id, true);
                         } else if (value === "external" || value === "internal") {
