@@ -98,12 +98,30 @@ const PersonDetailPage: React.FC = () => {
 
   const handleEmailStatusChange = async (emailId: number, newStatus: boolean) => {
     try {
-      await axios.patch(`${API_BASE}/api/emails/${emailId}/`, { is_handled: newStatus });
+      console.log(`Marking email ${emailId} as handled: ${newStatus}`);
+      
+      // When marking as handled, also clear the handling type fields
+      const payload = {
+        is_handled: newStatus,
+        needs_internal_handling: false,
+        waiting_external_handling: false
+      };
+      
+      const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
+      console.log('Email status update response:', response.data);
+      
       // Refresh emails after update
       const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
       setEmails(res.data || []);
     } catch (err) {
       console.error('Failed to update email status:', err);
+      if (axios.isAxiosError(err)) {
+        console.error('API Error details:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url
+        });
+      }
     }
   };
 

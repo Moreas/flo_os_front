@@ -218,7 +218,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
 
   const handleEmailStatusChange = async (emailId: number, isHandled: boolean) => {
     try {
-      await axios.patch(`${API_BASE}/api/emails/${emailId}/`, { is_handled: isHandled });
+      console.log(`Marking email ${emailId} as handled: ${isHandled}`);
+      
+      // When marking as handled, also clear the handling type fields
+      const payload = {
+        is_handled: isHandled,
+        needs_internal_handling: false,
+        waiting_external_handling: false
+      };
+      
+      const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
+      console.log('Email status update response:', response.data);
+      
       // Update local state to reflect the change immediately
       setEmails(prevEmails => prevEmails.map(email =>
         email.id === emailId ? { 
@@ -230,6 +241,13 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       ));
     } catch (err) {
       console.error('Failed to update email status:', err);
+      if (axios.isAxiosError(err)) {
+        console.error('API Error details:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url
+        });
+      }
     }
   };
 
