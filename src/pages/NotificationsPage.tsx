@@ -12,8 +12,8 @@ interface NotificationItem {
   received_at?: string;
   due_date?: string;
   is_handled?: boolean;
-  is_internal_handling?: boolean;
-  is_external_handling?: boolean;
+  needs_internal_handling?: boolean;
+  waiting_external_handling?: boolean;
 }
 
 interface NotificationGroup {
@@ -63,8 +63,8 @@ const NotificationsPage: React.FC = () => {
       const emailsResponse = await axios.get(`${API_BASE}/api/emails/`, {
         params: {
           is_handled: false,
-          is_internal_handling: true,
-          is_external_handling: false
+          needs_internal_handling: true,
+          waiting_external_handling: false
         }
       });
       
