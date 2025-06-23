@@ -93,7 +93,6 @@ const fallbackProjects: Project[] = [ {id: 1, name: "Website Redesign"}, {id: 2,
 
 type SortField = 'due_date' | 'created_at' | 'business';
 type SortDirection = 'asc' | 'desc';
-type DueFilter = 'all' | 'overdue' | 'today' | 'upcoming' | 'yesterday' | 'tomorrow' | 'this-week' | 'due-today-or-before';
 type StatusFilter = 'all' | 'active' | 'completed';
 
 // Updated: Helper to format date for date input using UTC
