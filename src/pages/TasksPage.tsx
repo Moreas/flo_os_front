@@ -44,8 +44,9 @@ const TasksPage: React.FC = () => {
           }
         });
         const results = Array.isArray(res.data) ? res.data : res.data.results || [];
-        setCompletedTasks(prev => completedPage === 1 ? results : [...prev, ...results]);
-        setCompletedHasMore(results.length === 10);
+        const completed = results.filter((task: any) => task.is_done === true);
+        setCompletedTasks(prev => completedPage === 1 ? completed : [...prev, ...completed]);
+        setCompletedHasMore(completed.length === 10);
       } catch (e) {
         setCompletedHasMore(false);
       } finally {
