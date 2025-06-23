@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
-import { format, parseISO, startOfWeek, addDays, subDays, startOfMonth, eachDayOfInterval, startOfYear, eachWeekOfInterval, isSameDay, isSameWeek, getWeek } from 'date-fns';
+import { format, parseISO, startOfWeek, subDays, startOfMonth, eachDayOfInterval, startOfYear, eachWeekOfInterval, isSameDay, isSameWeek, getWeek } from 'date-fns';
 import API_BASE from '../apiBase';
 
 const TIME_RANGES = [
