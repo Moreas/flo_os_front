@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
-import { format, parseISO, startOfWeek, addDays, subDays, startOfMonth, endOfMonth, eachDayOfInterval, startOfYear, endOfYear, eachWeekOfInterval, isSameDay, isSameWeek, isSameMonth, isSameYear, getWeek, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, startOfWeek, addDays, subDays, startOfMonth, eachDayOfInterval, startOfYear, eachWeekOfInterval, isSameDay, isSameWeek, getWeek } from 'date-fns';
 import API_BASE from '../apiBase';
 
 const TIME_RANGES = [
@@ -53,18 +53,15 @@ const CompletedTasksChart: React.FC = () => {
       });
     } else if (range === 'this_month') {
       const monthStart = startOfMonth(now);
-      const monthEnd = endOfMonth(now);
       data = eachDayOfInterval({ start: monthStart, end: now }).map(day => {
         const count = tasks.filter(t => t.completion_date && isSameDay(parseISO(t.completion_date), day)).length;
         return { label: format(day, 'd'), count };
       });
     } else if (range === 'this_year') {
       const yearStart = startOfYear(now);
-      const yearEnd = endOfYear(now);
       const weeks = eachWeekOfInterval({ start: yearStart, end: now }, { weekStartsOn: 1 });
       data = weeks.map((weekStartDate, i) => {
         const weekNum = getWeek(weekStartDate, { weekStartsOn: 1 });
-        const weekEndDate = addDays(weekStartDate, 6);
         const count = tasks.filter(t => t.completion_date && isSameWeek(parseISO(t.completion_date), weekStartDate, { weekStartsOn: 1 })).length;
         return { label: `W${weekNum}`, count };
       });
