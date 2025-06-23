@@ -8,11 +8,17 @@ import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
 
+interface CompletedTask {
+  id: number;
+  description: string;
+  completion_date?: string | null;
+}
+
 const TasksPage: React.FC = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const { refreshKey, refreshTasks } = useTaskRefresh();
   const [completedPage, setCompletedPage] = useState(1);
-  const [completedTasks, setCompletedTasks] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>([]);
   const [completedLoading, setCompletedLoading] = useState(false);
   const [completedHasMore, setCompletedHasMore] = useState(true);
 
