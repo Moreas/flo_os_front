@@ -3,6 +3,27 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import API_BASE from '../apiBase';
 
+interface NotificationItem {
+  id: number;
+  name?: string;
+  description?: string;
+  subject?: string;
+  sender_name?: string;
+  received_at?: string;
+  due_date?: string;
+  is_handled?: boolean;
+  is_internal_handling?: boolean;
+  is_external_handling?: boolean;
+}
+
+interface NotificationGroup {
+  type: string;
+  title: string;
+  count: number;
+  priority: string;
+  items: NotificationItem[];
+}
+
 const priorityClass = (priority: string) => {
   switch (priority) {
     case 'high': return 'bg-red-100 text-red-700';
@@ -15,50 +36,121 @@ const groupLink = (type: string) => {
   switch (type) {
     case 'email': return '/emails';
     case 'task': return '/tasks';
-    case 'project': return '/projects';
-    case 'goal': return '/goals';
-    case 'journal': return '/journal';
     default: return '#';
   }
 };
 
 const itemLink = (type: string, item: any) => {
   switch (type) {
-    case 'email': return '/emails'; // No detail page for individual emails in current UI
+    case 'email': return '/emails';
     case 'task': return `/tasks/${item.id}`;
-    case 'project': return `/projects/${item.id}`;
-    case 'goal': return `/goals/${item.id}`;
-    case 'journal': return `/journal`; // No detail page for individual journal entries in current UI
     default: return '#';
   }
 };
 
 const NotificationsPage: React.FC = () => {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
 
-  useEffect(() => {
+  const fetchNotifications = async () => {
     setLoading(true);
     setError(null);
-    axios.get(`${API_BASE}/api/notifications/`)
-      .then(res => {
-        const data = res.data;
-        if (!data || !Array.isArray(data.notifications)) {
-          setNotifications([]);
-          setTotalCount(0);
-        } else {
-          setNotifications(data.notifications);
-          setTotalCount(data.total_count || data.notifications.reduce((sum: number, n: any) => sum + (n.count || 0), 0));
+    
+    try {
+      // Fetch unhandled internal emails
+      const emailsResponse = await axios.get(`${API_BASE}/api/emails/`, {
+        params: {
+          is_handled: false,
+          is_internal_handling: true
         }
-      })
-      .catch(() => {
-        setError('Failed to load notifications.');
-        setNotifications([]);
-        setTotalCount(0);
-      })
-      .finally(() => setLoading(false));
+      });
+      
+      // Fetch tasks due today or before
+      const today = new Date().toISOString().split('T')[0];
+      const tasksResponse = await axios.get(`${API_BASE}/api/tasks/`, {
+        params: {
+          due_date_before: today
+        }
+      });
+      
+      console.log('Emails response:', emailsResponse.data);
+      console.log('Tasks response:', tasksResponse.data);
+      
+      // Process emails
+      const emails = Array.isArray(emailsResponse.data) ? emailsResponse.data : 
+                    emailsResponse.data.results || emailsResponse.data.emails || [];
+      
+      // Process tasks
+      const tasks = Array.isArray(tasksResponse.data) ? tasksResponse.data : 
+                   tasksResponse.data.results || tasksResponse.data.tasks || [];
+      
+      // Filter tasks to only include those due today or before
+      const filteredTasks = tasks.filter((task: any) => {
+        if (!task.due_date) return false;
+        const taskDate = new Date(task.due_date);
+        const todayDate = new Date();
+        todayDate.setHours(23, 59, 59, 999); // End of today
+        return taskDate <= todayDate;
+      });
+      
+      console.log('Filtered emails (unhandled internal):', emails);
+      console.log('Filtered tasks (due today or before):', filteredTasks);
+      
+      // Create notification groups
+      const notificationGroups: NotificationGroup[] = [];
+      
+      if (emails.length > 0) {
+        notificationGroups.push({
+          type: 'email',
+          title: 'Unhandled Internal Emails',
+          count: emails.length,
+          priority: emails.length > 5 ? 'high' : 'medium',
+          items: emails.map((email: any) => ({
+            id: email.id,
+            subject: email.subject,
+            sender_name: email.sender_name,
+            received_at: email.received_at
+          }))
+        });
+      }
+      
+      if (filteredTasks.length > 0) {
+        notificationGroups.push({
+          type: 'task',
+          title: 'Tasks Due Today or Before',
+          count: filteredTasks.length,
+          priority: filteredTasks.length > 10 ? 'high' : 'medium',
+          items: filteredTasks.map((task: any) => ({
+            id: task.id,
+            name: task.name,
+            description: task.description,
+            due_date: task.due_date
+          }))
+        });
+      }
+      
+      const totalCount = notificationGroups.reduce((sum, group) => sum + group.count, 0);
+      
+      console.log('Notification groups:', notificationGroups);
+      console.log('Total count:', totalCount);
+      
+      setNotifications(notificationGroups);
+      setTotalCount(totalCount);
+      
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      setError('Failed to load notifications.');
+      setNotifications([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
   }, []);
 
   return (
@@ -90,16 +182,7 @@ const NotificationsPage: React.FC = () => {
                         <span><span className="font-medium">{item.subject}</span> <span className="text-gray-500">from {item.sender_name}</span> <span className="text-gray-400">({new Date(item.received_at).toLocaleString()})</span></span>
                       )}
                       {group.type === 'task' && (
-                        <span><span className="font-medium">{item.name}</span> <span className="text-gray-500">due {item.due_date}</span></span>
-                      )}
-                      {group.type === 'project' && (
-                        <span><span className="font-medium">{item.name}</span> <span className="text-gray-500">({item.status})</span> <span className="text-gray-400">{item.pending_tasks} tasks</span></span>
-                      )}
-                      {group.type === 'goal' && (
-                        <span><span className="font-medium">{item.name}</span> <span className="text-gray-500">target {item.target_date}</span></span>
-                      )}
-                      {group.type === 'journal' && (
-                        <span><span className="font-medium">{item.emotion ? `(${item.emotion})` : ''}</span> {item.content} <span className="text-gray-400">{item.date}</span></span>
+                        <span><span className="font-medium">{item.name}</span> <span className="text-gray-500">{item.description || 'No description'}</span></span>
                       )}
                     </Link>
                   </li>
