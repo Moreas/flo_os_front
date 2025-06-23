@@ -6,6 +6,7 @@ import { useTaskRefresh } from '../contexts/TaskRefreshContext';
 import CompletedTasksChart from '../components/CompletedTasksChart';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+import API_BASE from '../apiBase';
 
 const TasksPage: React.FC = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
