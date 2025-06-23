@@ -70,7 +70,8 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
       const emailsResponse = await axios.get(`${API_BASE}/api/emails/`, {
         params: {
           is_handled: false,
-          is_internal_handling: true
+          is_internal_handling: true,
+          is_external_handling: false
         }
       });
       
