@@ -1,12 +1,19 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import TaskList from '../components/TaskList';
 import TaskForm from '../components/forms/TaskForm';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useTaskRefresh } from '../contexts/TaskRefreshContext';
+import CompletedTasksChart from '../components/CompletedTasksChart';
+import axios from 'axios';
+import { format, parseISO } from 'date-fns';
 
 const TasksPage: React.FC = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const { refreshKey, refreshTasks } = useTaskRefresh();
+  const [completedPage, setCompletedPage] = useState(1);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [completedLoading, setCompletedLoading] = useState(false);
+  const [completedHasMore, setCompletedHasMore] = useState(true);
 
   const handleTaskCreated = useCallback(() => {
     refreshTasks();
@@ -15,6 +22,31 @@ const TasksPage: React.FC = () => {
   const handleTaskUpdated = useCallback(() => {
     refreshTasks();
   }, [refreshTasks]);
+
+  // Fetch completed tasks (paginated)
+  useEffect(() => {
+    const fetchCompleted = async () => {
+      setCompletedLoading(true);
+      try {
+        const res = await axios.get(`${API_BASE}/api/tasks/`, {
+          params: {
+            is_done: true,
+            ordering: '-completion_date',
+            page: completedPage,
+            page_size: 10
+          }
+        });
+        const results = Array.isArray(res.data) ? res.data : res.data.results || [];
+        setCompletedTasks(prev => completedPage === 1 ? results : [...prev, ...results]);
+        setCompletedHasMore(results.length === 10);
+      } catch (e) {
+        setCompletedHasMore(false);
+      } finally {
+        setCompletedLoading(false);
+      }
+    };
+    fetchCompleted();
+  }, [completedPage]);
 
   return (
     <div className="space-y-6">
@@ -31,6 +63,32 @@ const TasksPage: React.FC = () => {
 
       <div className="bg-white shadow-sm rounded-lg p-4">
          <TaskList key={refreshKey} /> 
+      </div>
+
+      <div className="my-8">
+        <CompletedTasksChart />
+      </div>
+      <div className="bg-white shadow-sm rounded-lg p-4 mt-8">
+        <h2 className="text-lg font-semibold mb-4">Completed Tasks</h2>
+        <ul>
+          {completedTasks.map(task => (
+            <li key={task.id} className="border-b last:border-b-0 py-2">
+              <span className="font-medium">{task.description}</span>
+              {task.completion_date && (
+                <span className="ml-2 text-xs text-gray-500">{format(parseISO(task.completion_date), 'PPpp')}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+        {completedHasMore && (
+          <button
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+            onClick={() => setCompletedPage(p => p + 1)}
+            disabled={completedLoading}
+          >
+            {completedLoading ? 'Loading...' : 'Load more'}
+          </button>
+        )}
       </div>
 
       <TaskForm 
