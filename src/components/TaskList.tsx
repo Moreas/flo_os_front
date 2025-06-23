@@ -93,7 +93,7 @@ const fallbackProjects: Project[] = [ {id: 1, name: "Website Redesign"}, {id: 2,
 
 type SortField = 'due_date' | 'created_at' | 'business';
 type SortDirection = 'asc' | 'desc';
-type DueFilter = 'all' | 'overdue' | 'today' | 'upcoming' | 'yesterday' | 'tomorrow' | 'this-week';
+type DueFilter = 'all' | 'overdue' | 'today' | 'upcoming' | 'yesterday' | 'tomorrow' | 'this-week' | 'due-today-or-before';
 type StatusFilter = 'all' | 'active' | 'completed';
 
 // Updated: Helper to format date for date input using UTC
@@ -130,7 +130,7 @@ const TaskList: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [businessFilter, setBusinessFilter] = useState<string>('all');
-  const [dueFilter, setDueFilter] = useState<DueFilter>('all');
+  const [showDueTodayOrBefore, setShowDueTodayOrBefore] = useState<boolean>(true);
 
   // Sorting
   const [sortBy, setSortBy] = useState<SortField>('due_date');
@@ -343,30 +343,11 @@ const TaskList: React.FC = () => {
     }
 
     // Due Date Filter
-    if (dueFilter !== 'all') {
+    if (showDueTodayOrBefore) {
       const now = new Date();
       const nowUtcYear = now.getUTCFullYear();
       const nowUtcMonth = now.getUTCMonth();
       const nowUtcDay = now.getUTCDate();
-
-      // Calculate Yesterday's UTC date parts
-      const yesterday = new Date(now);
-      yesterday.setUTCDate(now.getUTCDate() - 1);
-      const yesterdayUtcYear = yesterday.getUTCFullYear();
-      const yesterdayUtcMonth = yesterday.getUTCMonth();
-      const yesterdayUtcDay = yesterday.getUTCDate();
-
-      // Calculate Tomorrow's UTC date parts
-      const tomorrow = new Date(now);
-      tomorrow.setUTCDate(now.getUTCDate() + 1);
-      const tomorrowUtcYear = tomorrow.getUTCFullYear();
-      const tomorrowUtcMonth = tomorrow.getUTCMonth();
-      const tomorrowUtcDay = tomorrow.getUTCDate();
-
-      // Calculate Start/End of Week in UTC (Sunday-Saturday)
-      const nowDayOfWeek = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
-      const startOfWeekUTC = new Date(Date.UTC(nowUtcYear, nowUtcMonth, nowUtcDay - nowDayOfWeek));
-      const endOfWeekUTC = new Date(Date.UTC(nowUtcYear, nowUtcMonth, nowUtcDay + (6 - nowDayOfWeek), 23, 59, 59, 999));
 
       filtered = filtered.filter(task => {
         if (!task.due_date) return false;
@@ -379,39 +360,9 @@ const TaskList: React.FC = () => {
           return false; // Error parsing date
         }
         
-        // Get task's due date UTC parts
-        const dueUtcYear = dueDate.getUTCFullYear();
-        const dueUtcMonth = dueDate.getUTCMonth();
-        const dueUtcDay = dueDate.getUTCDate();
-        
-        // --- Date Comparisons (using UTC parts) ---
-        const isToday = dueUtcYear === nowUtcYear && dueUtcMonth === nowUtcMonth && dueUtcDay === nowUtcDay;
-        const isYesterday = dueUtcYear === yesterdayUtcYear && dueUtcMonth === yesterdayUtcMonth && dueUtcDay === yesterdayUtcDay;
-        const isTomorrow = dueUtcYear === tomorrowUtcYear && dueUtcMonth === tomorrowUtcMonth && dueUtcDay === tomorrowUtcDay;
-        const isThisWeek = dueDate.getTime() >= startOfWeekUTC.getTime() && dueDate.getTime() <= endOfWeekUTC.getTime();
-
-        // Apply the selected filter
-        switch (dueFilter) {
-          case 'overdue':
-            // Ensure the due date is strictly before the beginning of today UTC
-            const startOfTodayUTC = new Date(Date.UTC(nowUtcYear, nowUtcMonth, nowUtcDay));
-            return dueDate.getTime() < startOfTodayUTC.getTime();
-          case 'today':
-            return isToday;
-          case 'yesterday':
-            return isYesterday;
-          case 'tomorrow':
-            return isTomorrow;
-          case 'this-week':
-             // Should include today, yesterday, tomorrow if they fall within the week
-            return isThisWeek;
-          case 'upcoming':
-            // Ensure the due date is strictly after the end of today UTC
-            const endOfTodayUTC = new Date(Date.UTC(nowUtcYear, nowUtcMonth, nowUtcDay, 23, 59, 59, 999));
-            return dueDate.getTime() > endOfTodayUTC.getTime();
-          default:
-            return false;
-        }
+        // Show tasks due today or before (including overdue)
+        const endOfTodayUTC = new Date(Date.UTC(nowUtcYear, nowUtcMonth, nowUtcDay, 23, 59, 59, 999));
+        return dueDate.getTime() <= endOfTodayUTC.getTime();
       });
     }
 
@@ -446,7 +397,7 @@ const TaskList: React.FC = () => {
 
 
     return filtered;
-  }, [tasks, searchQuery, statusFilter, categoryFilter, projectFilter, businessFilter, dueFilter, sortBy, sortDirection]);
+  }, [tasks, searchQuery, statusFilter, categoryFilter, projectFilter, businessFilter, showDueTodayOrBefore, sortBy, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
@@ -638,22 +589,18 @@ const TaskList: React.FC = () => {
         </div>
 
         {/* Due Date Filter */}
-        <div>
-          <label htmlFor="due-filter" className="sr-only">Due Date</label>
-          <select 
-            id="due-filter"
-            value={dueFilter} 
-            onChange={(e) => setDueFilter(e.target.value as DueFilter)}
-            className="block w-full pl-3 pr-8 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-          >
-            <option value="all">All Due Dates</option>
-            <option value="overdue">Overdue</option>
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-            <option value="tomorrow">Tomorrow</option>
-            <option value="this-week">This Week</option>
-            <option value="upcoming">Upcoming</option>
-          </select>
+        <div className="flex items-center">
+          <input
+            id="due-today-or-before-filter"
+            name="due-today-or-before-filter"
+            type="checkbox"
+            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            checked={showDueTodayOrBefore}
+            onChange={(e) => setShowDueTodayOrBefore(e.target.checked)}
+          />
+          <label htmlFor="due-today-or-before-filter" className="ml-2 block text-sm text-gray-900">
+            Due today or before
+          </label>
         </div>
       </div>
 
