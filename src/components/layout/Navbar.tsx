@@ -66,14 +66,15 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
     setNotifError(null);
     
     try {
-      // Fetch unhandled internal emails
+      // Fetch all unhandled emails
       const emailsResponse = await axios.get(`${API_BASE}/api/emails/`, {
         params: {
-          is_handled: false,
-          needs_internal_handling: true,
-          waiting_external_handling: false
+          is_handled: false
         }
       });
+      // Filter for internal handling only (frontend)
+      const emailsRaw = Array.isArray(emailsResponse.data) ? emailsResponse.data : emailsResponse.data.results || emailsResponse.data.emails || [];
+      const emails = emailsRaw.filter((email: any) => email.needs_internal_handling === true && email.waiting_external_handling === false);
       
       // Fetch tasks due today or before
       const today = new Date().toISOString().split('T')[0];
@@ -85,10 +86,6 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
       
       console.log('Emails response:', emailsResponse.data);
       console.log('Tasks response:', tasksResponse.data);
-      
-      // Process emails
-      const emails = Array.isArray(emailsResponse.data) ? emailsResponse.data : 
-                    emailsResponse.data.results || emailsResponse.data.emails || [];
       
       // Process tasks
       const tasks = Array.isArray(tasksResponse.data) ? tasksResponse.data : 
