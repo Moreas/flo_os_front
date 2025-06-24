@@ -44,7 +44,9 @@ const TasksPage: React.FC = () => {
           }
         });
         const results = Array.isArray(res.data) ? res.data : res.data.results || [];
+        console.log('Fetched tasks for completed list:', results);
         const completed = results.filter((task: any) => task.is_done === true);
+        console.log('Filtered completed tasks:', completed);
         setCompletedTasks(prev => completedPage === 1 ? completed : [...prev, ...completed]);
         setCompletedHasMore(completed.length === 10);
       } catch (e) {

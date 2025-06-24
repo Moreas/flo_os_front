@@ -25,7 +25,10 @@ const CompletedTasksChart: React.FC = () => {
       try {
         const res = await axios.get(`${API_BASE}/api/tasks/`, { params: { is_done: true } });
         const results = Array.isArray(res.data) ? res.data : res.data.results || [];
-        setTasks(results);
+        console.log('Fetched tasks for completed chart:', results);
+        const completed = results.filter((task: any) => task.is_done === true);
+        console.log('Filtered completed tasks for chart:', completed);
+        setTasks(completed);
       } catch (e) {
         setError('Failed to load completed tasks');
       } finally {
