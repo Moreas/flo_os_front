@@ -167,12 +167,26 @@ const TaskForm: React.FC<TaskFormProps> = ({
       refreshTasks();
       setTimeout(() => onClose(), 1500);
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error 
-        ? err.message 
-        : err && typeof err === 'object' && 'response' in err
-          ? (err.response as any)?.data?.detail || JSON.stringify((err.response as any)?.data)
-          : `Failed to ${isEditMode ? 'update' : 'create'} task.`;
-      setSubmitError(errorMsg);
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data;
+        let messages: string[] = [];
+        if (data.field_errors) {
+          for (const [field, errs] of Object.entries(data.field_errors)) {
+            messages.push(`${field}: ${(errs as string[]).join(', ')}`);
+          }
+        } else if (data.details) {
+          for (const [field, errs] of Object.entries(data.details)) {
+            messages.push(`${field}: ${(errs as string[]).join(', ')}`);
+          }
+        } else if (data.message) {
+          messages.push(data.message);
+        } else {
+          messages.push('Unknown error occurred.');
+        }
+        setSubmitError(messages.join('\n'));
+      } else {
+        setSubmitError(`Failed to ${isEditMode ? 'update' : 'create'} task. Please try again.`);
+      }
     } finally {
       setIsSubmitting(false);
     }
