@@ -4,6 +4,7 @@ import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon, ExclamationCircleIco
 import { Dialog, Transition } from '@headlessui/react';
 import { format, parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
+import JournalForm from './forms/JournalForm';
 
 // Define emotions and their corresponding emojis
 const emotionsMap: { [key: string]: string } = {
@@ -46,6 +47,8 @@ const JournalList: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [expandedEntries, setExpandedEntries] = useState<{ [id: number]: boolean }>({});
+  const [editEntry, setEditEntry] = useState<JournalEntry | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   useEffect(() => {
     const fetchEntries = async () => {
@@ -121,6 +124,17 @@ const JournalList: React.FC = () => {
     return b.id - a.id;
   });
 
+  const handleEditEntry = (entry: JournalEntry) => {
+    setEditEntry(entry);
+    setIsEditOpen(true);
+  };
+
+  const handleJournalEntryUpdated = (updatedEntry: JournalEntry) => {
+    setEntries(currentEntries => currentEntries.map(e => e.id === updatedEntry.id ? updatedEntry : e));
+    setIsEditOpen(false);
+    setEditEntry(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -160,9 +174,18 @@ const JournalList: React.FC = () => {
                     {/* Updated Title Logic - Remove "Entry - " */}
                     <h3 className="text-base font-semibold text-gray-900">{entry.title || `${formatDate(entry.date)}`}</h3>
                   </div>
-                  {/* Right side: Date and Delete Button */}
+                  {/* Right side: Date, Edit, and Delete Button */}
                   <div className="flex items-center space-x-2">
                       <p className="text-xs text-gray-400 whitespace-nowrap">{formatDate(entry.date)}</p>
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => handleEditEntry(entry)}
+                        className="text-gray-400 hover:text-blue-600 transition-colors p-0.5 rounded"
+                        title="Edit Entry"
+                        aria-label="Edit journal entry"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13h3l8-8a2.828 2.828 0 00-4-4l-8 8v3zm0 0v3h3" /></svg>
+                      </button>
                       {/* Delete Button */}
                       <button 
                           onClick={() => openConfirmModal(entry.id)}
@@ -196,6 +219,16 @@ const JournalList: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Edit Journal Entry Modal */}
+      <JournalForm
+        isOpen={isEditOpen}
+        onClose={() => { setIsEditOpen(false); setEditEntry(null); }}
+        onJournalEntryCreated={() => {}}
+        initialEntry={editEntry}
+        isEditMode={true}
+        onJournalEntryUpdated={handleJournalEntryUpdated}
+      />
 
       {/* Delete Confirmation Modal */}
       <Transition appear show={isConfirmOpen} as={Fragment}>
