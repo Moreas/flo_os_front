@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment, useCallback } from 'react';
 import axios from 'axios';
-import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon, ExclamationCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { format, parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
@@ -177,10 +177,19 @@ const JournalList: React.FC = () => {
               <p className={`text-sm text-gray-600 whitespace-pre-wrap ${!isExpanded ? 'line-clamp-3' : ''}`}>{entry.content}</p>
               {entry.content.split('\n').length > 3 || entry.content.length > 200 ? (
                 <button
-                  className="mt-1 text-xs text-primary-600 hover:underline focus:outline-none"
+                  className="mt-1 flex items-center text-xs text-primary-600 hover:underline focus:outline-none font-medium"
                   onClick={() => setExpandedEntries(prev => ({ ...prev, [entry.id]: !isExpanded }))}
+                  aria-expanded={isExpanded}
                 >
-                  {isExpanded ? 'Show less' : 'Show more'}
+                  {isExpanded ? (
+                    <>
+                      Show less <ChevronUpIcon className="w-4 h-4 ml-1 inline" />
+                    </>
+                  ) : (
+                    <>
+                      Show more <ChevronDownIcon className="w-4 h-4 ml-1 inline" />
+                    </>
+                  )}
                 </button>
               ) : null}
             </div>
