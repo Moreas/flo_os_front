@@ -45,6 +45,8 @@ const JournalList: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [expandedEntries, setExpandedEntries] = useState<{ [id: number]: boolean }>({});
+
   useEffect(() => {
     const fetchEntries = async () => {
       setLoading(true);
@@ -141,39 +143,49 @@ const JournalList: React.FC = () => {
       )}
       
       <div className="space-y-3">
-        {sortedEntries.map((entry) => (
-          <div 
-            key={entry.id} 
-            className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow transition-shadow duration-150"
-          >
-            <div className="flex justify-between items-start mb-1">
-                {/* Title and Emotion */}
-                <div className="flex items-center">
-                  {/* Display emoji if emotion exists */}
-                  {entry.emotion && emotionsMap[entry.emotion] && (
-                    <span className="text-xl mr-2" title={entry.emotion}>{emotionsMap[entry.emotion]}</span>
-                  )}
-                  {/* Updated Title Logic - Remove "Entry - " */}
-                  <h3 className="text-base font-semibold text-gray-900">{entry.title || `${formatDate(entry.date)}`}</h3>
-                </div>
-                {/* Right side: Date and Delete Button */}
-                <div className="flex items-center space-x-2">
-                    <p className="text-xs text-gray-400 whitespace-nowrap">{formatDate(entry.date)}</p>
-                    {/* Delete Button */}
-                    <button 
-                        onClick={() => openConfirmModal(entry.id)}
-                        className="text-gray-400 hover:text-red-600 transition-colors p-0.5 rounded"
-                        title="Delete Entry"
-                        aria-label="Delete journal entry"
-                    >
-                        <TrashIcon className="w-4 h-4" />
-                    </button>
-                </div>
+        {sortedEntries.map((entry) => {
+          const isExpanded = expandedEntries[entry.id];
+          return (
+            <div 
+              key={entry.id} 
+              className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow transition-shadow duration-150"
+            >
+              <div className="flex justify-between items-start mb-1">
+                  {/* Title and Emotion */}
+                  <div className="flex items-center">
+                    {/* Display emoji if emotion exists */}
+                    {entry.emotion && emotionsMap[entry.emotion] && (
+                      <span className="text-xl mr-2" title={entry.emotion}>{emotionsMap[entry.emotion]}</span>
+                    )}
+                    {/* Updated Title Logic - Remove "Entry - " */}
+                    <h3 className="text-base font-semibold text-gray-900">{entry.title || `${formatDate(entry.date)}`}</h3>
+                  </div>
+                  {/* Right side: Date and Delete Button */}
+                  <div className="flex items-center space-x-2">
+                      <p className="text-xs text-gray-400 whitespace-nowrap">{formatDate(entry.date)}</p>
+                      {/* Delete Button */}
+                      <button 
+                          onClick={() => openConfirmModal(entry.id)}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-0.5 rounded"
+                          title="Delete Entry"
+                          aria-label="Delete journal entry"
+                      >
+                          <TrashIcon className="w-4 h-4" />
+                      </button>
+                  </div>
+              </div>
+              <p className={`text-sm text-gray-600 whitespace-pre-wrap ${!isExpanded ? 'line-clamp-3' : ''}`}>{entry.content}</p>
+              {entry.content.split('\n').length > 3 || entry.content.length > 200 ? (
+                <button
+                  className="mt-1 text-xs text-primary-600 hover:underline focus:outline-none"
+                  onClick={() => setExpandedEntries(prev => ({ ...prev, [entry.id]: !isExpanded }))}
+                >
+                  {isExpanded ? 'Show less' : 'Show more'}
+                </button>
+              ) : null}
             </div>
-             <p className="text-sm text-gray-600 whitespace-pre-wrap sm:line-clamp-3">{entry.content}</p> 
-             {/* Optional: Expand/View more button? Edit/Delete? */}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Delete Confirmation Modal */}
