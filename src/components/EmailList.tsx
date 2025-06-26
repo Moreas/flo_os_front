@@ -510,38 +510,29 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
                         } else if (email.waiting_external_handling) {
                           value = "external";
                         }
-                        
-                        console.log(`Email ${email.id} dropdown value calculation:`, {
-                          needs_internal_handling: email.needs_internal_handling,
-                          waiting_external_handling: email.waiting_external_handling,
-                          is_handled: email.is_handled,
-                          calculated_value: value
-                        });
                         return value;
                       })()}
                       onClick={e => e.stopPropagation()}
                       onChange={e => {
                         e.stopPropagation();
                         const value = e.target.value;
-                        console.log(`=== DROPDOWN CHANGE DEBUG ===`);
-                        console.log(`Email ID: ${email.id}`);
-                        console.log(`Selected value: ${value}`);
-                        console.log(`Current email state:`, {
-                          is_handled: email.is_handled,
-                          needs_internal_handling: email.needs_internal_handling,
-                          waiting_external_handling: email.waiting_external_handling
-                        });
-                        
                         if (value === "handled") {
-                          console.log(`Calling handleEmailStatusChange(${email.id}, true)`);
                           handleEmailStatusChange(email.id, true);
                         } else if (value === "external" || value === "internal") {
-                          console.log(`Calling handleHandlingTypeChange(${email.id}, ${value})`);
                           handleHandlingTypeChange(email.id, value as 'external' | 'internal');
                         }
-                        console.log(`=== END DROPDOWN CHANGE DEBUG ===`);
                       }}
-                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      className={`border rounded px-2 py-1 text-xs focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${(() => {
+                        let value = "";
+                        if (email.is_handled) {
+                          value = "handled";
+                        } else if (email.needs_internal_handling) {
+                          value = "internal";
+                        } else if (email.waiting_external_handling) {
+                          value = "external";
+                        }
+                        return value === '' ? 'bg-red-100 border-red-300 text-red-700' : 'border-gray-300';
+                      })()}`}
                     >
                       <option value="">Select Handling Type</option>
                       <option value="handled">Handled</option>
