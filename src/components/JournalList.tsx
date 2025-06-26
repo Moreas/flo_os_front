@@ -27,6 +27,7 @@ interface JournalEntry {
   date: string;
   emotion?: string;
   tags?: string;
+  created_at?: string;
 }
 
 // Fallback data
@@ -125,7 +126,10 @@ const JournalList: React.FC = () => {
   });
 
   const handleEditEntry = (entry: JournalEntry) => {
-    setEditEntry(entry);
+    setEditEntry({
+      ...entry,
+      created_at: entry.created_at || entry.date || new Date().toISOString(),
+    });
     setIsEditOpen(true);
   };
 
