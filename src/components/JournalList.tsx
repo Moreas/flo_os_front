@@ -22,8 +22,8 @@ const emotionsMap: { [key: string]: string } = {
 
 // Fallback data
 const fallbackEntries: JournalEntry[] = [
-    { id: 1, title: "Reflections on the Week", content: "It was a productive week overall...", date: "2024-08-14T10:00:00Z" },
-    { id: 2, content: "Quick thoughts on the new project kickoff meeting.", date: "2024-08-13T15:30:00Z" },
+    { id: 1, title: "Reflections on the Week", content: "It was a productive week overall...", date: "2024-08-14T10:00:00Z", emotion: "" },
+    { id: 2, content: "Quick thoughts on the new project kickoff meeting.", date: "2024-08-13T15:30:00Z", emotion: "" },
 ];
 
 const JournalList: React.FC = () => {
@@ -109,8 +109,8 @@ const JournalList: React.FC = () => {
 
   // Sort entries by date desc, then id desc for same date
   const sortedEntries = [...entries].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
+    const dateA = new Date(a.date ?? "").getTime();
+    const dateB = new Date(b.date ?? "").getTime();
     if (dateA !== dateB) return dateB - dateA;
     return b.id - a.id;
   });
@@ -167,11 +167,11 @@ const JournalList: React.FC = () => {
                       <span className="text-xl mr-2" title={entry.emotion}>{emotionsMap[entry.emotion]}</span>
                     )}
                     {/* Updated Title Logic - Remove "Entry - " */}
-                    <h3 className="text-base font-semibold text-gray-900">{entry.title || `${formatDate(entry.date)}`}</h3>
+                    <h3 className="text-base font-semibold text-gray-900">{entry.title || formatDate(entry.date ?? "")}</h3>
                   </div>
                   {/* Right side: Date, Edit, and Delete Button */}
                   <div className="flex items-center space-x-2">
-                      <p className="text-xs text-gray-400 whitespace-nowrap">{formatDate(entry.date)}</p>
+                      <p className="text-xs text-gray-400 whitespace-nowrap">{formatDate(entry.date ?? "")}</p>
                       {/* Edit Button */}
                       <button
                         onClick={() => handleEditEntry(entry)}
