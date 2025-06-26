@@ -18,6 +18,8 @@ import {
   CalendarDaysIcon,
   BookmarkIcon,
   ClockIcon,
+  DocumentTextIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -38,6 +40,8 @@ const navigation = [
   { name: 'Meetings', href: '/meetings', icon: PhoneIcon },
   { name: 'Tools', href: '/tools', icon: WrenchScrewdriverIcon },
   { name: 'Learning', href: '/learning', icon: AcademicCapIcon },
+  { name: 'Knowledge Resources', href: '/knowledge', icon: DocumentTextIcon },
+  { name: 'Mentoring', href: '/mentoring', icon: UserGroupIcon },
   { name: 'Health - Fitness', href: '/health', icon: HeartIcon },
   { name: 'Finance', href: '/finance', icon: BanknotesIcon },
   { name: 'Calendar', href: '/calendar', icon: CalendarDaysIcon },
