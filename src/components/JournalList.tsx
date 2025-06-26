@@ -129,6 +129,7 @@ const JournalList: React.FC = () => {
     setEditEntry({
       ...entry,
       created_at: entry.created_at || entry.date || new Date().toISOString(),
+      emotion: entry.emotion ?? "",
     });
     setIsEditOpen(true);
   };
