@@ -5,14 +5,7 @@ import axios from 'axios';
 import API_BASE from '../../apiBase';
 import { useRefresh } from '../../contexts/RefreshContext';
 import MentionInput from '../ui/MentionInput';
-
-interface JournalEntry {
-  id: number;
-  content: string;
-  emotion: string;
-  tags: string;
-  created_at: string;
-}
+import { JournalEntry } from '../../types/journal';
 
 interface JournalFormProps {
   isOpen: boolean;

@@ -5,6 +5,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { format, parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
 import JournalForm from './forms/JournalForm';
+import { JournalEntry } from '../types/journal';
 
 // Define emotions and their corresponding emojis
 const emotionsMap: { [key: string]: string } = {
@@ -18,17 +19,6 @@ const emotionsMap: { [key: string]: string } = {
   tired: '😴',
   confused: '😕',
 };
-
-// Interface for Journal Entry data
-interface JournalEntry {
-  id: number;
-  title?: string;
-  content: string;
-  date: string;
-  emotion?: string;
-  tags?: string;
-  created_at?: string;
-}
 
 // Fallback data
 const fallbackEntries: JournalEntry[] = [
