@@ -37,11 +37,18 @@ const DailyHabitsPage: React.FC = () => {
         axios.get(`${API_BASE}/api/habits/tracking_summary/?start_date=${targetDate}&end_date=${targetDate}`)
       ]);
       
-      setPendingHabits(pendingRes.data || []);
-      setTrackingSummary(summaryRes.data || []);
+      // Ensure we have arrays, even if the API returns unexpected data
+      const pendingData = Array.isArray(pendingRes.data) ? pendingRes.data : [];
+      const summaryData = Array.isArray(summaryRes.data) ? summaryRes.data : [];
+      
+      setPendingHabits(pendingData);
+      setTrackingSummary(summaryData);
     } catch (err: unknown) {
       console.error("Error fetching daily habits data:", err);
       setError("Failed to load habits.");
+      // Set empty arrays on error to prevent undefined issues
+      setPendingHabits([]);
+      setTrackingSummary([]);
     } finally {
       setLoading(false);
     }
@@ -120,9 +127,9 @@ const DailyHabitsPage: React.FC = () => {
     );
   }
 
-  const totalHabits = trackingSummary.length;
-  const completedToday = trackingSummary.filter(h => h.completed_count > 0).length;
-  const pendingCount = pendingHabits.length;
+  const totalHabits = trackingSummary?.length || 0;
+  const completedToday = trackingSummary?.filter(h => h.completed_count > 0)?.length || 0;
+  const pendingCount = pendingHabits?.length || 0;
 
   return (
     <div className="space-y-6">
@@ -205,7 +212,7 @@ const DailyHabitsPage: React.FC = () => {
       {/* Pending Habits */}
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Habits</h2>
-        {pendingHabits.length === 0 ? (
+        {!pendingHabits || pendingHabits.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <CheckCircleIcon className="mx-auto h-12 w-12 text-green-400" />
             <p className="mt-2 text-sm font-medium text-gray-900">All caught up!</p>
@@ -286,7 +293,7 @@ const DailyHabitsPage: React.FC = () => {
       </div>
 
       {/* Tracking Summary */}
-      {trackingSummary.length > 0 && (
+      {trackingSummary && trackingSummary.length > 0 && (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Today's Summary</h2>
           <div className="space-y-3">
