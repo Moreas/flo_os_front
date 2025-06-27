@@ -34,6 +34,8 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
   const [showNotes, setShowNotes] = useState<number | null>(null);
   const [newNote, setNewNote] = useState('');
   const [updatingInstance, setUpdatingInstance] = useState<number | null>(null);
+  const [weeklyProgress, setWeeklyProgress] = useState<Array<{ date: Date; status: 'completed' | 'not_completed' | 'pending' | 'not_tracked'; instance?: HabitInstance }>>([]);
+  const [monthlyProgress, setMonthlyProgress] = useState<Array<{ date: Date; status: 'completed' | 'not_completed' | 'pending' | 'not_tracked'; instance?: HabitInstance }>>([]);
 
   const fetchHabitData = useCallback(async () => {
     setLoading(true);
@@ -51,6 +53,9 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
       setHabit(habitRes.data);
       setInstances(instancesRes.data || []);
       setTrackingStatus(trackingRes.data);
+      
+      // Update progress data
+      await updateProgressData(instancesRes.data || [], trackingRes.data);
     } catch (err: unknown) {
       console.error("Error fetching habit data:", err);
       setError("Failed to load habit data.");
@@ -58,6 +63,81 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
       setLoading(false);
     }
   }, [habitId, selectedDate]);
+
+  // Function to get status for a specific date using the new API
+  const getStatusForDate = async (date: Date): Promise<'completed' | 'not_completed' | 'pending' | 'not_tracked'> => {
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const response = await axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${dateStr}`);
+      return response.data.status;
+    } catch (err) {
+      console.error("Error fetching status for date:", date, err);
+      return 'not_tracked';
+    }
+  };
+
+  // Function to update progress data based on new API endpoints
+  const updateProgressData = useCallback(async (instancesData: HabitInstance[], trackingData: HabitTrackingStatus | null) => {
+    // Update weekly progress
+    const start = startOfWeek(selectedDate);
+    const end = endOfWeek(selectedDate);
+    const weekDays = eachDayOfInterval({ start, end });
+    
+    const weeklyData = await Promise.all(weekDays.map(async (day) => {
+      const status = await getStatusForDate(day);
+      const instance = instancesData.find(inst => isSameDay(parseISO(inst.date), day));
+      return {
+        date: day,
+        status: status,
+        instance: instance
+      };
+    }));
+    setWeeklyProgress(weeklyData);
+
+    // Update monthly progress
+    const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+    const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const monthlyData = await Promise.all(monthDays.map(async (day) => {
+      const status = await getStatusForDate(day);
+      const instance = instancesData.find(inst => isSameDay(parseISO(inst.date), day));
+      return {
+        date: day,
+        status: status,
+        instance: instance
+      };
+    }));
+    setMonthlyProgress(monthlyData);
+  }, [selectedDate, habitId]);
+
+  // Function to get color classes based on status
+  const getStatusColorClasses = (status: 'completed' | 'not_completed' | 'pending' | 'not_tracked') => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200';
+      case 'not_completed':
+        return 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200';
+      case 'pending':
+        return 'bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100';
+    }
+  };
+
+  // Function to get icon based on status
+  const getStatusIcon = (status: 'completed' | 'not_completed' | 'pending' | 'not_tracked') => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircleIcon className="w-4 h-4 mx-auto mt-1" />;
+      case 'not_completed':
+        return <XCircleIcon className="w-4 h-4 mx-auto mt-1" />;
+      case 'pending':
+        return <ClockIcon className="w-4 h-4 mx-auto mt-1" />;
+      default:
+        return <XCircleIcon className="w-4 h-4 mx-auto mt-1" />;
+    }
+  };
 
   useEffect(() => {
     fetchHabitData();
@@ -113,7 +193,8 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
         });
       }
       
-      await fetchHabitData();
+      // Refresh the progress data to show updated colors
+      await updateProgressData(instances, trackingStatus);
     } catch (err) {
       console.error("Error updating habit instance:", err);
       setError("Failed to update habit completion.");
@@ -157,40 +238,27 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
     return Math.round((completed / instances.length) * 100);
   };
 
-  const getWeeklyProgress = () => {
-    const start = startOfWeek(selectedDate);
-    const end = endOfWeek(selectedDate);
-    const weekDays = eachDayOfInterval({ start, end });
-    
-    return weekDays.map(day => {
-      const instance = instances.find(inst => isSameDay(parseISO(inst.date), day));
-      return {
-        date: day,
-        completed: instance?.completed || false,
-        instance: instance
-      };
+  // Function to get status for multiple dates
+  const getStatusForDates = async (dates: Date[]): Promise<Map<string, 'completed' | 'not_completed' | 'pending' | 'not_tracked'>> => {
+    const statusMap = new Map();
+    const promises = dates.map(async (date) => {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const status = await getStatusForDate(date);
+      statusMap.set(dateStr, status);
     });
-  };
-
-  const getMonthlyProgress = () => {
-    const start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-    const end = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-    const monthDays = eachDayOfInterval({ start, end });
-    
-    return monthDays.map(day => {
-      const instance = instances.find(inst => isSameDay(parseISO(inst.date), day));
-      return {
-        date: day,
-        completed: instance?.completed || false,
-        instance: instance
-      };
-    });
+    await Promise.all(promises);
+    return statusMap;
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
-    setSelectedDate(prev => 
-      direction === 'prev' ? subDays(prev, 7) : addDays(prev, 7)
-    );
+    setSelectedDate(prev => {
+      const newDate = direction === 'prev' ? subDays(prev, 7) : addDays(prev, 7);
+      // Refresh progress data for the new date range
+      setTimeout(() => {
+        updateProgressData(instances, trackingStatus);
+      }, 0);
+      return newDate;
+    });
   };
 
   if (loading) {
@@ -210,8 +278,6 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
     );
   }
 
-  const weeklyProgress = getWeeklyProgress();
-  const monthlyProgress = getMonthlyProgress();
   const completionRate = getCompletionRate();
 
   return (
@@ -360,19 +426,12 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
               disabled={updatingInstance === day.instance?.id}
               className={`
                 p-3 rounded-lg border-2 transition-all duration-200 text-center
-                ${day.completed 
-                  ? 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200' 
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                }
+                ${getStatusColorClasses(day.status)}
                 ${updatingInstance === day.instance?.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}
             >
               <div className="text-sm font-medium">{format(day.date, 'd')}</div>
-              {day.completed ? (
-                <CheckCircleIcon className="w-4 h-4 mx-auto mt-1" />
-              ) : (
-                <XCircleIcon className="w-4 h-4 mx-auto mt-1" />
-              )}
+              {getStatusIcon(day.status)}
             </button>
           ))}
         </div>
@@ -393,10 +452,7 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
               disabled={updatingInstance === day.instance?.id}
               className={`
                 p-2 rounded text-xs transition-all duration-200 text-center
-                ${day.completed 
-                  ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                }
+                ${getStatusColorClasses(day.status)}
                 ${updatingInstance === day.instance?.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}
               title={format(day.date, 'MMM d, yyyy')}
