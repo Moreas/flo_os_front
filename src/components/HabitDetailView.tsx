@@ -37,35 +37,8 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
   const [weeklyProgress, setWeeklyProgress] = useState<Array<{ date: Date; status: 'completed' | 'not_completed' | 'pending' | 'not_tracked'; instance?: HabitInstance }>>([]);
   const [monthlyProgress, setMonthlyProgress] = useState<Array<{ date: Date; status: 'completed' | 'not_completed' | 'pending' | 'not_tracked'; instance?: HabitInstance }>>([]);
 
-  const fetchHabitData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const startDate = format(startOfWeek(selectedDate), 'yyyy-MM-dd');
-      const endDate = format(endOfWeek(selectedDate), 'yyyy-MM-dd');
-      
-      const [habitRes, instancesRes, trackingRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/habits/${habitId}/`),
-        axios.get(`${API_BASE}/api/habit-instances/?habit_id=${habitId}`),
-        axios.get(`${API_BASE}/api/habits/${habitId}/tracking_status/?start_date=${startDate}&end_date=${endDate}`)
-      ]);
-      
-      setHabit(habitRes.data);
-      setInstances(instancesRes.data || []);
-      setTrackingStatus(trackingRes.data);
-      
-      // Update progress data
-      await updateProgressData(instancesRes.data || [], trackingRes.data);
-    } catch (err: unknown) {
-      console.error("Error fetching habit data:", err);
-      setError("Failed to load habit data.");
-    } finally {
-      setLoading(false);
-    }
-  }, [habitId, selectedDate]);
-
   // Function to get status for a specific date using the new API
-  const getStatusForDate = async (date: Date): Promise<'completed' | 'not_completed' | 'pending' | 'not_tracked'> => {
+  const getStatusForDate = useCallback(async (date: Date): Promise<'completed' | 'not_completed' | 'pending' | 'not_tracked'> => {
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
       const response = await axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${dateStr}`);
@@ -74,7 +47,7 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
       console.error("Error fetching status for date:", date, err);
       return 'not_tracked';
     }
-  };
+  }, [habitId]);
 
   // Function to update progress data based on new API endpoints
   const updateProgressData = useCallback(async (instancesData: HabitInstance[], trackingData: HabitTrackingStatus | null) => {
@@ -109,7 +82,34 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
       };
     }));
     setMonthlyProgress(monthlyData);
-  }, [selectedDate, habitId]);
+  }, [selectedDate, habitId, getStatusForDate]);
+
+  const fetchHabitData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const startDate = format(startOfWeek(selectedDate), 'yyyy-MM-dd');
+      const endDate = format(endOfWeek(selectedDate), 'yyyy-MM-dd');
+      
+      const [habitRes, instancesRes, trackingRes] = await Promise.all([
+        axios.get(`${API_BASE}/api/habits/${habitId}/`),
+        axios.get(`${API_BASE}/api/habit-instances/?habit_id=${habitId}`),
+        axios.get(`${API_BASE}/api/habits/${habitId}/tracking_status/?start_date=${startDate}&end_date=${endDate}`)
+      ]);
+      
+      setHabit(habitRes.data);
+      setInstances(instancesRes.data || []);
+      setTrackingStatus(trackingRes.data);
+      
+      // Update progress data
+      await updateProgressData(instancesRes.data || [], trackingRes.data);
+    } catch (err: unknown) {
+      console.error("Error fetching habit data:", err);
+      setError("Failed to load habit data.");
+    } finally {
+      setLoading(false);
+    }
+  }, [habitId, selectedDate, updateProgressData]);
 
   // Function to get color classes based on status
   const getStatusColorClasses = (status: 'completed' | 'not_completed' | 'pending' | 'not_tracked') => {
@@ -236,18 +236,6 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
     if (instances.length === 0) return 0;
     const completed = instances.filter(instance => instance.completed).length;
     return Math.round((completed / instances.length) * 100);
-  };
-
-  // Function to get status for multiple dates
-  const getStatusForDates = async (dates: Date[]): Promise<Map<string, 'completed' | 'not_completed' | 'pending' | 'not_tracked'>> => {
-    const statusMap = new Map();
-    const promises = dates.map(async (date) => {
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const status = await getStatusForDate(date);
-      statusMap.set(dateStr, status);
-    });
-    await Promise.all(promises);
-    return statusMap;
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
