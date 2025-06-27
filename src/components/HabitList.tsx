@@ -59,6 +59,7 @@ const HabitList: React.FC<HabitListProps> = ({ onUpdate }) => {
   };
 
   const handleHabitCreated = () => {
+    // Refresh the habits list
     const fetchHabits = async () => {
       try {
         const [habitsRes, instancesRes] = await Promise.all([

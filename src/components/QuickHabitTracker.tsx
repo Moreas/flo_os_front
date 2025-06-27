@@ -4,13 +4,12 @@ import {
   CheckCircleIcon, 
   XCircleIcon,
   ClockIcon,
-  PlusIcon,
   ChatBubbleLeftIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import API_BASE from '../apiBase';
-import { Habit, PendingHabit, HabitStatusForDate } from '../types/habit';
+import { PendingHabit } from '../types/habit';
 
 interface QuickHabitTrackerProps {
   onUpdate?: () => void;

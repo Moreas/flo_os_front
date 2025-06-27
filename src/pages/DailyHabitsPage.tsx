@@ -112,28 +112,6 @@ const DailyHabitsPage: React.FC = () => {
     setIsHabitFormOpen(false);
   };
 
-  const getStatusButtonColor = (status: 'completed' | 'not_completed') => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'not_completed':
-        return 'bg-red-100 text-red-800 hover:bg-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-    }
-  };
-
-  const getStatusIcon = (status: 'completed' | 'not_completed') => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircleIcon className="w-4 h-4" />;
-      case 'not_completed':
-        return <XCircleIcon className="w-4 h-4" />;
-      default:
-        return <ClockIcon className="w-4 h-4" />;
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">

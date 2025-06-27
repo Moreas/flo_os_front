@@ -126,7 +126,6 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
   const status = todayStatus?.status || 'not_tracked';
   const isCompleted = status === 'completed';
   const isNotCompleted = status === 'not_completed';
-  const isPending = status === 'pending';
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150">
