@@ -78,27 +78,6 @@ const HabitList: React.FC<HabitListProps> = ({ onUpdate }) => {
     if (onUpdate) onUpdate();
   };
 
-  const handleHabitUpdated = () => {
-    // Refresh the habits list
-    const fetchHabits = async () => {
-      try {
-        const [habitsRes, instancesRes] = await Promise.all([
-          axios.get(`${API_BASE}/api/habits/`),
-          axios.get(`${API_BASE}/api/habit-instances/`)
-        ]);
-        setHabits(habitsRes.data || []);
-        setHabitInstances(instancesRes.data || []);
-      } catch (err: unknown) {
-        console.error("Error fetching habits:", err);
-        setError("Failed to load habits.");
-      }
-    };
-    fetchHabits();
-    setIsHabitFormOpen(false);
-    setEditingHabit(null);
-    if (onUpdate) onUpdate();
-  };
-
   const getFrequencyColor = (frequency: string) => {
     switch (frequency) {
       case 'daily':
