@@ -82,7 +82,7 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
       };
     }));
     setMonthlyProgress(monthlyData);
-  }, [selectedDate, habitId, getStatusForDate]);
+  }, [selectedDate, getStatusForDate]);
 
   const fetchHabitData = useCallback(async () => {
     setLoading(true);
