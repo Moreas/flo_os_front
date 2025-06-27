@@ -16,33 +16,7 @@ import {
 import { format, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, subDays } from 'date-fns';
 import API_BASE from '../apiBase';
 import HabitForm from './forms/HabitForm';
-
-interface Habit {
-  id: number;
-  name: string;
-  description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
-  target_count: number;
-  current_streak: number;
-  longest_streak: number;
-  is_active: boolean;
-  tracking_type: 'manual' | 'automated' | 'hybrid';
-  good_bad: 'good' | 'bad';
-  reminder_time?: string;
-  reminder_enabled?: boolean;
-  category?: number;
-  automation_config?: Record<string, any>;
-  goal_description?: string;
-  motivation_quote?: string;
-}
-
-interface HabitInstance {
-  id: number;
-  habit_id: number;
-  date: string;
-  completed: boolean;
-  notes?: string;
-}
+import { Habit, HabitInstance, HabitTrackingStatus } from '../types/habit';
 
 interface HabitDetailViewProps {
   habitId: number;
@@ -52,6 +26,7 @@ interface HabitDetailViewProps {
 const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) => {
   const [habit, setHabit] = useState<Habit | null>(null);
   const [instances, setInstances] = useState<HabitInstance[]>([]);
+  const [trackingStatus, setTrackingStatus] = useState<HabitTrackingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -64,19 +39,25 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
     setLoading(true);
     setError(null);
     try {
-      const [habitRes, instancesRes] = await Promise.all([
+      const startDate = format(startOfWeek(selectedDate), 'yyyy-MM-dd');
+      const endDate = format(endOfWeek(selectedDate), 'yyyy-MM-dd');
+      
+      const [habitRes, instancesRes, trackingRes] = await Promise.all([
         axios.get(`${API_BASE}/api/habits/${habitId}/`),
-        axios.get(`${API_BASE}/api/habit-instances/?habit_id=${habitId}`)
+        axios.get(`${API_BASE}/api/habit-instances/?habit_id=${habitId}`),
+        axios.get(`${API_BASE}/api/habits/${habitId}/tracking_status/?start_date=${startDate}&end_date=${endDate}`)
       ]);
+      
       setHabit(habitRes.data);
       setInstances(instancesRes.data || []);
+      setTrackingStatus(trackingRes.data);
     } catch (err: unknown) {
       console.error("Error fetching habit data:", err);
       setError("Failed to load habit data.");
     } finally {
       setLoading(false);
     }
-  }, [habitId]);
+  }, [habitId, selectedDate]);
 
   useEffect(() => {
     fetchHabitData();
@@ -114,14 +95,21 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
 
     try {
       if (existingInstance) {
-        await axios.patch(`${API_BASE}/api/habit-instances/${existingInstance.id}/`, {
-          completed: !existingInstance.completed
+        // If instance exists, toggle its completion status
+        const newCompleted = !existingInstance.completed;
+        const endpoint = newCompleted 
+          ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
+          : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
+        
+        await axios.post(endpoint, {
+          date: dateStr,
+          notes: existingInstance.notes || null
         });
       } else {
-        await axios.post(`${API_BASE}/api/habit-instances/`, {
-          habit_id: habitId,
+        // Create new instance as completed
+        await axios.post(`${API_BASE}/api/habits/${habitId}/mark_completed/`, {
           date: dateStr,
-          completed: true
+          notes: null
         });
       }
       
@@ -304,6 +292,23 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
             <p className="mt-2 text-3xl font-bold text-purple-900">{habit.target_count}</p>
           </div>
         </div>
+
+        {trackingStatus && (
+          <div className="mt-4 grid grid-cols-3 gap-4">
+            <div className="bg-green-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-green-600">Completed</div>
+              <div className="text-2xl font-bold text-green-900">{trackingStatus.completed_count}</div>
+            </div>
+            <div className="bg-red-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-red-600">Not Completed</div>
+              <div className="text-2xl font-bold text-red-900">{trackingStatus.not_completed_count}</div>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-yellow-600">Pending</div>
+              <div className="text-2xl font-bold text-yellow-900">{trackingStatus.pending_count}</div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
           <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getFrequencyColor(habit.frequency)}`}>

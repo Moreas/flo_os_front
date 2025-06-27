@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
   CheckCircleIcon, 
+  XCircleIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   ArrowLeftIcon,
@@ -13,35 +14,11 @@ import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import API_BASE from '../apiBase';
 import HabitForm from '../components/forms/HabitForm';
-
-interface Habit {
-  id: number;
-  name: string;
-  description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
-  target_count: number;
-  current_streak: number;
-  longest_streak: number;
-  is_active: boolean;
-  tracking_type: 'manual' | 'automated' | 'hybrid';
-  good_bad: 'good' | 'bad';
-  is_completed_today: boolean;
-  today_instances_count: number;
-  total_instances: number;
-}
-
-interface TodaySummary {
-  date: string;
-  summary: Habit[];
-  stats: {
-    total_habits: number;
-    completed_today: number;
-    completion_rate: number;
-  };
-}
+import { PendingHabit, TrackingSummary } from '../types/habit';
 
 const DailyHabitsPage: React.FC = () => {
-  const [summary, setSummary] = useState<TodaySummary | null>(null);
+  const [pendingHabits, setPendingHabits] = useState<PendingHabit[]>([]);
+  const [trackingSummary, setTrackingSummary] = useState<TrackingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingHabitId, setUpdatingHabitId] = useState<number | null>(null);
@@ -49,66 +26,21 @@ const DailyHabitsPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const fetchTodaySummary = useCallback(async (date?: string) => {
+  const fetchDailyData = useCallback(async (date?: string) => {
     setLoading(true);
     setError(null);
     const targetDate = date || selectedDate;
     
     try {
-      console.log('Fetching manual habits from:', `${API_BASE}/api/habits/manual_habits/`);
-      const response = await axios.get(`${API_BASE}/api/habits/manual_habits/`);
-      console.log('Manual habits response:', response.data);
+      const [pendingRes, summaryRes] = await Promise.all([
+        axios.get(`${API_BASE}/api/habits/pending_for_date/?date=${targetDate}`),
+        axios.get(`${API_BASE}/api/habits/tracking_summary/?start_date=${targetDate}&end_date=${targetDate}`)
+      ]);
       
-      // Handle different response structures
-      let habits = [];
-      if (Array.isArray(response.data)) {
-        habits = response.data;
-      } else if (response.data && Array.isArray(response.data.results)) {
-        habits = response.data.results;
-      } else if (response.data && Array.isArray(response.data.habits)) {
-        habits = response.data.habits;
-      } else if (response.data && typeof response.data === 'object') {
-        // If it's an object, try to extract habits from common properties
-        habits = response.data.data || response.data.items || [];
-      }
-      
-      console.log('Extracted habits:', habits);
-      
-      // If no habits were extracted, log the full response for debugging
-      if (habits.length === 0) {
-        console.warn('No habits extracted from response. Full response structure:', response.data);
-        console.warn('Response data type:', typeof response.data);
-        console.warn('Response data keys:', response.data ? Object.keys(response.data) : 'null/undefined');
-      }
-      
-      // Transform the data to match our expected format
-      const todaySummary = {
-        date: targetDate,
-        summary: habits.map((habit: any) => ({
-          ...habit,
-          is_completed_today: false, // We'll need to check this separately
-          today_instances_count: 0,
-          total_instances: habit.total_instances || 0
-        })),
-        stats: {
-          total_habits: habits.length,
-          completed_today: 0,
-          completion_rate: 0
-        }
-      };
-      
-      console.log('Transformed today summary:', todaySummary);
-      setSummary(todaySummary);
+      setPendingHabits(pendingRes.data || []);
+      setTrackingSummary(summaryRes.data || []);
     } catch (err: unknown) {
-      console.error("Error fetching manual habits:", err);
-      if (axios.isAxiosError(err)) {
-        console.error('Axios error details:', {
-          status: err.response?.status,
-          statusText: err.response?.statusText,
-          data: err.response?.data,
-          url: err.config?.url
-        });
-      }
+      console.error("Error fetching daily habits data:", err);
       setError("Failed to load habits.");
     } finally {
       setLoading(false);
@@ -116,45 +48,25 @@ const DailyHabitsPage: React.FC = () => {
   }, [selectedDate]);
 
   useEffect(() => {
-    fetchTodaySummary();
-  }, [fetchTodaySummary]);
+    fetchDailyData();
+  }, [fetchDailyData]);
 
-  const handleCompleteHabit = async (habitId: number, status: 'done' | 'missed' | 'unlog') => {
+  const handleMarkHabit = async (habitId: number, type: 'completed' | 'not_completed') => {
     setUpdatingHabitId(habitId);
     try {
-      console.log(`Marking habit as ${status}:`, habitId, 'for date:', selectedDate);
+      const endpoint = type === 'completed' 
+        ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
+        : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
       
-      let payload: any = {
-        notes: null,
-        effort: 3,
-        mood: 3,
-        duration: null,
-        location: null,
-        date: selectedDate
-      };
-
-      if (status === 'missed') {
-        payload.missed = true;
-      } else if (status === 'unlog') {
-        payload.unlog = true;
-      }
-
-      console.log('Sending payload:', payload);
-      const response = await axios.post(`${API_BASE}/api/habits/${habitId}/complete_manual/`, payload);
-      console.log('Complete habit response:', response.data);
-      await fetchTodaySummary();
+      await axios.post(endpoint, {
+        date: selectedDate,
+        notes: null
+      });
+      
+      await fetchDailyData();
     } catch (err) {
-      console.error(`Error marking habit as ${status}:`, err);
-      if (axios.isAxiosError(err)) {
-        console.error('API Error details:', {
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-          method: err.config?.method,
-          headers: err.config?.headers
-        });
-      }
-      setError(`Failed to mark habit as ${status}.`);
+      console.error(`Error marking habit as ${type}:`, err);
+      setError(`Failed to mark habit as ${type}.`);
       setTimeout(() => setError(null), 3000);
     } finally {
       setUpdatingHabitId(null);
@@ -164,7 +76,7 @@ const DailyHabitsPage: React.FC = () => {
   const handleDateChange = (newDate: string) => {
     setSelectedDate(newDate);
     setShowDatePicker(false);
-    fetchTodaySummary(newDate);
+    fetchDailyData(newDate);
   };
 
   const getFrequencyColor = (frequency: string) => {
@@ -196,63 +108,53 @@ const DailyHabitsPage: React.FC = () => {
   };
 
   const handleHabitCreated = () => {
-    fetchTodaySummary();
+    fetchDailyData();
     setIsHabitFormOpen(false);
   };
 
-  const getStatusButtonColor = (status: 'done' | 'missed' | 'unlog') => {
+  const getStatusButtonColor = (status: 'completed' | 'not_completed') => {
     switch (status) {
-      case 'done':
-        return 'bg-green-600 hover:bg-green-700 text-white';
-      case 'missed':
-        return 'bg-red-600 hover:bg-red-700 text-white';
-      case 'unlog':
-        return 'bg-gray-600 hover:bg-gray-700 text-white';
+      case 'completed':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'not_completed':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
       default:
-        return 'bg-gray-600 hover:bg-gray-700 text-white';
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status: 'completed' | 'not_completed') => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircleIcon className="w-4 h-4" />;
+      case 'not_completed':
+        return <XCircleIcon className="w-4 h-4" />;
+      default:
+        return <ClockIcon className="w-4 h-4" />;
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <ClockIcon className="w-8 h-8 text-gray-400 animate-spin" />
+      <div className="flex items-center justify-center p-6">
+        <ClockIcon className="w-6 h-6 text-gray-400 animate-spin" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-4">
-        <div className="p-3 text-sm text-red-700 bg-red-50 rounded-md border border-red-200">
-          <ExclamationTriangleIcon className="w-5 h-5 inline mr-2" />
-          {error}
-        </div>
-      </div>
-    );
-  }
-
-  if (!summary) {
-    return (
-      <div className="p-4">
-        <div className="text-center py-8 bg-gray-50 rounded-lg">
-          <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-sm font-medium text-gray-900">No summary available</p>
-        </div>
-      </div>
-    );
-  }
-
-  const manualHabits = summary.summary.filter(habit => 
-    habit.is_active
-  );
-
-  console.log('All habits from summary:', summary.summary);
-  console.log('Manual habits after filtering:', manualHabits);
-  console.log('Filtering criteria - is_active only (since we get manual habits directly)');
+  const totalHabits = trackingSummary.length;
+  const completedToday = trackingSummary.filter(h => h.completed_count > 0).length;
+  const pendingCount = pendingHabits.length;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="space-y-6">
+      {error && (
+        <div className="p-3 text-sm text-red-700 bg-red-50 rounded-md border border-red-200">
+          <ExclamationTriangleIcon className="w-4 h-4 inline mr-1" />
+          {error}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -264,210 +166,179 @@ const DailyHabitsPage: React.FC = () => {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Daily Habits</h1>
-            <div className="flex items-center space-x-2">
-              <p className="text-sm text-gray-500">
-                {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
-              </p>
-              <button
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100"
-                title="Change date"
-              >
-                <CalendarIcon className="w-4 h-4" />
-              </button>
-            </div>
-            {showDatePicker && (
-              <div className="absolute mt-2 z-10 bg-white border border-gray-200 rounded-md shadow-lg p-2">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  max={new Date().toISOString().split('T')[0]}
-                />
-                <button
-                  onClick={() => setShowDatePicker(false)}
-                  className="ml-2 p-1 text-gray-400 hover:text-gray-600"
-                >
-                  <XMarkIcon className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+            <p className="text-gray-600">Track your habits for today</p>
           </div>
         </div>
-        <button
-          onClick={() => setIsHabitFormOpen(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-        >
-          <PlusIcon className="h-4 w-4 mr-2" />
-          New Habit
-        </button>
-      </div>
-
-      {/* Stats Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{summary.stats.total_habits}</div>
-            <div className="text-sm text-gray-500">Total Habits</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{summary.stats.completed_today}</div>
-            <div className="text-sm text-gray-500">Completed Today</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{summary.stats.completion_rate}%</div>
-            <div className="text-sm text-gray-500">Completion Rate</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{manualHabits.length}</div>
-            <div className="text-sm text-gray-500">Manual Habits</div>
-          </div>
-        </div>
-        
-        {/* Progress Bar */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-            <span>Today's Progress</span>
-            <span>{summary.stats.completed_today}/{summary.stats.total_habits}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div 
-              className="bg-green-600 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${summary.stats.completion_rate}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Manual Habits List */}
-      {manualHabits.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-          <ClockIcon className="mx-auto h-16 w-16 text-gray-400" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No manual habits for today</h3>
-          <p className="mt-2 text-sm text-gray-500">
-            Create habits with manual tracking to see them here
-          </p>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <CalendarIcon className="w-4 h-4" />
+            <span>{format(new Date(selectedDate), 'MMM d, yyyy')}</span>
+          </button>
           <button
             onClick={() => setIsHabitFormOpen(true)}
-            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create Your First Habit
+            <PlusIcon className="w-4 h-4" />
+            <span>New Habit</span>
           </button>
         </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Manual Habits</h2>
-            <p className="text-sm text-gray-500">Use the buttons to mark habits as done, missed, or unlog</p>
+      </div>
+
+      {/* Date Picker */}
+      {showDatePicker && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Select Date</h3>
+            <button
+              onClick={() => setShowDatePicker(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
           </div>
-          <div className="divide-y divide-gray-200">
-            {manualHabits.map(habit => (
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+      )}
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-blue-600">{totalHabits}</div>
+          <div className="text-sm text-gray-500">Total Habits</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{completedToday}</div>
+          <div className="text-sm text-gray-500">Completed</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
+          <div className="text-sm text-gray-500">Pending</div>
+        </div>
+      </div>
+
+      {/* Pending Habits */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Habits</h2>
+        {pendingHabits.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <CheckCircleIcon className="mx-auto h-12 w-12 text-green-400" />
+            <p className="mt-2 text-sm font-medium text-gray-900">All caught up!</p>
+            <p className="mt-1 text-sm text-gray-500">
+              No pending habits for {format(new Date(selectedDate), 'MMM d, yyyy')}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pendingHabits.map(habit => (
               <div 
-                key={habit.id}
-                className={`p-6 transition-all duration-200 ${
-                  habit.is_completed_today ? 'bg-green-50' : ''
-                }`}
+                key={habit.id} 
+                className="bg-white border-2 border-yellow-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-full ${
-                      habit.is_completed_today ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      {updatingHabitId === habit.id ? (
-                        <ClockIcon className="w-6 h-6 text-gray-400 animate-spin" />
-                      ) : habit.is_completed_today ? (
-                        <CheckCircleIcon className="w-6 h-6 text-green-600" />
-                      ) : (
-                        <ClockIcon className="w-6 h-6 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium text-gray-900">{habit.name}</h3>
-                      {habit.description && (
-                        <p className="mt-1 text-sm text-gray-600">{habit.description}</p>
-                      )}
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency)}`}>
-                          {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
-                        </span>
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getTrackingTypeColor(habit.tracking_type)}`}>
-                          {habit.tracking_type.charAt(0).toUpperCase() + habit.tracking_type.slice(1)}
-                        </span>
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                          habit.good_bad === 'good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {habit.good_bad.charAt(0).toUpperCase() + habit.good_bad.slice(1)}
-                        </span>
-                        {habit.target_count > 1 && (
-                          <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {habit.today_instances_count}/{habit.target_count}
-                          </span>
-                        )}
-                      </div>
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 rounded-full bg-yellow-100">
+                    <ClockIcon className="w-4 h-4 text-yellow-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-gray-900">{habit.name}</h4>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency)}`}>
+                        {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
+                      </span>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getTrackingTypeColor(habit.tracking_type)}`}>
+                        {habit.tracking_type.charAt(0).toUpperCase() + habit.tracking_type.slice(1)}
+                      </span>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                        habit.good_bad === 'good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {habit.good_bad.charAt(0).toUpperCase() + habit.good_bad.slice(1)}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <div className="text-right">
-                      <div className={`text-lg font-semibold ${
-                        habit.is_completed_today ? 'text-green-600' : 'text-gray-400'
-                      }`}>
-                        {habit.is_completed_today ? 'Done' : 'Not Done'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Streak: {habit.current_streak} days
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Total: {habit.total_instances} times
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleCompleteHabit(habit.id, 'done')}
-                        disabled={updatingHabitId === habit.id}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                          updatingHabitId === habit.id 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : getStatusButtonColor('done')
-                        }`}
-                      >
-                        {updatingHabitId === habit.id ? (
-                          <ClockIcon className="w-4 h-4 animate-spin" />
+                </div>
+                
+                {habit.description && (
+                  <p className="mt-2 text-xs text-gray-600 line-clamp-2 mb-3">{habit.description}</p>
+                )}
+                
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleMarkHabit(habit.id, 'completed')}
+                    disabled={updatingHabitId === habit.id}
+                    className="flex-1 flex items-center justify-center px-3 py-2 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors disabled:opacity-50"
+                  >
+                    {updatingHabitId === habit.id ? (
+                      <ClockIcon className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircleIcon className="w-4 h-4 mr-1" />
+                    )}
+                    Done
+                  </button>
+                  <button
+                    onClick={() => handleMarkHabit(habit.id, 'not_completed')}
+                    disabled={updatingHabitId === habit.id}
+                    className="flex-1 flex items-center justify-center px-3 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors disabled:opacity-50"
+                  >
+                    {updatingHabitId === habit.id ? (
+                      <ClockIcon className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircleIcon className="w-4 h-4 mr-1" />
+                    )}
+                    Skip
+                  </button>
+                </div>
+                
+                {habit.days_since_last_completion && habit.days_since_last_completion > 1 && (
+                  <div className="mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
+                    <ExclamationTriangleIcon className="w-3 h-3 inline mr-1" />
+                    {habit.days_since_last_completion} days since last completion
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Tracking Summary */}
+      {trackingSummary.length > 0 && (
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Today's Summary</h2>
+          <div className="space-y-3">
+            {trackingSummary.map(habit => (
+              <div 
+                key={habit.habit_id} 
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="flex items-center space-x-3">
+                  {habit.completed_count > 0 ? (
+                    <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                  ) : habit.not_completed_count > 0 ? (
+                    <XCircleIcon className="w-5 h-5 text-red-600" />
+                  ) : (
+                    <ClockIcon className="w-5 h-5 text-yellow-600" />
+                  )}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">{habit.habit_name}</h4>
+                    <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
+                      <span>
+                        Status: {habit.completed_count > 0 ? (
+                          <span className="text-green-600 font-medium">Completed</span>
+                        ) : habit.not_completed_count > 0 ? (
+                          <span className="text-red-600 font-medium">Not Completed</span>
                         ) : (
-                          'Done'
+                          <span className="text-yellow-600 font-medium">Pending</span>
                         )}
-                      </button>
-                      <button
-                        onClick={() => handleCompleteHabit(habit.id, 'missed')}
-                        disabled={updatingHabitId === habit.id}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                          updatingHabitId === habit.id 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : getStatusButtonColor('missed')
-                        }`}
-                      >
-                        {updatingHabitId === habit.id ? (
-                          <ClockIcon className="w-4 h-4 animate-spin" />
-                        ) : (
-                          'Missed'
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleCompleteHabit(habit.id, 'unlog')}
-                        disabled={updatingHabitId === habit.id}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                          updatingHabitId === habit.id 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : getStatusButtonColor('unlog')
-                        }`}
-                      >
-                        {updatingHabitId === habit.id ? (
-                          <ClockIcon className="w-4 h-4 animate-spin" />
-                        ) : (
-                          'Unlog'
-                        )}
-                      </button>
+                      </span>
+                      <span>Rate: {habit.completion_rate}%</span>
+                      <span>Streak: {habit.current_streak} days</span>
                     </div>
                   </div>
                 </div>

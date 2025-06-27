@@ -9,27 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import API_BASE from '../apiBase';
-
-interface Habit {
-  id: number;
-  name: string;
-  description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
-  target_count: number;
-  current_streak: number;
-  longest_streak: number;
-  is_active: boolean;
-  reminder_time?: string;
-  category?: number;
-}
-
-interface HabitInstance {
-  id: number;
-  habit_id: number;
-  date: string;
-  completed: boolean;
-  notes?: string;
-}
+import { Habit, HabitStatusForDate } from '../types/habit';
 
 interface HabitTrackerProps {
   habitId: number;
@@ -38,7 +18,7 @@ interface HabitTrackerProps {
 
 const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
   const [habit, setHabit] = useState<Habit | null>(null);
-  const [todayInstance, setTodayInstance] = useState<HabitInstance | null>(null);
+  const [todayStatus, setTodayStatus] = useState<HabitStatusForDate | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,14 +28,13 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
     setError(null);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const [habitRes, instancesRes] = await Promise.all([
+      const [habitRes, statusRes] = await Promise.all([
         axios.get(`${API_BASE}/api/habits/${habitId}/`),
-        axios.get(`${API_BASE}/api/habit-instances/?habit_id=${habitId}&date=${today}`)
+        axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${today}`)
       ]);
       
       setHabit(habitRes.data);
-      const instances = instancesRes.data || [];
-      setTodayInstance(instances.length > 0 ? instances[0] : null);
+      setTodayStatus(statusRes.data);
     } catch (err: unknown) {
       console.error("Error fetching habit data:", err);
       setError("Failed to load habit data.");
@@ -68,29 +47,26 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
     fetchHabitData();
   }, [fetchHabitData]);
 
-  const toggleCompletion = async () => {
+  const handleMarkHabit = async (type: 'completed' | 'not_completed') => {
     if (!habit) return;
     
     setUpdating(true);
     setError(null);
     
     try {
-      if (todayInstance) {
-        // Toggle existing instance
-        await axios.patch(`${API_BASE}/api/habit-instances/${todayInstance.id}/`, {
-          completed: !todayInstance.completed
-        });
-        setTodayInstance(prev => prev ? { ...prev, completed: !prev.completed } : null);
-      } else {
-        // Create new instance
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const response = await axios.post(`${API_BASE}/api/habit-instances/`, {
-          habit_id: habitId,
-          date: today,
-          completed: true
-        });
-        setTodayInstance(response.data);
-      }
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const endpoint = type === 'completed' 
+        ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
+        : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
+      
+      await axios.post(endpoint, {
+        date: today,
+        notes: null
+      });
+      
+      // Refresh the status
+      const statusRes = await axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${today}`);
+      setTodayStatus(statusRes.data);
       
       if (onUpdate) {
         onUpdate();
@@ -117,6 +93,19 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'not_completed':
+        return 'bg-red-100 text-red-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -134,7 +123,10 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
     );
   }
 
-  const isCompleted = todayInstance?.completed || false;
+  const status = todayStatus?.status || 'not_tracked';
+  const isCompleted = status === 'completed';
+  const isNotCompleted = status === 'not_completed';
+  const isPending = status === 'pending';
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150">
@@ -156,6 +148,9 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
               <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency)}`}>
                 {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
               </span>
+              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+                {status.charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
+              </span>
               <span className="text-xs text-gray-500">
                 Streak: {habit.current_streak}
               </span>
@@ -163,25 +158,38 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
           </div>
         </div>
         
-        <button
-          onClick={toggleCompletion}
-          disabled={updating}
-          className={`
-            p-3 rounded-full transition-all duration-200 flex items-center justify-center
-            ${isCompleted 
-              ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }
-            ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-          `}
-          title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
-        >
-          {isCompleted ? (
-            <CheckCircleIcon className="w-6 h-6" />
-          ) : (
-            <XCircleIcon className="w-6 h-6" />
-          )}
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handleMarkHabit('completed')}
+            disabled={updating || isCompleted}
+            className={`
+              p-2 rounded-full transition-all duration-200 flex items-center justify-center
+              ${isCompleted 
+                ? 'bg-green-100 text-green-800 cursor-default' 
+                : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-800'
+              }
+              ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            `}
+            title="Mark as completed"
+          >
+            <CheckCircleIcon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => handleMarkHabit('not_completed')}
+            disabled={updating || isNotCompleted}
+            className={`
+              p-2 rounded-full transition-all duration-200 flex items-center justify-center
+              ${isNotCompleted 
+                ? 'bg-red-100 text-red-800 cursor-default' 
+                : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-800'
+              }
+              ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            `}
+            title="Mark as not completed"
+          >
+            <XCircleIcon className="w-5 h-5" />
+          </button>
+        </div>
       </div>
       
       {habit.description && (
@@ -191,6 +199,12 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
       <div className="mt-2 text-xs text-gray-500">
         Today: {format(new Date(), 'MMM d, yyyy')}
       </div>
+      
+      {todayStatus?.instance?.notes && (
+        <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+          <strong>Notes:</strong> {todayStatus.instance.notes}
+        </div>
+      )}
     </div>
   );
 };

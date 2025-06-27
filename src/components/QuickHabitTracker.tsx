@@ -2,88 +2,53 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
   CheckCircleIcon, 
+  XCircleIcon,
   ClockIcon,
   PlusIcon,
-  ChatBubbleLeftIcon
+  ChatBubbleLeftIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import API_BASE from '../apiBase';
-
-interface Habit {
-  id: number;
-  name: string;
-  description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
-  target_count: number;
-  current_streak: number;
-  longest_streak: number;
-  is_active: boolean;
-  tracking_type: 'manual' | 'automated' | 'hybrid';
-  good_bad: 'good' | 'bad';
-  is_completed_today: boolean;
-  today_instances_count: number;
-  total_instances: number;
-}
+import { Habit, PendingHabit, HabitStatusForDate } from '../types/habit';
 
 interface QuickHabitTrackerProps {
   onUpdate?: () => void;
 }
 
 const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [pendingHabits, setPendingHabits] = useState<PendingHabit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingHabitId, setUpdatingHabitId] = useState<number | null>(null);
   const [showNotesModal, setShowNotesModal] = useState(false);
-  const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
+  const [selectedHabit, setSelectedHabit] = useState<PendingHabit | null>(null);
   const [notes, setNotes] = useState('');
+  const [completionType, setCompletionType] = useState<'completed' | 'not_completed'>('completed');
 
-  const fetchTodaySummary = useCallback(async () => {
+  const fetchPendingHabits = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/habits/today_summary/`);
-      // Filter for manual habits that are active
-      const manualHabits = (response.data.summary || []).filter((habit: Habit) => 
-        habit.is_active && habit.tracking_type !== 'automated'
-      );
-      setHabits(manualHabits);
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const response = await axios.get(`${API_BASE}/api/habits/pending_for_date/?date=${today}`);
+      setPendingHabits(response.data || []);
     } catch (err: unknown) {
-      console.error("Error fetching today's summary:", err);
-      setError("Failed to load today's habits.");
+      console.error("Error fetching pending habits:", err);
+      setError("Failed to load pending habits.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchTodaySummary();
-  }, [fetchTodaySummary]);
+    fetchPendingHabits();
+  }, [fetchPendingHabits]);
 
-  const handleMarkAsDone = async (habit: Habit) => {
-    if (habit.is_completed_today) {
-      // Undo today's completion
-      await handleUndoCompletion(habit.id);
-    } else {
-      // Mark as done
-      setSelectedHabit(habit);
-      setShowNotesModal(true);
-    }
-  };
-
-  const handleUndoCompletion = async (habitId: number) => {
-    setUpdatingHabitId(habitId);
-    try {
-      await axios.delete(`${API_BASE}/api/habits/${habitId}/remove_today_instance/`);
-      await fetchTodaySummary();
-      if (onUpdate) onUpdate();
-    } catch (err) {
-      console.error("Error undoing habit completion:", err);
-      setError("Failed to undo completion.");
-      setTimeout(() => setError(null), 3000);
-    } finally {
-      setUpdatingHabitId(null);
-    }
+  const handleMarkHabit = async (habit: PendingHabit, type: 'completed' | 'not_completed') => {
+    setSelectedHabit(habit);
+    setCompletionType(type);
+    setShowNotesModal(true);
   };
 
   const handleSubmitWithNotes = async () => {
@@ -91,7 +56,13 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
     
     setUpdatingHabitId(selectedHabit.id);
     try {
-      await axios.post(`${API_BASE}/api/habits/${selectedHabit.id}/complete_manual/`, {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const endpoint = completionType === 'completed' 
+        ? `${API_BASE}/api/habits/${selectedHabit.id}/mark_completed/`
+        : `${API_BASE}/api/habits/${selectedHabit.id}/mark_not_completed/`;
+      
+      await axios.post(endpoint, {
+        date: today,
         notes: notes.trim() || null
       });
       
@@ -99,11 +70,11 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
       setSelectedHabit(null);
       setNotes('');
       
-      await fetchTodaySummary();
+      await fetchPendingHabits();
       if (onUpdate) onUpdate();
     } catch (err) {
-      console.error("Error marking habit as done:", err);
-      setError("Failed to mark habit as done.");
+      console.error("Error marking habit:", err);
+      setError("Failed to mark habit.");
       setTimeout(() => setError(null), 3000);
     } finally {
       setUpdatingHabitId(null);
@@ -138,13 +109,6 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
     }
   };
 
-  const getCompletionProgress = (habit: Habit) => {
-    if (habit.target_count === 1) {
-      return habit.is_completed_today ? 'Done' : 'Not Done';
-    }
-    return `${habit.today_instances_count}/${habit.target_count}`;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -162,79 +126,84 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
       )}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Quick Track Manual Habits</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Today's Pending Habits</h3>
         <span className="text-sm text-gray-500">
           {format(new Date(), 'MMM d, yyyy')}
         </span>
       </div>
 
-      {habits.length === 0 ? (
+      {pendingHabits.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
-          <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-sm font-medium text-gray-900">No manual habits found</p>
+          <CheckCircleIcon className="mx-auto h-12 w-12 text-green-400" />
+          <p className="mt-2 text-sm font-medium text-gray-900">All caught up!</p>
           <p className="mt-1 text-sm text-gray-500">
-            Create habits with manual tracking to use quick tracking
+            No pending habits for today
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {habits.map(habit => (
+          {pendingHabits.map(habit => (
             <div 
               key={habit.id} 
-              className={`bg-white border-2 rounded-lg p-4 transition-all duration-200 cursor-pointer hover:shadow-md ${
-                habit.is_completed_today ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => handleMarkAsDone(habit)}
+              className="bg-white border-2 border-yellow-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-full ${
-                    habit.is_completed_today ? 'bg-green-100' : 'bg-primary-50'
-                  }`}>
-                    <ClockIcon className={`w-4 h-4 ${
-                      habit.is_completed_today ? 'text-green-600' : 'text-primary-600'
-                    }`} />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-900">{habit.name}</h4>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency)}`}>
-                        {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
-                      </span>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getTrackingTypeColor(habit.tracking_type)}`}>
-                        {habit.tracking_type.charAt(0).toUpperCase() + habit.tracking_type.slice(1)}
-                      </span>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        habit.good_bad === 'good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {habit.good_bad.charAt(0).toUpperCase() + habit.good_bad.slice(1)}
-                      </span>
-                    </div>
-                  </div>
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 rounded-full bg-yellow-100">
+                  <ClockIcon className="w-4 h-4 text-yellow-600" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  {updatingHabitId === habit.id ? (
-                    <ClockIcon className="w-5 h-5 text-gray-400 animate-spin" />
-                  ) : habit.is_completed_today ? (
-                    <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <PlusIcon className="w-5 h-5 text-gray-400" />
-                  )}
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-gray-900">{habit.name}</h4>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getFrequencyColor(habit.frequency)}`}>
+                      {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
+                    </span>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getTrackingTypeColor(habit.tracking_type)}`}>
+                      {habit.tracking_type.charAt(0).toUpperCase() + habit.tracking_type.slice(1)}
+                    </span>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                      habit.good_bad === 'good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {habit.good_bad.charAt(0).toUpperCase() + habit.good_bad.slice(1)}
+                    </span>
+                  </div>
                 </div>
               </div>
               
               {habit.description && (
-                <p className="mt-2 text-xs text-gray-600 line-clamp-2">{habit.description}</p>
+                <p className="mt-2 text-xs text-gray-600 line-clamp-2 mb-3">{habit.description}</p>
               )}
               
-              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Progress: {getCompletionProgress(habit)}</span>
-                <span>Total: {habit.total_instances}</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleMarkHabit(habit, 'completed')}
+                  disabled={updatingHabitId === habit.id}
+                  className="flex-1 flex items-center justify-center px-3 py-2 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors disabled:opacity-50"
+                >
+                  {updatingHabitId === habit.id ? (
+                    <ClockIcon className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircleIcon className="w-4 h-4 mr-1" />
+                  )}
+                  Done
+                </button>
+                <button
+                  onClick={() => handleMarkHabit(habit, 'not_completed')}
+                  disabled={updatingHabitId === habit.id}
+                  className="flex-1 flex items-center justify-center px-3 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors disabled:opacity-50"
+                >
+                  {updatingHabitId === habit.id ? (
+                    <ClockIcon className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <XCircleIcon className="w-4 h-4 mr-1" />
+                  )}
+                  Skip
+                </button>
               </div>
               
-              {habit.is_completed_today && (
-                <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
-                  ✓ Completed today
+              {habit.days_since_last_completion && habit.days_since_last_completion > 1 && (
+                <div className="mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
+                  <ExclamationTriangleIcon className="w-3 h-3 inline mr-1" />
+                  {habit.days_since_last_completion} days since last completion
                 </div>
               )}
             </div>
@@ -247,7 +216,7 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Mark as Done: {selectedHabit.name}
+              Mark as {completionType === 'completed' ? 'Completed' : 'Not Completed'}: {selectedHabit.name}
             </h3>
             
             <div className="space-y-4">
@@ -279,9 +248,13 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
               </button>
               <button
                 onClick={handleSubmitWithNotes}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className={`px-4 py-2 text-white rounded-lg ${
+                  completionType === 'completed' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
-                Mark as Done
+                Mark as {completionType === 'completed' ? 'Completed' : 'Not Completed'}
               </button>
             </div>
           </div>

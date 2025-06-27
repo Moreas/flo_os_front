@@ -3,25 +3,7 @@ import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import API_BASE from '../../apiBase';
-
-interface Habit {
-  id: number;
-  name: string;
-  description?: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
-  target_count: number;
-  current_streak: number;
-  longest_streak: number;
-  is_active: boolean;
-  tracking_type?: 'manual' | 'automated' | 'hybrid';
-  good_bad?: 'good' | 'bad';
-  reminder_time?: string;
-  reminder_enabled?: boolean;
-  category?: number;
-  automation_config?: Record<string, any>;
-  goal_description?: string;
-  motivation_quote?: string;
-}
+import { Habit } from '../../types/habit';
 
 interface HabitFormProps {
   isOpen: boolean;
