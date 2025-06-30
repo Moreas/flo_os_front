@@ -43,7 +43,22 @@ export async function getCSRFToken(): Promise<string> {
   // Parse the csrftoken cookie
   const match = document.cookie.match(/csrftoken=([^;]+)/);
   if (!match) {
-    throw new Error('CSRF token not found in cookies');
+    console.warn('[Auth] CSRF token not found in cookies. Backend may not be setting the cookie properly.');
+    console.log('[Auth] Available cookies:', document.cookie);
+    console.log('[Auth] Response headers:', Array.from(response.headers.entries()));
+    
+    // Temporary workaround: try to get token from response body if available
+    try {
+      const data = await response.json();
+      if (data.csrf_token) {
+        console.log('[Auth] Using CSRF token from response body');
+        return data.csrf_token;
+      }
+    } catch (e) {
+      // Response is not JSON, continue with error
+    }
+    
+    throw new Error('CSRF token not found in cookies. Backend needs to set the csrftoken cookie.');
   }
   
   const csrfToken = match[1];
