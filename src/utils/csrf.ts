@@ -15,8 +15,8 @@ export function getCookie(name: string): string | null {
 }
 
 export async function ensureCsrfCookie() {
-  console.log('[CSRF] Calling ensureCsrfCookie: GET /api/auth/current-user/');
-  const res = await fetch('/api/auth/current-user/', {
+  console.log('[CSRF] Calling ensureCsrfCookie: GET /api/csrf/');
+  const res = await fetch('/api/csrf/', {
     method: 'GET',
     credentials: 'include'
   });

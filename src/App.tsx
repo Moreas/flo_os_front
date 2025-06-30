@@ -35,8 +35,8 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <RefreshProvider>
-          <TaskRefreshProvider>
+      <RefreshProvider>
+        <TaskRefreshProvider>
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -211,8 +211,8 @@ function App() {
                 </ProtectedRoute>
               } />
             </Routes>
-          </TaskRefreshProvider>
-        </RefreshProvider>
+        </TaskRefreshProvider>
+      </RefreshProvider>
       </AuthProvider>
     </Router>
   );
