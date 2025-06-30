@@ -1,4 +1,5 @@
 import API_BASE from '../apiBase';
+import { fetchWithCreds } from './fetchWithCreds';
 
 export interface LoginResponse {
   success: boolean;
@@ -44,9 +45,8 @@ export async function getCSRFToken(): Promise<string> {
   }
   
   // Ensure we're making a proper cross-origin request with explicit headers
-  const response = await fetch(`${API_BASE}/api/csrf/`, {
+  const response = await fetchWithCreds(`${API_BASE}/api/csrf/`, {
     method: 'GET',
-    credentials: 'include',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
@@ -111,9 +111,8 @@ export async function login(username: string, password: string): Promise<LoginRe
     }
     
     // Then login
-    const response = await fetch(`${API_BASE}/api/auth/login/`, {
+    const response = await fetchWithCreds(`${API_BASE}/api/auth/login/`, {
       method: 'POST',
-      credentials: 'include',
       headers,
       body: JSON.stringify({ username, password }),
     });
@@ -153,9 +152,8 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
   try {
     console.log('[Auth] Getting current user');
     
-    const response = await fetch(`${API_BASE}/api/auth/current-user/`, {
+    const response = await fetchWithCreds(`${API_BASE}/api/auth/current-user/`, {
       method: 'GET',
-      credentials: 'include'
     });
     
     console.log('[Auth] Current user response status:', response.status);
@@ -203,9 +201,8 @@ export async function logout(): Promise<void> {
       headers['X-CSRFToken'] = csrfToken;
     }
     
-    const response = await fetch(`${API_BASE}/api/auth/logout/`, {
+    const response = await fetchWithCreds(`${API_BASE}/api/auth/logout/`, {
       method: 'POST',
-      credentials: 'include',
       headers
     });
     

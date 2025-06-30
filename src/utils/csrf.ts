@@ -1,3 +1,5 @@
+import { fetchWithCreds } from '../api/fetchWithCreds';
+
 export function getCookie(name: string): string | null {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
@@ -16,7 +18,7 @@ export function getCookie(name: string): string | null {
 
 export async function ensureCsrfCookie() {
   console.log('[CSRF] Calling ensureCsrfCookie: GET /api/csrf/');
-  const res = await fetch('/api/csrf/', {
+  const res = await fetchWithCreds('/api/csrf/', {
     method: 'GET',
     credentials: 'include'
   });
