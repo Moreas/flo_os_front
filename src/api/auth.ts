@@ -154,6 +154,11 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
     
     const response = await fetchWithCreds(`${API_BASE}/api/auth/current-user/`, {
       method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
     
     console.log('[Auth] Current user response status:', response.status);

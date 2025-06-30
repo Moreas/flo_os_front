@@ -76,11 +76,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Set skipAuthCheck in localStorage and state
       setSkipAuthCheck(true);
       localStorage.setItem('skipAuthCheck', 'true');
+      
+      // Clear user state immediately
+      setUser(null);
+      
       await authLogout();
+      
+      // Force clear any cached data
+      localStorage.clear();
+      sessionStorage.clear();
+      
     } catch (error) {
       console.error('Logout failed:', error);
-    } finally {
+      // Even if logout fails, clear everything
       setUser(null);
+      localStorage.clear();
+      sessionStorage.clear();
     }
   };
 
