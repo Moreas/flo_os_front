@@ -231,20 +231,19 @@ export async function logout(): Promise<void> {
     
     console.log('[Auth] Cookies cleared. Current cookies:', document.cookie);
     
-    // Force a page reload to ensure all state is cleared
-    console.log('[Auth] Reloading page to clear all state...');
-    window.location.reload();
+    // Don't reload the page - let AuthContext handle the state
+    console.log('[Auth] Logout completed successfully');
     
   } catch (error) {
     console.error('[Auth] Logout error:', error);
     
-    // Even if logout fails, clear cookies and reload
+    // Even if logout fails, clear cookies
     console.log('[Auth] Logout failed, but clearing cookies anyway...');
     const backendDomain = new URL(API_BASE).hostname;
     document.cookie = `sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${backendDomain};`;
     document.cookie = `sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     document.cookie = `csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${backendDomain};`;
     document.cookie = `csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    window.location.reload();
+    console.log('[Auth] Logout completed (with errors)');
   }
 } 

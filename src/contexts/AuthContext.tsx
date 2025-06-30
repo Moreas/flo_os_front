@@ -28,7 +28,10 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [skipAuthCheck, setSkipAuthCheck] = useState(false);
+  const [skipAuthCheck, setSkipAuthCheck] = useState(() => {
+    // Check localStorage on initial load
+    return localStorage.getItem('skipAuthCheck') === 'true';
+  });
 
   const isAuthenticated = !!user;
 
@@ -55,6 +58,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success && response.user) {
         setUser(response.user);
+        // Clear skipAuthCheck on successful login
+        setSkipAuthCheck(false);
+        localStorage.removeItem('skipAuthCheck');
         return { success: true };
       } else {
         return { success: false, error: response.error };
@@ -67,7 +73,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      setSkipAuthCheck(true); // Prevent auth check after logout
+      // Set skipAuthCheck in localStorage and state
+      setSkipAuthCheck(true);
+      localStorage.setItem('skipAuthCheck', 'true');
       await authLogout();
     } catch (error) {
       console.error('Logout failed:', error);
@@ -81,6 +89,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       checkAuth();
     } else {
       setIsLoading(false);
+      // Clear the flag after using it
+      setSkipAuthCheck(false);
+      localStorage.removeItem('skipAuthCheck');
     }
   }, [skipAuthCheck]);
 
