@@ -28,6 +28,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [skipAuthCheck, setSkipAuthCheck] = useState(false);
 
   const isAuthenticated = !!user;
 
@@ -66,6 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      setSkipAuthCheck(true); // Prevent auth check after logout
       await authLogout();
     } catch (error) {
       console.error('Logout failed:', error);
@@ -75,8 +77,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (!skipAuthCheck) {
+      checkAuth();
+    } else {
+      setIsLoading(false);
+    }
+  }, [skipAuthCheck]);
 
   const value: AuthContextType = {
     user,

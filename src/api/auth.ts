@@ -207,9 +207,14 @@ export async function logout(): Promise<void> {
     });
     
     console.log('[Auth] Logout response status:', response.status);
+    console.log('[Auth] Logout response headers:', Array.from(response.headers.entries()));
     
     if (!response.ok) {
       console.warn('[Auth] Logout request failed:', response.status);
+      const errorData = await response.text().catch(() => 'No error details');
+      console.warn('[Auth] Logout error details:', errorData);
+    } else {
+      console.log('[Auth] Logout request successful');
     }
     
     // Clear all cookies for the backend domain
