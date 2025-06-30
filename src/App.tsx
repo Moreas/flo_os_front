@@ -27,40 +27,139 @@ import HabitsPage from './pages/HabitsPage';
 import HabitDetailPage from './pages/HabitDetailPage';
 import HabitsDashboardPage from './pages/HabitsDashboardPage';
 import DailyHabitsPage from './pages/DailyHabitsPage';
+import LoginPage from './pages/LoginPage';
 
 function App() {
   return (
     <Router>
       <RefreshProvider>
         <TaskRefreshProvider>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/businesses" element={<BusinessesPage />} />
-              <Route path="/people" element={<PeoplePage />} />
-              <Route path="/tools" element={<ToolsPage />} />
-              <Route path="/goals" element={<GoalsPage />} />
-              <Route path="/journal" element={<JournalPage />} />
-              <Route path="/emails" element={<EmailsPage />} />
-              <Route path="/health" element={<HealthPage />} />
-              <Route path="/finance" element={<FinancePage />} />
-              <Route path="/meetings" element={<MeetingsPage />} />
-              <Route path="/projects/:id" element={<ProjectDetailPage />} />
-              <Route path="/businesses/:id" element={<BusinessDetailPage />} />
-              <Route path="/people/:id" element={<PersonDetailPage />} />
-              <Route path="/search" element={<SearchResultsPage />} />
-              <Route path="/goals/:id" element={<GoalDetailPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/books" element={<BooksPage />} />
-              <Route path="/habits" element={<HabitsPage />} />
-              <Route path="/habits/:habitId" element={<HabitDetailPage />} />
-              <Route path="/habits-dashboard" element={<HabitsDashboardPage />} />
-              <Route path="/daily-habits" element={<DailyHabitsPage />} />
-            </Routes>
-          </Layout>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            
+            {/* Protected routes with Layout */}
+            <Route path="/" element={
+              <Layout>
+                <Dashboard />
+              </Layout>
+            } />
+            <Route path="/projects" element={
+              <Layout>
+                <Projects />
+              </Layout>
+            } />
+            <Route path="/tasks" element={
+              <Layout>
+                <TasksPage />
+              </Layout>
+            } />
+            <Route path="/businesses" element={
+              <Layout>
+                <BusinessesPage />
+              </Layout>
+            } />
+            <Route path="/people" element={
+              <Layout>
+                <PeoplePage />
+              </Layout>
+            } />
+            <Route path="/tools" element={
+              <Layout>
+                <ToolsPage />
+              </Layout>
+            } />
+            <Route path="/goals" element={
+              <Layout>
+                <GoalsPage />
+              </Layout>
+            } />
+            <Route path="/journal" element={
+              <Layout>
+                <JournalPage />
+              </Layout>
+            } />
+            <Route path="/emails" element={
+              <Layout>
+                <EmailsPage />
+              </Layout>
+            } />
+            <Route path="/health" element={
+              <Layout>
+                <HealthPage />
+              </Layout>
+            } />
+            <Route path="/finance" element={
+              <Layout>
+                <FinancePage />
+              </Layout>
+            } />
+            <Route path="/meetings" element={
+              <Layout>
+                <MeetingsPage />
+              </Layout>
+            } />
+            <Route path="/projects/:id" element={
+              <Layout>
+                <ProjectDetailPage />
+              </Layout>
+            } />
+            <Route path="/businesses/:id" element={
+              <Layout>
+                <BusinessDetailPage />
+              </Layout>
+            } />
+            <Route path="/people/:id" element={
+              <Layout>
+                <PersonDetailPage />
+              </Layout>
+            } />
+            <Route path="/search" element={
+              <Layout>
+                <SearchResultsPage />
+              </Layout>
+            } />
+            <Route path="/goals/:id" element={
+              <Layout>
+                <GoalDetailPage />
+              </Layout>
+            } />
+            <Route path="/notifications" element={
+              <Layout>
+                <NotificationsPage />
+              </Layout>
+            } />
+            <Route path="/calendar" element={
+              <Layout>
+                <CalendarPage />
+              </Layout>
+            } />
+            <Route path="/books" element={
+              <Layout>
+                <BooksPage />
+              </Layout>
+            } />
+            <Route path="/habits" element={
+              <Layout>
+                <HabitsPage />
+              </Layout>
+            } />
+            <Route path="/habits/:habitId" element={
+              <Layout>
+                <HabitDetailPage />
+              </Layout>
+            } />
+            <Route path="/habits-dashboard" element={
+              <Layout>
+                <HabitsDashboardPage />
+              </Layout>
+            } />
+            <Route path="/daily-habits" element={
+              <Layout>
+                <DailyHabitsPage />
+              </Layout>
+            } />
+          </Routes>
         </TaskRefreshProvider>
       </RefreshProvider>
     </Router>
