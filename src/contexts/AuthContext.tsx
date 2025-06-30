@@ -27,16 +27,6 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-async function getCSRFToken() {
-  try {
-    const res = await axios.get(`${API_BASE}/api/auth/csrf/`, { withCredentials: true });
-    return res.data.csrfToken || res.data.csrf_token || res.data.token;
-  } catch (err) {
-    console.error('Failed to fetch CSRF token:', err);
-    return null;
-  }
-}
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
