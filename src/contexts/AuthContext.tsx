@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 import API_BASE from '../apiBase';
+import { ensureCsrfCookie, getCookie } from '../utils/csrf';
 
 interface User {
   id: number;
@@ -24,6 +25,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
+}
+
+async function getCSRFToken() {
+  try {
+    const res = await axios.get(`${API_BASE}/api/auth/csrf/`, { withCredentials: true });
+    return res.data.csrfToken || res.data.csrf_token || res.data.token;
+  } catch (err) {
+    console.error('Failed to fetch CSRF token:', err);
+    return null;
+  }
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
@@ -53,11 +64,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
+      // Ensure CSRF cookie is set
+      await ensureCsrfCookie();
+      const csrfToken = getCookie('csrftoken');
+      if (!csrfToken) {
+        return { success: false, error: 'Could not get CSRF token.' };
+      }
       const response = await axios.post(`${API_BASE}/api/auth/login/`, {
         username,
         password
       }, {
-        withCredentials: true
+        withCredentials: true,
+        headers: { 'X-CSRFToken': csrfToken }
       });
 
       if (response.data.success) {
