@@ -57,6 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Ensure CSRF cookie is set
       await ensureCsrfCookie();
       const csrfToken = getCookie('csrftoken');
+      console.log('[Auth] CSRF token used for login:', csrfToken);
       if (!csrfToken) {
         return { success: false, error: 'Could not get CSRF token.' };
       }
@@ -75,7 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: response.data.error };
       }
     } catch (error: any) {
-      console.error('Login failed:', error);
+      console.error('[Auth] Login failed:', error);
       if (error.response?.data?.error) {
         return { success: false, error: error.response.data.error };
       }

@@ -10,12 +10,17 @@ export function getCookie(name: string): string | null {
       }
     }
   }
+  console.log(`[CSRF] getCookie('${name}') =`, cookieValue);
   return cookieValue;
 }
 
 export async function ensureCsrfCookie() {
-  await fetch('/api/auth/current-user/', {
+  console.log('[CSRF] Calling ensureCsrfCookie: GET /api/auth/current-user/');
+  const res = await fetch('/api/auth/current-user/', {
     method: 'GET',
     credentials: 'include'
   });
+  console.log('[CSRF] ensureCsrfCookie response status:', res.status);
+  console.log('[CSRF] ensureCsrfCookie response headers:', Array.from(res.headers.entries()));
+  return res;
 } 
