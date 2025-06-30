@@ -9,12 +9,14 @@ import {
   FlagIcon,
   FolderIcon,
   BellIcon,
-  Bars3Icon
+  Bars3Icon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import TaskForm from '../forms/TaskForm';
 import JournalForm from '../forms/JournalForm';
 import GoalForm from '../forms/GoalForm';
 import ProjectForm from '../forms/ProjectForm';
+import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import API_BASE from '../../apiBase';
 
@@ -49,6 +51,7 @@ interface NotificationGroup {
 
 const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isJournalFormOpen, setIsJournalFormOpen] = useState(false);
@@ -183,6 +186,15 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
       case 'email': return '/emails';
       case 'task': return `/tasks/${item.id}`;
       default: return '#';
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
@@ -348,14 +360,25 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                {/* User Info */}
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.first_name && user?.last_name 
+                      ? `${user.first_name} ${user.last_name}`
+                      : user?.username || 'User'
+                    }
+                  </p>
+                  <p className="text-sm text-gray-500">{user?.email}</p>
+                </div>
+                
                 <Menu.Item>
                   {({ active }: MenuItemProps) => (
                     <button
                       type="button"
                       className={`${
                         active ? 'bg-gray-100' : ''
-                      } block px-4 py-2 text-sm text-gray-700`}
+                      } block px-4 py-2 text-sm text-gray-700 w-full text-left`}
                     >
                       Your Profile
                     </button>
@@ -367,7 +390,7 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
                       type="button"
                       className={`${
                         active ? 'bg-gray-100' : ''
-                      } block px-4 py-2 text-sm text-gray-700`}
+                      } block px-4 py-2 text-sm text-gray-700 w-full text-left`}
                     >
                       Settings
                     </button>
@@ -377,10 +400,12 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
                   {({ active }: MenuItemProps) => (
                     <button
                       type="button"
+                      onClick={handleLogout}
                       className={`${
                         active ? 'bg-gray-100' : ''
-                      } block px-4 py-2 text-sm text-gray-700`}
+                      } block px-4 py-2 text-sm text-gray-700 w-full text-left flex items-center`}
                     >
+                      <ArrowRightOnRectangleIcon className="w-4 h-4 mr-2" />
                       Sign out
                     </button>
                   )}

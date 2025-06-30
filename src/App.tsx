@@ -15,6 +15,8 @@ import FinancePage from './pages/FinancePage';
 import MeetingsPage from './pages/MeetingsPage';
 import { TaskRefreshProvider } from './contexts/TaskRefreshContext';
 import { RefreshProvider } from './contexts/RefreshContext';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import BusinessDetailPage from './pages/BusinessDetailPage';
 import PersonDetailPage from './pages/PersonDetailPage';
@@ -32,136 +34,186 @@ import LoginPage from './pages/LoginPage';
 function App() {
   return (
     <Router>
-      <RefreshProvider>
-        <TaskRefreshProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            
-            {/* Protected routes with Layout */}
-            <Route path="/" element={
-              <Layout>
-                <Dashboard />
-              </Layout>
-            } />
-            <Route path="/projects" element={
-              <Layout>
-                <Projects />
-              </Layout>
-            } />
-            <Route path="/tasks" element={
-              <Layout>
-                <TasksPage />
-              </Layout>
-            } />
-            <Route path="/businesses" element={
-              <Layout>
-                <BusinessesPage />
-              </Layout>
-            } />
-            <Route path="/people" element={
-              <Layout>
-                <PeoplePage />
-              </Layout>
-            } />
-            <Route path="/tools" element={
-              <Layout>
-                <ToolsPage />
-              </Layout>
-            } />
-            <Route path="/goals" element={
-              <Layout>
-                <GoalsPage />
-              </Layout>
-            } />
-            <Route path="/journal" element={
-              <Layout>
-                <JournalPage />
-              </Layout>
-            } />
-            <Route path="/emails" element={
-              <Layout>
-                <EmailsPage />
-              </Layout>
-            } />
-            <Route path="/health" element={
-              <Layout>
-                <HealthPage />
-              </Layout>
-            } />
-            <Route path="/finance" element={
-              <Layout>
-                <FinancePage />
-              </Layout>
-            } />
-            <Route path="/meetings" element={
-              <Layout>
-                <MeetingsPage />
-              </Layout>
-            } />
-            <Route path="/projects/:id" element={
-              <Layout>
-                <ProjectDetailPage />
-              </Layout>
-            } />
-            <Route path="/businesses/:id" element={
-              <Layout>
-                <BusinessDetailPage />
-              </Layout>
-            } />
-            <Route path="/people/:id" element={
-              <Layout>
-                <PersonDetailPage />
-              </Layout>
-            } />
-            <Route path="/search" element={
-              <Layout>
-                <SearchResultsPage />
-              </Layout>
-            } />
-            <Route path="/goals/:id" element={
-              <Layout>
-                <GoalDetailPage />
-              </Layout>
-            } />
-            <Route path="/notifications" element={
-              <Layout>
-                <NotificationsPage />
-              </Layout>
-            } />
-            <Route path="/calendar" element={
-              <Layout>
-                <CalendarPage />
-              </Layout>
-            } />
-            <Route path="/books" element={
-              <Layout>
-                <BooksPage />
-              </Layout>
-            } />
-            <Route path="/habits" element={
-              <Layout>
-                <HabitsPage />
-              </Layout>
-            } />
-            <Route path="/habits/:habitId" element={
-              <Layout>
-                <HabitDetailPage />
-              </Layout>
-            } />
-            <Route path="/habits-dashboard" element={
-              <Layout>
-                <HabitsDashboardPage />
-              </Layout>
-            } />
-            <Route path="/daily-habits" element={
-              <Layout>
-                <DailyHabitsPage />
-              </Layout>
-            } />
-          </Routes>
-        </TaskRefreshProvider>
-      </RefreshProvider>
+      <AuthProvider>
+        <RefreshProvider>
+          <TaskRefreshProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              
+              {/* Protected routes with Layout */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/projects" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Projects />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/tasks" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <TasksPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/businesses" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BusinessesPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/people" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <PeoplePage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/tools" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ToolsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/goals" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <GoalsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/journal" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <JournalPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/emails" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <EmailsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/health" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <HealthPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/finance" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <FinancePage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/meetings" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <MeetingsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/projects/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ProjectDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/businesses/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BusinessDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/people/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <PersonDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/search" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SearchResultsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/goals/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <GoalDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NotificationsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/calendar" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CalendarPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/books" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BooksPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/habits" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <HabitsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/habits/:habitId" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <HabitDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/habits-dashboard" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <HabitsDashboardPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/daily-habits" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DailyHabitsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </TaskRefreshProvider>
+        </RefreshProvider>
+      </AuthProvider>
     </Router>
   );
 }
