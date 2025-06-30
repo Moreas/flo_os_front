@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon, LockClosedIcon, UserIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
-import { debugCSRF } from '../utils/debug-csrf';
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -213,16 +212,7 @@ const LoginPage: React.FC = () => {
               </button>
             </div>
             
-            {/* Debug Button - Remove this after testing */}
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={debugCSRF}
-                className="w-full py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
-              >
-                Debug CSRF (Check Console)
-              </button>
-            </div>
+
           </form>
         </div>
       </div>
