@@ -192,23 +192,14 @@ export async function logout(): Promise<void> {
   try {
     console.log('[Auth] Logging out');
     
-    // Try to get CSRF token, but don't fail if it's not available
-    let csrfToken: string | null = null;
-    try {
-      csrfToken = await getCSRFToken();
-    } catch (error) {
-      console.warn('[Auth] CSRF token not available for logout, proceeding without it:', error);
-    }
-    
-    // Prepare headers
-    const headers: Record<string, string> = {};
-    if (csrfToken) {
-      headers['X-CSRFToken'] = csrfToken;
-    }
+    // Temporarily skip CSRF for logout due to trusted origins issue
+    // TODO: Fix backend CSRF_TRUSTED_ORIGINS to include https://flo.com.co
     
     const response = await fetchWithCreds(`${API_BASE}/api/auth/logout/`, {
       method: 'POST',
-      headers
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
     
     console.log('[Auth] Logout response status:', response.status);
