@@ -16,24 +16,22 @@ export async function debugCSRF() {
     console.log('\n--- Test 1: Basic fetch ---');
     const response1 = await fetchWithCreds(`${API_BASE}/api/csrf/`, {
       method: 'GET',
-      credentials: 'include'
     });
     console.log('Status:', response1.status);
-    console.log('Headers:', Array.from(response1.entries()));
+    console.log('Headers:', Array.from(response1.headers.entries()));
     console.log('Cookies after test 1:', document.cookie);
     
     // Test 2: Fetch with explicit headers
     console.log('\n--- Test 2: Fetch with headers ---');
     const response2 = await fetchWithCreds(`${API_BASE}/api/csrf/`, {
       method: 'GET',
-      credentials: 'include',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }
     });
     console.log('Status:', response2.status);
-    console.log('Headers:', Array.from(response2.entries()));
+    console.log('Headers:', Array.from(response2.headers.entries()));
     console.log('Cookies after test 2:', document.cookie);
     
     // Test 3: Try to parse response
