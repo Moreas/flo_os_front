@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { 
   CheckCircleIcon, 
   XCircleIcon,
@@ -12,7 +12,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import API_BASE from '../apiBase';
 import { fetchWithCSRF } from '../api/fetchWithCreds';
 import HabitForm from '../components/forms/HabitForm';
 import { PendingHabit, TrackingSummary } from '../types/habit';
@@ -34,8 +33,8 @@ const DailyHabitsPage: React.FC = () => {
     
     try {
       const [pendingRes, summaryRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/habits/pending_for_date/?date=${targetDate}`),
-        axios.get(`${API_BASE}/api/habits/tracking_summary/?start_date=${targetDate}&end_date=${targetDate}`)
+        apiClient.get(`/habits/pending_for_date/?date=${targetDate}`),
+        apiClient.get(`/habits/tracking_summary/?start_date=${targetDate}&end_date=${targetDate}`)
       ]);
       
       // Ensure we have arrays, even if the API returns unexpected data
@@ -63,8 +62,8 @@ const DailyHabitsPage: React.FC = () => {
     setUpdatingHabitId(habitId);
     try {
       const endpoint = type === 'completed' 
-        ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
-        : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
+        ? `/habits/${habitId}/mark_completed/`
+        : `/habits/${habitId}/mark_not_completed/`;
       
       const response = await fetchWithCSRF(endpoint, {
         method: 'POST',

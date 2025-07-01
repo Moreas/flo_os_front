@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { 
   ArrowPathIcon, 
   ExclamationTriangleIcon, 
@@ -10,7 +10,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import API_BASE from '../apiBase';
 import HabitForm from '../components/forms/HabitForm';
 import HabitTracker from '../components/HabitTracker';
 import QuickHabitTracker from '../components/QuickHabitTracker';
@@ -50,8 +49,8 @@ const HabitsDashboardPage: React.FC = () => {
     setError(null);
     try {
       const [habitsRes, instancesRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/habits/`),
-        axios.get(`${API_BASE}/api/habit-instances/`)
+        apiClient.get('/habits/'),
+        apiClient.get('/habit-instances/')
       ]);
       setHabits(habitsRes.data || []);
       setInstances(instancesRes.data || []);

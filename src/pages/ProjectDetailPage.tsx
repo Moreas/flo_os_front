@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { Task } from '../types/task';
 import { Project, ProjectNote } from '../types/project';
 import API_BASE from '../apiBase';
@@ -26,7 +26,7 @@ const ProjectDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${API_BASE}/api/projects/${id}/`);
+        const response = await apiClient.get(`${API_BASE}/api/projects/${id}/`);
         setProject(response.data);
       } catch (err) {
         setError('Failed to load project details.');
@@ -39,7 +39,7 @@ const ProjectDetailPage: React.FC = () => {
     const fetchTasks = async () => {
       if (!id) return;
       try {
-        const response = await axios.get(`${API_BASE}/api/tasks/`, {
+        const response = await apiClient.get(`${API_BASE}/api/tasks/`, {
           params: { project: id }
         });
         setTasks(response.data || []);
@@ -62,7 +62,7 @@ const ProjectDetailPage: React.FC = () => {
     e.preventDefault();
     if (!newNote.trim() || !id) return;
     try {
-      const res = await axios.post(`${API_BASE}/api/projects/${id}/notes/`, { content: newNote });
+      const res = await apiClient.post(`${API_BASE}/api/projects/${id}/notes/`, { content: newNote });
       setNotes([res.data, ...notes]);
       setNewNote('');
     } catch (err) {
@@ -78,7 +78,7 @@ const ProjectDetailPage: React.FC = () => {
   const handleUpdateNote = async (noteId: number) => {
     if (!editingNoteContent.trim() || !id) return;
     try {
-      const res = await axios.patch(`${API_BASE}/api/projects/${id}/notes/${noteId}/`, { content: editingNoteContent });
+      const res = await apiClient.patch(`${API_BASE}/api/projects/${id}/notes/${noteId}/`, { content: editingNoteContent });
       setNotes(notes.map(n => n.id === noteId ? res.data : n));
       setEditingNoteId(null);
       setEditingNoteContent('');
@@ -95,7 +95,7 @@ const ProjectDetailPage: React.FC = () => {
     if (!id) return;
     if (!window.confirm('Are you sure you want to delete this project?')) return;
     try {
-      await axios.delete(`${API_BASE}/api/projects/${id}/`);
+      await apiClient.delete(`${API_BASE}/api/projects/${id}/`);
       navigate('/projects');
     } catch (err) {
       alert('Failed to delete project.');
@@ -230,12 +230,4 @@ const ProjectDetailPage: React.FC = () => {
           onProjectUpdated={() => {
             setIsEditModalOpen(false);
             // Refetch project details after edit
-            axios.get(`${API_BASE}/api/projects/${id}/`).then(res => setProject(res.data));
-          }}
-        />
-      )}
-    </div>
-  );
-};
-
-export default ProjectDetailPage; 
+            apiClient.get(`${API_BASE}/api/projects/${id}/`

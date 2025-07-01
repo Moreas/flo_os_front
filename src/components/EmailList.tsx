@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Fragment, useMemo, forwardRef, useImperativeHandle } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
@@ -87,7 +87,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/emails/`);
+      const response = await apiClient.get(`${API_BASE}/api/emails/`);
       setEmails(response.data || []);
       if (response.data && Array.isArray(response.data)) {
         response.data.forEach(email => {
@@ -195,7 +195,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     setAssignSuccess(null);
     setSelectedPersonId(null);
     try {
-      const res = await axios.get(`${API_BASE}/api/people/`);
+      const res = await apiClient.get(`${API_BASE}/api/people/`);
       setPeople(res.data || []);
     } catch (err) {
       setAssignError('Failed to load people.');
@@ -343,7 +343,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     } catch (err) {
       console.error('=== EMAIL STATUS CHANGE ERROR ===');
       console.error('Failed to update email status:', err);
-      if (axios.isAxiosError(err)) {
+      if (apiClient.isAxiosError(err)) {
         console.error('API Error details:', {
           status: err.response?.status,
           statusText: err.response?.statusText,

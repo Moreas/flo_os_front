@@ -4,9 +4,8 @@ import TaskForm from '../components/forms/TaskForm';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useTaskRefresh } from '../contexts/TaskRefreshContext';
 import CompletedTasksChart from '../components/CompletedTasksChart';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { format, parseISO } from 'date-fns';
-import API_BASE from '../apiBase';
 
 interface CompletedTask {
   id: number;
@@ -35,7 +34,7 @@ const TasksPage: React.FC = () => {
     const fetchCompleted = async () => {
       setCompletedLoading(true);
       try {
-        const res = await axios.get(`${API_BASE}/api/tasks/`, {
+        const res = await apiClient.get('/api/tasks/', {
           params: {
             is_done: true,
             ordering: '-completion_date',

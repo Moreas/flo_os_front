@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
-import axios from 'axios';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
-import API_BASE from '../apiBase';
+import { apiClient } from '../api/apiConfig';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar-overrides.css';
 import { FaUsers, FaCircle } from 'react-icons/fa';
@@ -77,7 +75,7 @@ const CalendarPage: React.FC = () => {
   const fetchEvents = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${API_BASE}/api/calendar_events/`);
+      const response = await apiClient.get('/api/calendar_events/');
       const formattedEvents = response.data.map((event: any) => ({
         ...event,
         start: new Date(event.start),
@@ -96,9 +94,9 @@ const CalendarPage: React.FC = () => {
   // Fetch categories, businesses, and people when modal opens
   useEffect(() => {
     if (isModalOpen) {
-      axios.get(`${API_BASE}/api/categories/`).then(res => setCategories(res.data)).catch(() => setCategories([]));
-      axios.get(`${API_BASE}/api/businesses/`).then(res => setBusinesses(res.data)).catch(() => setBusinesses([]));
-      axios.get(`${API_BASE}/api/people/`).then(res => setPeople(res.data)).catch(() => setPeople([]));
+      apiClient.get('/api/categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
+      apiClient.get('/api/businesses/').then(res => setBusinesses(res.data)).catch(() => setBusinesses([]));
+      apiClient.get('/api/people/').then(res => setPeople(res.data)).catch(() => setPeople([]));
     }
   }, [isModalOpen]);
 
@@ -128,11 +126,7 @@ const CalendarPage: React.FC = () => {
 
               if (selectedEvent?.id) {
           // Update existing event
-          const response = await fetchWithCSRF(`${API_BASE}/api/calendar_events/${selectedEvent.id}/`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(eventData)
-          });
+          const response = await apiClient.put(`/api/calendar_events/${selectedEvent.id}/`, eventData);
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -140,11 +134,7 @@ const CalendarPage: React.FC = () => {
           }
         } else {
           // Create new event
-          const response = await fetchWithCSRF(`${API_BASE}/api/calendar_events/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(eventData)
-          });
+          const response = await apiClient.post('/api/calendar_events/', eventData);
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -166,10 +156,7 @@ const CalendarPage: React.FC = () => {
     if (!selectedEvent?.id) return;
 
           try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/calendar_events/${selectedEvent.id}/`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' }
-        });
+        const response = await apiClient.delete(`/api/calendar_events/${selectedEvent.id}/`);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));

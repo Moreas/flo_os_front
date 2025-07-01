@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import PersonForm from '../components/forms/PersonForm';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
-import API_BASE from '../apiBase';
 
 interface Person {
   id: number;
@@ -59,7 +58,7 @@ const PersonDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/people/${id}/`);
+      const response = await apiClient.get(`/people/${id}/`);
       setPerson(response.data);
     } catch (err) {
       console.error("Error fetching person:", err);
@@ -73,7 +72,7 @@ const PersonDetailPage: React.FC = () => {
     const fetchEmails = async () => {
       if (!id) return;
       try {
-        const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
+        const res = await apiClient.get(`/emails/?person=${id}`);
         setEmails(res.data || []);
         console.log('Person emails:', res.data);
       } catch (err) {
@@ -105,7 +104,7 @@ const PersonDetailPage: React.FC = () => {
       
       if (newStatus) {
         // Use the specific endpoint for marking as handled
-        const response = await axios.post(`${API_BASE}/api/emails/${emailId}/mark_handled/`);
+        const response = await apiClient.post(`/emails/${emailId}/mark_handled/`);
         console.log('Mark handled endpoint response:', response.data);
       } else {
         // For unhandling, use PATCH to set is_handled to false
@@ -113,16 +112,16 @@ const PersonDetailPage: React.FC = () => {
           is_handled: false
         };
         
-        const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
+        const response = await apiClient.patch(`/emails/${emailId}/`, payload);
         console.log('Unhandled PATCH response:', response.data);
       }
       
       // Refresh emails after update
-      const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
+      const res = await apiClient.get(`/emails/?person=${id}`);
       setEmails(res.data || []);
     } catch (err) {
       console.error('Failed to update email status:', err);
-      if (axios.isAxiosError(err)) {
+      if (apiClient.isAxiosError(err)) {
         console.error('API Error details:', {
           status: err.response?.status,
           data: err.response?.data,
@@ -136,14 +135,14 @@ const PersonDetailPage: React.FC = () => {
   const handleHandlingTypeChange = async (emailId: number, handlingType: 'external' | 'internal') => {
     try {
       const endpoint = handlingType === 'external' 
-        ? `${API_BASE}/api/emails/${emailId}/mark_external_handling/`
-        : `${API_BASE}/api/emails/${emailId}/mark_internal_handling/`;
+        ? `/emails/${emailId}/mark_external_handling/`
+        : `/emails/${emailId}/mark_internal_handling/`;
       
-      await axios.post(endpoint);
+      await apiClient.post(endpoint);
       console.log(`Email ${emailId} marked as ${handlingType} handling`);
       
       // Refresh emails after update
-      const res = await axios.get(`${API_BASE}/api/emails/?person=${id}`);
+      const res = await apiClient.get(`/emails/?person=${id}`);
       setEmails(res.data || []);
     } catch (err) {
       console.error(`Failed to mark email as ${handlingType} handling:`, err);
@@ -153,7 +152,7 @@ const PersonDetailPage: React.FC = () => {
   const handleTaskToggle = async (taskId: number, currentStatus: boolean) => {
     setUpdatingTaskId(taskId);
     try {
-      await axios.patch(`${API_BASE}/api/tasks/${taskId}/`, { is_done: !currentStatus });
+      await apiClient.patch(`/tasks/${taskId}/`, { is_done: !currentStatus });
       // Refresh person data to get updated tasks
       await fetchPerson();
     } catch (err) {
@@ -498,7 +497,7 @@ const PersonDetailPage: React.FC = () => {
                     onClick={async () => {
                       setUnassigning(emailObj.email);
                       try {
-                        await axios.delete(`${API_BASE}/api/people/${id}/unassign_email_address/`, {
+                        await apiClient.delete(`/people/${id}/unassign_email_address/`, {
                           data: { email_address: emailObj.email },
                           headers: { 'Content-Type': 'application/json' },
                         });

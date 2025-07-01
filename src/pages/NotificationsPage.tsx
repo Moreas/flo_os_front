@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { Link } from 'react-router-dom';
-import API_BASE from '../apiBase';
 
 interface NotificationItem {
   id: number;
@@ -60,7 +59,7 @@ const NotificationsPage: React.FC = () => {
     
     try {
       // Fetch all unhandled emails
-      const emailsResponse = await axios.get(`${API_BASE}/api/emails/`, {
+      const emailsResponse = await apiClient.get('/api/emails/', {
         params: {
           is_handled: false
         }
@@ -71,7 +70,7 @@ const NotificationsPage: React.FC = () => {
       
       // Fetch tasks due today or before
       const today = new Date().toISOString().split('T')[0];
-      const tasksResponse = await axios.get(`${API_BASE}/api/tasks/`, {
+      const tasksResponse = await apiClient.get('/api/tasks/', {
         params: {
           due_date_before: today
         }

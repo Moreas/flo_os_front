@@ -4,6 +4,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import API_BASE from '../apiBase';
 import { fetchWithCSRF } from '../api/fetchWithCreds';
+import apiClient from '../api/apiClient';
 
 const EmailsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -18,13 +19,9 @@ const EmailsPage: React.FC = () => {
     setMessage(null);
     setError(null);
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/retrieve_emails/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fetch_all: true,
-          include_sent: true
-        })
+      const response = await apiClient.post(`${API_BASE}/api/retrieve_emails/`, {
+        fetch_all: true,
+        include_sent: true
       });
       
       if (!response.ok) {
@@ -59,8 +56,7 @@ const EmailsPage: React.FC = () => {
     setIsPurging(true);
     setError(null);
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/emails/purge_all/`, {
-        method: 'POST',
+      const response = await apiClient.post(`${API_BASE}/api/emails/purge_all/`, {
         headers: { 'Content-Type': 'application/json' }
       });
       

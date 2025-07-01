@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
-import API_BASE from '../apiBase';
+import { apiClient } from '../api/apiConfig';
 
 interface Goal {
   id: number;
@@ -27,7 +26,7 @@ const GoalDetailPage: React.FC = () => {
   useEffect(() => {
     const fetchGoal = async () => {
       try {
-        const response = await axios.get(`${API_BASE}/api/goals/${id}/`);
+        const response = await apiClient.get(`/api/goals/${id}/`);
         setGoal(response.data);
       } catch (err) {
         setError('Failed to load goal details.');
