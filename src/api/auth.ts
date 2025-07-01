@@ -62,6 +62,13 @@ export async function login(username: string, password: string): Promise<LoginRe
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          success: false,
+          error: 'Invalid username or password'
+        };
+      }
+      
       const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
@@ -76,6 +83,7 @@ export async function login(username: string, password: string): Promise<LoginRe
     };
     
   } catch (error) {
+    console.error('[Auth] Login error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'
@@ -97,7 +105,9 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
       if (response.status === 401) {
         return { success: false };
       }
-      throw new Error(`Failed to get current user: ${response.status}`);
+      
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.error || `Failed to get current user: ${response.status}`);
     }
     
     const data = await response.json();
@@ -117,11 +127,17 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
  */
 export async function logout(): Promise<void> {
   try {
-    await fetchWithCSRF(`${API_BASE}/api/auth/logout/`, {
+    const response = await fetchWithCSRF(`${API_BASE}/api/auth/logout/`, {
       method: 'POST'
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.error || `Logout failed: ${response.status}`);
+    }
   } catch (error) {
     console.error('[Auth] Logout error:', error);
+    // Continue with cleanup even if server logout fails
   }
 }
 
@@ -129,13 +145,25 @@ export async function logout(): Promise<void> {
  * Clear all storage and cache
  */
 export function clearAllStorageAndCache(): void {
-  localStorage.clear();
-  sessionStorage.clear();
-  
-  if ('caches' in window) {
-    caches.keys().then(keys => {
-      keys.forEach(key => caches.delete(key));
+  try {
+    // Clear storages
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear caches
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(key => caches.delete(key));
+      });
+    }
+    
+    // Clear cookies by setting expired date
+    document.cookie.split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim();
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
     });
+  } catch (error) {
+    console.error('[Auth] Error clearing data:', error);
   }
 }
 

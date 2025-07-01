@@ -21,7 +21,10 @@ const EmailsPage: React.FC = () => {
       const response = await fetchWithCSRF(`${API_BASE}/api/retrieve_emails/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          fetch_all: true,
+          include_sent: true
+        })
       });
       
       if (!response.ok) {
@@ -31,7 +34,7 @@ const EmailsPage: React.FC = () => {
       
       const responseData = await response.json();
       if (responseData.success) {
-        const saved = responseData.saved_count ?? 0;
+        const saved = responseData.retrieved ?? 0;
         
         // Only show message if emails were retrieved
         if (saved > 0) {
@@ -46,6 +49,7 @@ const EmailsPage: React.FC = () => {
       }
     } catch (err: any) {
       setError('Error retrieving emails.');
+      console.error('Error retrieving emails:', err);
     } finally {
       setLoading(false);
     }

@@ -25,17 +25,23 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const AUTH_CHECK_INTERVAL = 1000 * 60 * 15; // 15 minutes
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [skipAuthCheck, setSkipAuthCheck] = useState(() => {
-    // Check localStorage on initial load
-    return localStorage.getItem('skipAuthCheck') === 'true';
-  });
+  const [lastAuthCheck, setLastAuthCheck] = useState(0);
+  const [authCheckTimer, setAuthCheckTimer] = useState<NodeJS.Timeout | null>(null);
 
   const isAuthenticated = !!user;
 
-  const checkAuth = async () => {
+  const checkAuth = async (force = false) => {
+    const now = Date.now();
+    // Skip check if recently checked and not forced
+    if (!force && (now - lastAuthCheck) < AUTH_CHECK_INTERVAL) {
+      return;
+    }
+
     try {
       const response = await getCurrentUser();
       
@@ -44,6 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         setUser(null);
       }
+      setLastAuthCheck(now);
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
@@ -52,15 +59,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const startAuthCheckTimer = () => {
+    if (authCheckTimer) {
+      clearInterval(authCheckTimer);
+    }
+    // Set up periodic auth check
+    const timer = setInterval(() => {
+      checkAuth();
+    }, AUTH_CHECK_INTERVAL);
+    setAuthCheckTimer(timer);
+    return timer;
+  };
+
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await authLogin(username, password);
       
       if (response.success && response.user) {
         setUser(response.user);
-        // Clear skipAuthCheck on successful login
-        setSkipAuthCheck(false);
-        localStorage.removeItem('skipAuthCheck');
+        setLastAuthCheck(Date.now());
+        startAuthCheckTimer();
         return { success: true };
       } else {
         return { success: false, error: response.error };
@@ -73,12 +91,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Clear auth check timer
+      if (authCheckTimer) {
+        clearInterval(authCheckTimer);
+        setAuthCheckTimer(null);
+      }
+      
       // Clear user state immediately for responsive UI
       setUser(null);
-      
-      // Set skipAuthCheck before clearing storage
-      setSkipAuthCheck(true);
-      localStorage.setItem('skipAuthCheck', 'true');
+      setLastAuthCheck(0);
       
       // Call logout and clear storage
       await authLogout();
@@ -92,15 +113,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    if (!skipAuthCheck) {
-      checkAuth();
-    } else {
-      setIsLoading(false);
-      // Clear the flag after using it
-      setSkipAuthCheck(false);
-      localStorage.removeItem('skipAuthCheck');
-    }
-  }, [skipAuthCheck]);
+    // Initial auth check
+    checkAuth(true);
+    
+    // Start periodic auth check if not already running
+    const timer = startAuthCheckTimer();
+    
+    // Cleanup on unmount
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, []); // Empty dependency array - only run on mount
 
   const value: AuthContextType = {
     user,
@@ -108,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     logout,
-    checkAuth
+    checkAuth: () => checkAuth(true) // Force check when manually called
   };
 
   return (
