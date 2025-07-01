@@ -1,3 +1,8 @@
+// Utility fetch wrapper that always sends cookies (credentials: 'include')
+export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
+  return fetch(input, { ...init, credentials: 'include' });
+}
+
 // Utility fetch wrapper for authenticated API requests that need CSRF tokens
 export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
   const method = init.method?.toUpperCase() || 'GET';
