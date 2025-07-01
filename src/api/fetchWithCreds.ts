@@ -14,9 +14,13 @@ export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
   // Start with the provided headers
   const headers = new Headers(init.headers);
   
-  // Add Origin header for CORS
-  if (!headers.has('Origin')) {
-    headers.set('Origin', window.location.origin);
+  // Add required headers for CORS and CSRF protection
+  headers.set('Origin', 'https://flo.com.co');
+  headers.set('Referer', 'https://flo.com.co/');
+  
+  // Add Content-Type if not set
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
   
   // Add CSRF token for methods that need it
