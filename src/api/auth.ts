@@ -1,5 +1,6 @@
 import API_BASE from '../apiBase';
 import { fetchWithCreds, fetchWithCSRF } from './fetchWithCreds';
+import { ensureCsrfCookie } from '../utils/csrf';
 
 export interface LoginResponse {
   success: boolean;
@@ -51,9 +52,8 @@ export async function getCSRFToken(): Promise<string> {
  */
 export async function login(username: string, password: string): Promise<LoginResponse> {
   try {
-    // Get CSRF token first
-    const csrfToken = await getCSRFToken();
-    localStorage.setItem('csrfToken', csrfToken);
+    // Ensure we have a CSRF token
+    await ensureCsrfCookie();
     
     // Make login request
     const response = await fetchWithCSRF(`${API_BASE}/api/auth/login/`, {
@@ -88,6 +88,9 @@ export async function login(username: string, password: string): Promise<LoginRe
  */
 export async function getCurrentUser(): Promise<CurrentUserResponse> {
   try {
+    // Ensure we have a CSRF token before checking auth
+    await ensureCsrfCookie();
+    
     const response = await fetchWithCreds(`${API_BASE}/api/auth/current-user/`);
     
     if (!response.ok) {
@@ -117,8 +120,8 @@ export async function logout(): Promise<void> {
     await fetchWithCSRF(`${API_BASE}/api/auth/logout/`, {
       method: 'POST'
     });
-  } finally {
-    localStorage.removeItem('csrfToken');
+  } catch (error) {
+    console.error('[Auth] Logout error:', error);
   }
 }
 
