@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 import API_BASE from '../../apiBase';
 import { useRefresh } from '../../contexts/RefreshContext';
 import MentionInput from '../ui/MentionInput';
@@ -109,12 +109,24 @@ const JournalForm: React.FC<JournalFormProps> = ({
     const apiUrl = initialEntry?.id
       ? `${API_BASE}/api/journal_entries/${initialEntry.id}/`
       : `${API_BASE}/api/journal_entries/`;
-    const apiMethod = isEditMode ? 'patch' : 'post';
 
     try {
-      const response = await axios({ method: apiMethod, url: apiUrl, data: payload });
+      const response = await fetchWithCSRF(apiUrl, {
+        method: isEditMode ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to ${isEditMode ? 'update' : 'create'} journal entry.`);
+      }
+      
+      const data = await response.json();
       setSubmitSuccess(true);
-      if (isEditMode && onJournalEntryUpdated) onJournalEntryUpdated(response.data);
+      if (isEditMode && onJournalEntryUpdated) onJournalEntryUpdated(data);
       else onJournalEntryCreated();
       refreshJournal();
       setTimeout(() => onClose(), 1500);
