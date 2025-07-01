@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
+
 import { fetchWithCSRF } from '../../api/fetchWithCreds';
 import API_BASE from '../../apiBase';
 

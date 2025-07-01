@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import EmailList, { EmailListRef } from '../components/EmailList';
-import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import API_BASE from '../apiBase';

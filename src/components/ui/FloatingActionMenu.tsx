@@ -6,7 +6,7 @@ import { fetchWithCSRF } from '../../api/fetchWithCreds';
 import API_BASE from '../../apiBase';
 import MentionInput from './MentionInput';
 import { useTaskRefresh } from '../../contexts/TaskRefreshContext';
-import { useRefresh } from '../../contexts/RefreshContext';
+
 
 // Define emotions and their corresponding emojis
 const emotionsMap: { [key: string]: string } = {
