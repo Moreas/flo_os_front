@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login as authLogin, getCurrentUser, logout as authLogout } from '../api/auth';
+import { login as authLogin, getCurrentUser, logout as authLogout, clearAllStorageAndCache } from '../api/auth';
 
 interface User {
   id: number;
@@ -73,8 +73,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      console.log('[AuthContext] Starting logout...');
-      
       // Clear user state immediately for responsive UI
       setUser(null);
       
@@ -82,21 +80,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSkipAuthCheck(true);
       localStorage.setItem('skipAuthCheck', 'true');
       
-      // Call enhanced logout function (clears all storage, cookies, cache)
-      // Pass true as parameter if you want to force page refresh after logout
-      await authLogout(false); // Change to 'true' if you want automatic page refresh on logout
-      
-      console.log('[AuthContext] Logout completed');
+      // Call logout and clear storage
+      await authLogout();
+      clearAllStorageAndCache();
       
     } catch (error) {
       console.error('[AuthContext] Logout failed:', error);
       // Even if logout fails, ensure user state is cleared
       setUser(null);
     }
-    
-    // Optional: Uncomment the next line if you want to force a page refresh after logout
-    // This ensures a completely clean state but will reload the page
-    // forcePageRefresh();
   };
 
   useEffect(() => {
