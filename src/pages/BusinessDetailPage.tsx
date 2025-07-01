@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import API_BASE from '../apiBase';
 import { 
   ArrowPathIcon, 
   ExclamationTriangleIcon, 
   ChevronUpIcon, 
   ChevronDownIcon,
-  PlusIcon
+  PlusIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  CalendarDaysIcon
 } from '@heroicons/react/24/outline';
+import { format, parseISO } from 'date-fns';
+import { apiClient } from '../api/apiConfig';
+import { Business } from '../types/business';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
 import { BusinessValuation } from '../components/BusinessValuation';
 
@@ -64,7 +68,7 @@ const BusinessDetailPage: React.FC = () => {
     const fetchBusiness = async () => {
       try {
         console.log('Fetching business with ID:', id);
-        const response = await axios.get(`${API_BASE}/api/businesses/${id}/`);
+        const response = await apiClient.get(`/api/businesses/${id}/`);
         console.log('API Response:', response.data);
         
         // Ensure arrays are initialized even if they're not in the response

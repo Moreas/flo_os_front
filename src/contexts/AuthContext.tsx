@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as authLogin, logout as authLogout, clearAllStorageAndCache } from '../api/auth';
+import { login as authLogin, logout as authLogout, getCurrentUser, clearAllStorageAndCache } from '../api/auth';
 
 interface User {
   id: number;
@@ -34,13 +34,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuth = useCallback(async (force = false) => {
     try {
       console.log('[AuthContext] Checking authentication...');
-      // For development, don't automatically authenticate
-      // User must explicitly log in
-      setUser(null);
-      console.log('[AuthContext] No user authenticated (development mode)');
+      
+      // Try to get current user from API
+      const response = await getCurrentUser();
+      
+      if (response.success && response.user) {
+        setUser(response.user);
+        console.log('[AuthContext] User authenticated:', response.user.username);
+      } else {
+        console.log('[AuthContext] No valid user found');
+        setUser(null);
+      }
     } catch (error) {
       console.error('[AuthContext] Auth check failed:', error);
-      setUser(null);
+      // Only clear user if it's an authentication error (401/403)
+      if (error instanceof Error && error.message.includes('Authentication failed')) {
+        setUser(null);
+      }
+      // For other errors (network, server), keep the user logged in
     } finally {
       setIsLoading(false);
     }
@@ -84,24 +95,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Initial auth check only - run once on mount
+    // Initial auth check on app load
     console.log('[AuthContext] Initial auth check');
-    const initialAuthCheck = async () => {
-      try {
-        console.log('[AuthContext] Checking authentication...');
-        // For development, don't automatically authenticate
-        // User must explicitly log in
-        setUser(null);
-        console.log('[AuthContext] No user authenticated (development mode)');
-      } catch (error) {
-        console.error('[AuthContext] Auth check failed:', error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    initialAuthCheck();
-  }, []); // Empty dependency array - only run once
+    checkAuth();
+  }, [checkAuth]);
 
   const value: AuthContextType = {
     user,

@@ -1,11 +1,9 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
-import MentionInput from '../ui/MentionInput';
-import API_BASE from '../../apiBase';
 import { useRefresh } from '../../contexts/RefreshContext';
+import { apiClient } from '../../api/apiConfig';
+import MentionInput from '../ui/MentionInput';
 import { Task } from '../../types/task';
 import { Category } from '../../types/category';
 import { Project } from '../../types/project';
@@ -71,10 +69,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
       setFetchError(null);
       try {
         const [catRes, projRes, bizRes, peopleRes] = await Promise.all([
-          axios.get(`${API_BASE}/api/categories/`),
-          axios.get(`${API_BASE}/api/projects/`),
-          axios.get(`${API_BASE}/api/businesses/`),
-          axios.get(`${API_BASE}/api/people/`),
+          apiClient.get('/api/categories/'),
+          apiClient.get('/api/projects/'),
+          apiClient.get('/api/businesses/'),
+          apiClient.get('/api/people/'),
         ]);
         setCategories(catRes.data || []);
         setProjects(projRes.data || []);
@@ -155,26 +153,15 @@ const TaskForm: React.FC<TaskFormProps> = ({
       impacted_ids: formData.impacted_ids,
     };
 
-    const apiUrl = initialTaskData?.id
-      ? `${API_BASE}/api/tasks/${initialTaskData.id}/`
-      : `${API_BASE}/api/tasks/`;
-    const apiMethod = isEditMode ? 'patch' : 'post';
-
     try {
-      const response = await fetchWithCSRF(apiUrl, {
-        method: apiMethod.toUpperCase(),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to ${isEditMode ? 'update' : 'create'} task (${response.status})`);
+      let response;
+      if (isEditMode && initialTaskData?.id) {
+        response = await apiClient.patch(`/api/tasks/${initialTaskData.id}/`, payload);
+      } else {
+        response = await apiClient.post('/api/tasks/', payload);
       }
       
-      const responseData = await response.json();
+      const responseData = response.data;
       setSubmitSuccess(true);
       if (isEditMode && onTaskUpdated) onTaskUpdated(responseData);
       else onTaskCreated();

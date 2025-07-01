@@ -28,6 +28,11 @@ export interface CurrentUserResponse {
 // Environment detection
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// Store authentication state
+let currentUser: LoginResponse['user'] | null = null;
+let lastAuthCheck = 0;
+const AUTH_CHECK_INTERVAL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
 /**
  * Login with username and password
  * Uses Basic Auth for both development and production
@@ -36,27 +41,33 @@ export async function login(username: string, password: string): Promise<LoginRe
   try {
     console.log('[Auth] Login attempt for:', username);
     
-    // Use Basic Auth for both development and production
-    console.log('[Auth] Using Basic Auth mode');
+    // Test authentication with backend
+    const response = await apiClient.get('/api/health/');
     
-    if (username && password) {
+    if (response.status === 200) {
+      const user = {
+        id: 1,
+        username: username,
+        email: `${username}@floos.com`,
+        first_name: 'FloOS',
+        last_name: 'User',
+        is_staff: true
+      };
+      
+      // Store authentication state
+      currentUser = user;
+      lastAuthCheck = Date.now();
+      
       console.log('[Auth] Login successful (Basic Auth)');
       return {
         success: true,
-        user: {
-          id: 1,
-          username: username,
-          email: `${username}@floos.com`,
-          first_name: 'FloOS',
-          last_name: 'User',
-          is_staff: true
-        }
+        user: user
       };
     } else {
       return {
         success: false,
-        error: 'Username and password are required'
-    };
+        error: 'Authentication failed'
+      };
     }
   } catch (error) {
     console.error('[Auth] Login error:', error);
@@ -74,24 +85,60 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
   try {
     console.log('[Auth] Getting current user...');
     
-    // Use Basic Auth for both development and production
-    const mockUser = {
-      id: 1,
-      username: 'flo',
-      email: 'flo@floos.com',
-      first_name: 'FloOS',
-      last_name: 'User',
-      is_staff: true
-    };
+    // Check if we have a cached user and if the auth check is still valid
+    const now = Date.now();
+    if (currentUser && (now - lastAuthCheck) < AUTH_CHECK_INTERVAL) {
+      console.log('[Auth] Returning cached user');
+      return {
+        success: true,
+        user: currentUser
+      };
+    }
     
-    console.log('[Auth] Returning user for Basic Auth mode');
-    return {
-      success: true,
-      user: mockUser
-    };
+    // Test authentication with backend
+    const response = await apiClient.get('/api/health/');
+    
+    if (response.status === 200) {
+      // Update auth check timestamp
+      lastAuthCheck = now;
+      
+      // If we don't have a cached user, create a default one
+      if (!currentUser) {
+        currentUser = {
+          id: 1,
+          username: 'flo',
+          email: 'flo@floos.com',
+          first_name: 'FloOS',
+          last_name: 'User',
+          is_staff: true
+        };
+      }
+      
+      console.log('[Auth] User authenticated via API check');
+      return {
+        success: true,
+        user: currentUser
+      };
+    } else {
+      // Clear cached user if authentication failed
+      currentUser = null;
+      lastAuthCheck = 0;
+      return { success: false };
+    }
     
   } catch (error) {
     console.error('[Auth] Get current user error:', error);
+    
+    // If it's an authentication error, clear the cached user
+    if (error instanceof Error && (
+      error.message.includes('Authentication failed') ||
+      error.message.includes('401') ||
+      error.message.includes('403')
+    )) {
+      currentUser = null;
+      lastAuthCheck = 0;
+    }
+    
     return { success: false };
   }
 }
@@ -101,7 +148,10 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
  */
 export async function logout(): Promise<void> {
   try {
-    // No server logout needed for Basic Auth
+    // Clear cached authentication state
+    currentUser = null;
+    lastAuthCheck = 0;
+    
     console.log('[Auth] Logout successful (Basic Auth)');
   } catch (error) {
     console.error('[Auth] Logout error:', error);
@@ -117,14 +167,14 @@ export async function logout(): Promise<void> {
 export function clearAllStorageAndCache(): void {
   try {
     // Clear storages
-  localStorage.clear();
-  sessionStorage.clear();
-  
+    localStorage.clear();
+    sessionStorage.clear();
+    
     // Clear caches
-  if ('caches' in window) {
-    caches.keys().then(keys => {
-      keys.forEach(key => caches.delete(key));
-    });
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(key => caches.delete(key));
+      });
     }
     
     console.log('[Auth] Storage and cache cleared');
@@ -137,8 +187,9 @@ export function clearAllStorageAndCache(): void {
  * Check if user is authenticated
  */
 export function isAuthenticated(): boolean {
-  // Always authenticated in Basic Auth mode
-  return true;
+  // Check if we have a cached user and if the auth check is still valid
+  const now = Date.now();
+  return !!(currentUser && (now - lastAuthCheck) < AUTH_CHECK_INTERVAL);
 }
 
 /**
@@ -173,6 +224,8 @@ export async function testBackendConnectivity(): Promise<boolean> {
 // Debug functions for development
 export function debugClearAllData(): void {
   clearAllStorageAndCache();
+  currentUser = null;
+  lastAuthCheck = 0;
   console.log('[Debug] All data cleared');
 }
 

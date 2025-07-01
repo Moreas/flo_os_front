@@ -5,12 +5,9 @@ import MoodTracker from '../components/ui/MoodTracker';
 import EnergyTracker from '../components/ui/EnergyTracker';
 import ProjectList from '../components/ProjectList';
 import { parseISO } from 'date-fns';
-import API_BASE from '../apiBase';
-import { useRefresh } from '../contexts/RefreshContext';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
+import { apiClient } from '../api/apiConfig';
 
 const Dashboard: React.FC = () => {
-  const { tasksVersion } = useRefresh();
   const currentTime = new Date();
   const hour = currentTime.getHours();
   let greeting = 'Good morning';
@@ -27,20 +24,16 @@ const Dashboard: React.FC = () => {
   const [activeProjects, setActiveProjects] = useState<number | null>(null);
   const [activeHabits, setActiveHabits] = useState<number | null>(null);
   const [unhandledEmails, setUnhandledEmails] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     console.log('[Dashboard] Fetching dashboard data...');
     
     // Fetch goals
-    fetchWithCSRF(`${API_BASE}/api/goals/`)
-      .then(async res => {
-        if (!res.ok) {
-          console.error(`Goals API error: ${res.status} ${res.statusText}`);
-          throw new Error(`Failed to fetch goals: ${res.status}`);
-        }
-        const goals = await res.json();
-        console.log('[Dashboard] Goals fetched:', goals.length);
-        const activeGoalsCount = goals.filter((g: any) => !g.is_completed).length;
+    apiClient.get('/api/goals/')
+      .then(res => {
+        console.log('[Dashboard] Goals fetched:', res.data.length);
+        const activeGoalsCount = res.data.filter((g: any) => !g.is_completed).length;
         setActiveGoals(activeGoalsCount);
       })
       .catch((error) => {
@@ -49,16 +42,11 @@ const Dashboard: React.FC = () => {
       });
     
     // Fetch tasks
-    fetchWithCSRF(`${API_BASE}/api/tasks/`)
-      .then(async res => {
-        if (!res.ok) {
-          console.error(`Tasks API error: ${res.status} ${res.statusText}`);
-          throw new Error(`Failed to fetch tasks: ${res.status}`);
-        }
-        const tasks = await res.json();
-        console.log('[Dashboard] Tasks fetched:', tasks.length);
+    apiClient.get('/api/tasks/')
+      .then(res => {
+        console.log('[Dashboard] Tasks fetched:', res.data.length);
         const now = new Date();
-        const todayCount = tasks.filter((t: any) => {
+        const todayCount = res.data.filter((t: any) => {
           if (!t.due_date || t.is_done) return false;
           try {
             const due = parseISO(t.due_date);
@@ -73,18 +61,16 @@ const Dashboard: React.FC = () => {
       .catch((error) => {
         console.error('Tasks API error:', error);
         setTasksDueToday(0);
+      })
+      .finally(() => {
+        setLoading(false);
       });
     
     // Fetch projects
-    fetchWithCSRF(`${API_BASE}/api/projects/`)
-      .then(async res => {
-        if (!res.ok) {
-          console.error(`Projects API error: ${res.status} ${res.statusText}`);
-          throw new Error(`Failed to fetch projects: ${res.status}`);
-        }
-        const projects = await res.json();
-        console.log('[Dashboard] Projects fetched:', projects.length);
-        const activeProjectsCount = projects.filter((p: any) => p.status === 'active').length;
+    apiClient.get('/api/projects/')
+      .then(res => {
+        console.log('[Dashboard] Projects fetched:', res.data.length);
+        const activeProjectsCount = res.data.filter((p: any) => p.status === 'active').length;
         setActiveProjects(activeProjectsCount);
       })
       .catch((error) => {
@@ -93,15 +79,10 @@ const Dashboard: React.FC = () => {
       });
     
     // Fetch habits
-    fetchWithCSRF(`${API_BASE}/api/habits/`)
-      .then(async res => {
-        if (!res.ok) {
-          console.error(`Habits API error: ${res.status} ${res.statusText}`);
-          throw new Error(`Failed to fetch habits: ${res.status}`);
-        }
-        const habits = await res.json();
-        console.log('[Dashboard] Habits fetched:', habits.length);
-        const activeHabitsCount = habits.filter((h: any) => h.is_active).length;
+    apiClient.get('/api/habits/')
+      .then(res => {
+        console.log('[Dashboard] Habits fetched:', res.data.length);
+        const activeHabitsCount = res.data.filter((h: any) => h.is_active).length;
         setActiveHabits(activeHabitsCount);
       })
       .catch((error) => {
@@ -110,22 +91,17 @@ const Dashboard: React.FC = () => {
       });
 
     // Fetch emails
-    fetchWithCSRF(`${API_BASE}/api/emails/`)
-      .then(async res => {
-        if (!res.ok) {
-          console.error(`Emails API error: ${res.status} ${res.statusText}`);
-          throw new Error(`Failed to fetch emails: ${res.status}`);
-        }
-        const emails = await res.json();
-        console.log('[Dashboard] Emails fetched:', emails.length);
-        const unhandledCount = emails.filter((e: any) => e.is_handled === false).length;
+    apiClient.get('/api/emails/')
+      .then(res => {
+        console.log('[Dashboard] Emails fetched:', res.data.length);
+        const unhandledCount = res.data.filter((e: any) => e.is_handled === false).length;
         setUnhandledEmails(unhandledCount);
       })
       .catch((error) => {
         console.error('Emails API error:', error);
         setUnhandledEmails(0);
       });
-  }, [tasksVersion]);
+  }, []);
 
   return (
     <div className="space-y-6">

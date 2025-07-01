@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
-import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon, PlusIcon, CheckCircleIcon, XCircleIcon, CalendarDaysIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import PersonForm from '../components/forms/PersonForm';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
-import axios from 'axios';
 
 interface Person {
   id: number;
@@ -59,7 +58,7 @@ const PersonDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get(`/people/${id}/`);
+      const response = await apiClient.get(`/api/people/${id}/`);
       setPerson(response.data);
     } catch (err) {
       console.error("Error fetching person:", err);
@@ -69,20 +68,33 @@ const PersonDetailPage: React.FC = () => {
     }
   }, [id]);
 
+  const fetchEmails = async () => {
+    try {
+      const response = await apiClient.get(`/api/emails/`, {
+        params: { person: id }
+      });
+      setEmails(response.data || []);
+    } catch (err) {
+      console.error('Error fetching emails:', err);
+    }
+  };
+
   useEffect(() => {
-    const fetchEmails = async () => {
-      if (!id) return;
+    const loadData = async () => {
+      setLoading(true);
       try {
-        const res = await apiClient.get(`/emails/?person=${id}`);
-        setEmails(res.data || []);
-        console.log('Person emails:', res.data);
+        await Promise.all([fetchPerson(), fetchEmails()]);
       } catch (err) {
-        console.error('Error fetching emails for person:', err);
+        console.error('Error loading data:', err);
+        setError('Failed to load data.');
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchPerson();
-    fetchEmails();
+    if (id) {
+      loadData();
+    }
   }, [id, fetchPerson]);
 
   const handlePersonUpdated = (updatedPerson: Person) => {
@@ -123,7 +135,7 @@ const PersonDetailPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to update email status:', err);
       const errorAny = err as any;
-      if (axios.isAxiosError(errorAny)) {
+      if (errorAny.response) {
         console.error('API Error details:', {
           status: errorAny.response?.status,
           data: errorAny.response?.data,
@@ -154,7 +166,7 @@ const PersonDetailPage: React.FC = () => {
   const handleTaskToggle = async (taskId: number, currentStatus: boolean) => {
     setUpdatingTaskId(taskId);
     try {
-      await apiClient.patch(`/tasks/${taskId}/`, { is_done: !currentStatus });
+      await apiClient.patch(`/api/tasks/${taskId}/`, { is_done: !currentStatus });
       // Refresh person data to get updated tasks
       await fetchPerson();
     } catch (err) {

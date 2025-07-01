@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import axios from 'axios';
 import { format, parseISO, startOfWeek, subDays, startOfMonth, eachDayOfInterval, startOfYear, eachWeekOfInterval, isSameDay, isSameWeek, getWeek } from 'date-fns';
-import API_BASE from '../apiBase';
+import { apiClient } from '../api/apiConfig';
 
 const TIME_RANGES = [
   { label: 'This week', value: 'this_week' },
@@ -23,7 +22,7 @@ const CompletedTasksChart: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get(`${API_BASE}/api/tasks/`, { params: { is_done: true } });
+        const res = await apiClient.get('/api/tasks/', { params: { is_done: true } });
         const results = Array.isArray(res.data) ? res.data : res.data.results || [];
         console.log('Fetched tasks for completed chart:', results);
         const completed = results.filter((task: any) => task.is_done === true);

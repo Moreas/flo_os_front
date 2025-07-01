@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
-import API_BASE from '../apiBase';
+import { Link } from 'react-router-dom';
 import { 
   ArrowPathIcon, 
   ExclamationTriangleIcon,
@@ -15,42 +14,13 @@ import {
   ChevronUpIcon,
   MagnifyingGlassIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import ProjectForm from './forms/ProjectForm';
-
-interface Project {
-  id: number;
-  name: string;
-  description: string;
-  status: 'active' | 'paused' | 'archived';
-  driver_type: 'goal' | 'requirement' | 'problem' | 'experiment';
-  business?: {
-    id: number;
-    name: string;
-  };
-  goal?: {
-    id: number;
-    title: string;
-  };
-  categories: Array<{
-    id: number;
-    name: string;
-  }>;
-  created_at: string;
-  tasks: Array<{
-    id: number;
-    description: string;
-    is_done: boolean;
-    due_date?: string;
-    created_at: string;
-  }>;
-  goals: Array<{
-    id: number;
-    title: string;
-    status: string;
-  }>;
-}
+import { format, parseISO } from 'date-fns';
+import { apiClient } from '../api/apiConfig';
+import { Project } from '../types/project';
 
 type SortField = 'name' | 'status' | 'created_at';
 type SortDirection = 'asc' | 'desc';
@@ -72,35 +42,23 @@ const ProjectList: React.FC = () => {
   const [driverTypeFilter, setDriverTypeFilter] = useState<DriverTypeFilter>('all');
 
   // Sorting
-  const [sortField, setSortField] = useState<SortField>('created_at');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [projectsRes, tasksRes, goalsRes] = await Promise.all([
-          fetchWithCSRF(`${API_BASE}/api/projects/${searchQuery ? `?search=${searchQuery}` : ''}`),
-          fetchWithCSRF(`${API_BASE}/api/tasks/`),
-          fetchWithCSRF(`${API_BASE}/api/goals/`)
-        ]);
-
-        // Check responses
-        if (!projectsRes.ok || !tasksRes.ok || !goalsRes.ok) {
-          throw new Error('One or more API calls failed');
-        }
-
-        // Parse JSON responses
-        const [projectsData, tasksData, goalsData] = await Promise.all([
-          projectsRes.json(),
-          tasksRes.json(),
-          goalsRes.json()
+          apiClient.get(`/api/projects/${searchQuery ? `?search=${searchQuery}` : ''}`),
+          apiClient.get('/api/tasks/'),
+          apiClient.get('/api/goals/')
         ]);
 
         // Combine projects with their tasks and goals
-        const projectsWithRelations = projectsData.map((project: Project) => ({
+        const projectsWithRelations = projectsRes.data.map((project: Project) => ({
           ...project,
-          tasks: tasksData.filter((task: any) => task.project?.id === project.id),
-          goals: goalsData.filter((goal: any) => goal.project?.id === project.id)
+          tasks: tasksRes.data.filter((task: any) => task.project?.id === project.id),
+          goals: goalsRes.data.filter((goal: any) => goal.project?.id === project.id)
         }));
 
         setProjects(projectsWithRelations);
@@ -214,24 +172,16 @@ const ProjectList: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = async (projectId: number) => {
+  const handleDeleteProject = async (projectId: number) => {
     if (!window.confirm('Are you sure you want to delete this project?')) return;
-          try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/projects/${projectId}/`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to delete project (${response.status})`);
-        }
-        
-        setProjects(projects.filter(p => p.id !== projectId));
-    } catch (err) {
-      alert('Failed to delete project.');
+    try {
+      await apiClient.delete(`/api/projects/${projectId}/`);
+      
+      // Remove project from local state
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
     }
   };
 
@@ -378,7 +328,7 @@ const ProjectList: React.FC = () => {
                   <PencilIcon className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={e => { e.stopPropagation(); handleDelete(project.id); }}
+                  onClick={e => { e.stopPropagation(); handleDeleteProject(project.id); }}
                   className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100"
                   title="Delete project"
                 >

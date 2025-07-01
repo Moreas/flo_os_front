@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, BriefcaseIcon, FolderIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
+import { 
+  MagnifyingGlassIcon, 
+  UserIcon, 
+  FolderIcon, 
+  BuildingOfficeIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  ArrowPathIcon
+} from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
-import API_BASE from '../apiBase';
+import { apiClient } from '../api/apiConfig';
 
 interface SearchResult {
   type: 'person' | 'project' | 'business' | 'task';
@@ -25,9 +32,8 @@ const SearchResultsPage: React.FC = () => {
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (!query) {
+      if (!query.trim()) {
         setResults([]);
-        setLoading(false);
         return;
       }
 
@@ -35,16 +41,13 @@ const SearchResultsPage: React.FC = () => {
       setError(null);
 
       try {
-        console.log('Searching for:', query); // Debug log
-
-        // Fetch each endpoint separately to better handle errors
         let peopleResults: any[] = [];
         let projectResults: any[] = [];
         let businessResults: any[] = [];
         let taskResults: any[] = [];
 
         try {
-          const peopleRes = await axios.get(`${API_BASE}/api/people/?search=${encodeURIComponent(query)}`);
+          const peopleRes = await apiClient.get(`/api/people/?search=${encodeURIComponent(query)}`);
           peopleResults = peopleRes.data;
           console.log('People results:', peopleResults); // Debug log
         } catch (err) {
@@ -52,7 +55,7 @@ const SearchResultsPage: React.FC = () => {
         }
 
         try {
-          const projectsRes = await axios.get(`${API_BASE}/api/projects/?search=${encodeURIComponent(query)}`);
+          const projectsRes = await apiClient.get(`/api/projects/?search=${encodeURIComponent(query)}`);
           projectResults = projectsRes.data;
           console.log('Project results:', projectResults); // Debug log
         } catch (err) {
@@ -60,7 +63,7 @@ const SearchResultsPage: React.FC = () => {
         }
 
         try {
-          const businessesRes = await axios.get(`${API_BASE}/api/businesses/?search=${encodeURIComponent(query)}`);
+          const businessesRes = await apiClient.get(`/api/businesses/?search=${encodeURIComponent(query)}`);
           businessResults = businessesRes.data;
           console.log('Business results:', businessResults); // Debug log
         } catch (err) {
@@ -68,7 +71,7 @@ const SearchResultsPage: React.FC = () => {
         }
 
         try {
-          const tasksRes = await axios.get(`${API_BASE}/api/tasks/?search=${encodeURIComponent(query)}`);
+          const tasksRes = await apiClient.get(`/api/tasks/?search=${encodeURIComponent(query)}`);
           taskResults = tasksRes.data;
           console.log('Task results:', taskResults); // Debug log
         } catch (err) {
@@ -136,13 +139,13 @@ const SearchResultsPage: React.FC = () => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'person':
-        return <UserCircleIcon className="w-5 h-5 text-primary-600" />;
+        return <UserIcon className="w-5 h-5 text-primary-600" />;
       case 'project':
         return <FolderIcon className="w-5 h-5 text-primary-600" />;
       case 'business':
-        return <BriefcaseIcon className="w-5 h-5 text-primary-600" />;
+        return <BuildingOfficeIcon className="w-5 h-5 text-primary-600" />;
       case 'task':
-        return <ClipboardDocumentListIcon className="w-5 h-5 text-primary-600" />;
+        return <CheckCircleIcon className="w-5 h-5 text-primary-600" />;
       default:
         return null;
     }

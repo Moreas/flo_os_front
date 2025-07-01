@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, Fragment, useCallback, useRef } from 'react';
-import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { 
   ChevronDownIcon, 
@@ -19,12 +18,11 @@ import {
 } from '@heroicons/react/24/outline';
 import { format, parseISO, isPast, isToday as dateFnsIsToday } from 'date-fns';
 import TaskForm from './forms/TaskForm';
-import API_BASE from '../apiBase';
+import { apiClient } from '../api/apiConfig';
 import { Task } from '../types/task';
 import { Category } from '../types/category';
 import { Project } from '../types/project';
 import { Business } from '../types/business';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
 
 // Fallback Data
 const fallbackTasks: Task[] = [
@@ -162,10 +160,10 @@ const TaskList: React.FC = () => {
       setError(null);
       try {
         const [tasksRes, categoriesRes, projectsRes, businessesRes] = await Promise.all([
-          axios.get(`${API_BASE}/api/tasks/`).catch(() => ({ data: fallbackTasks })),
-          axios.get(`${API_BASE}/api/categories/`).catch(() => ({ data: fallbackCategories })),
-          axios.get(`${API_BASE}/api/projects/`).catch(() => ({ data: fallbackProjects })),
-          axios.get(`${API_BASE}/api/businesses/`).catch(() => ({ data: [] }))
+          apiClient.get('/api/tasks/').catch(() => ({ data: fallbackTasks })),
+          apiClient.get('/api/categories/').catch(() => ({ data: fallbackCategories })),
+          apiClient.get('/api/projects/').catch(() => ({ data: fallbackProjects })),
+          apiClient.get('/api/businesses/').catch(() => ({ data: [] }))
         ]);
         setTasks(tasksRes.data);
         setCategories(categoriesRes.data);
@@ -211,18 +209,9 @@ const TaskList: React.FC = () => {
     
     try {
       // Actual API call to update the task status
-      const response = await fetchWithCSRF(`${API_BASE}/api/tasks/${taskId}/`, {
-          method: 'PATCH',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ is_done: newIsDoneStatus })
+      const response = await apiClient.patch(`/api/tasks/${taskId}/`, {
+        is_done: newIsDoneStatus
       });
-      
-      if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to update task status (${response.status})`);
-      }
       
       // Success! Keep the optimistic update.
       console.log(`Task ${taskId} status updated successfully.`);
@@ -261,17 +250,7 @@ const TaskList: React.FC = () => {
     setDeleteError(null);
 
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/tasks/${taskToDeleteId}/`, {
-          method: 'DELETE',
-          headers: {
-              'Content-Type': 'application/json',
-          }
-      });
-      
-      if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to delete task (${response.status})`);
-      }
+      await apiClient.delete(`/api/tasks/${taskToDeleteId}/`);
       
       // Remove task from local state on success
       setTasks(currentTasks => currentTasks.filter(task => task.id !== taskToDeleteId));
@@ -493,29 +472,18 @@ const TaskList: React.FC = () => {
         // API call
         // Send the correct format required by the backend (YYYY-MM-DD or null)
         const payloadDueDate = newDateValue ? newDateValue : null; 
-        const response = await fetchWithCSRF(`${API_BASE}/api/tasks/${taskId}/`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ due_date: payloadDueDate })
+        await apiClient.patch(`/api/tasks/${taskId}/`, {
+          due_date: payloadDueDate
         });
         
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to update due date (${response.status})`);
-        }
-        
-        // Success! Keep optimistic update
-
+        console.log(`Task ${taskId} due date updated successfully.`);
     } catch (error: any) {
-        console.error("Failed to update task due date:", error);
+        console.error("Failed to update due date:", error);
         // Revert UI on error
         setTasks(originalTasks);
+        alert(`Error updating due date: ${error.message || 'Failed to update due date.'}`);
     } finally {
         setIsUpdatingDate(false);
-        // Ensure edit mode is exited even on error, if desired
-        // setEditingDateTaskId(null); 
     }
   };
 

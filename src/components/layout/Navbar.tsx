@@ -10,15 +10,15 @@ import {
   FolderIcon,
   BellIcon,
   Bars3Icon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import TaskForm from '../forms/TaskForm';
 import JournalForm from '../forms/JournalForm';
 import GoalForm from '../forms/GoalForm';
 import ProjectForm from '../forms/ProjectForm';
 import { useAuth } from '../../contexts/AuthContext';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 
 interface MenuItemProps {
   active: boolean;
@@ -60,9 +60,9 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
 
   // Notifications state
   const [notifications, setNotifications] = useState<NotificationGroup[]>([]);
-  const [notifLoading, setNotifLoading] = useState(true);
+  const [notifCount, setNotifCount] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
-  const [notifTotalCount, setNotifTotalCount] = useState<number>(0);
 
   const fetchNotifications = async () => {
     setNotifLoading(true);
@@ -70,26 +70,26 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
     
     try {
       // Fetch all unhandled emails
-      const emailsResponse = await fetchWithCSRF(`${API_BASE}/api/emails/?is_handled=false`);
-      if (!emailsResponse.ok) throw new Error(`Failed to fetch emails: ${emailsResponse.status}`);
-      const emailsResponseData = await emailsResponse.json();
+      const emailsResponse = await apiClient.get('/api/emails/', {
+        params: { is_handled: false }
+      });
       
       // Filter for internal handling only (frontend)
-      const emailsRaw = Array.isArray(emailsResponseData) ? emailsResponseData : emailsResponseData.results || emailsResponseData.emails || [];
+      const emailsRaw = Array.isArray(emailsResponse.data) ? emailsResponse.data : emailsResponse.data.results || emailsResponse.data.emails || [];
       const emails = emailsRaw.filter((email: any) => email.needs_internal_handling === true && email.waiting_external_handling === false);
       
       // Fetch tasks due today or before
       const today = new Date().toISOString().split('T')[0];
-      const tasksResponse = await fetchWithCSRF(`${API_BASE}/api/tasks/?due_date_before=${today}`);
-      if (!tasksResponse.ok) throw new Error(`Failed to fetch tasks: ${tasksResponse.status}`);
-      const tasksResponseData = await tasksResponse.json();
+      const tasksResponse = await apiClient.get('/api/tasks/', {
+        params: { due_date_before: today }
+      });
       
-      console.log('Emails response:', emailsResponseData);
-      console.log('Tasks response:', tasksResponseData);
+      console.log('Emails response:', emailsResponse.data);
+      console.log('Tasks response:', tasksResponse.data);
       
       // Process tasks
-      const tasks = Array.isArray(tasksResponseData) ? tasksResponseData : 
-                   tasksResponseData.results || tasksResponseData.tasks || [];
+      const tasks = Array.isArray(tasksResponse.data) ? tasksResponse.data : 
+                   tasksResponse.data.results || tasksResponse.data.tasks || [];
       
       // Filter tasks to only include those due today or before
       const filteredTasks = tasks.filter((task: any) => {
@@ -142,13 +142,13 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
       console.log('Total count:', totalCount);
       
       setNotifications(notificationGroups);
-      setNotifTotalCount(totalCount);
+      setNotifCount(totalCount);
       
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setNotifError('Failed to load notifications.');
       setNotifications([]);
-      setNotifTotalCount(0);
+      setNotifCount(0);
     } finally {
       setNotifLoading(false);
     }
@@ -266,16 +266,16 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
               <>
                 <Popover.Button
                   className={`relative p-1.5 rounded-full ${open ? 'bg-gray-100' : ''} text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500`}
-                  title={`View notifications (${notifTotalCount})`}
-                  aria-label={`View notifications (${notifTotalCount})`}
+                  title={`View notifications (${notifCount})`}
+                  aria-label={`View notifications (${notifCount})`}
                   aria-expanded={open}
                 >
                   <span className="sr-only">View notifications</span>
                   <BellIcon className="h-6 w-6" aria-hidden="true" />
                   {/* Badge */}
-                  {notifTotalCount > 0 && (
-                    <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full ring-2 ring-white" aria-label={`${notifTotalCount} unread notifications`}>
-                      {notifTotalCount}
+                  {notifCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full ring-2 ring-white" aria-label={`${notifCount} unread notifications`}>
+                      {notifCount}
                     </span>
                   )}
                 </Popover.Button>
