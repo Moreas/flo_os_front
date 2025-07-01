@@ -1,4 +1,4 @@
-import { fetchWithCreds } from '../api/fetchWithCreds';
+import API_BASE from '../apiBase';
 
 export function getCookie(name: string): string | null {
   let cookieValue = null;
@@ -20,6 +20,8 @@ export function getCSRFToken(): string | null {
 }
 
 let csrfPromise: Promise<string> | null = null;
+let retryCount = 0;
+const MAX_RETRIES = 3;
 
 export async function ensureCsrfCookie(): Promise<string> {
   // Return existing promise if we're already fetching
@@ -35,25 +37,45 @@ export async function ensureCsrfCookie(): Promise<string> {
         return existingToken;
       }
 
-      // If no token, fetch a new one
-      const res = await fetchWithCreds('/api/csrf/', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (!res.ok) {
-        throw new Error(`Failed to get CSRF token: ${res.status}`);
+      // If no token, fetch a new one with retries
+      while (retryCount < MAX_RETRIES) {
+        try {
+          const res = await fetch(`${API_BASE}/api/csrf/`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+            }
+          });
+          
+          if (!res.ok) {
+            throw new Error(`Failed to get CSRF token: ${res.status}`);
+          }
+          
+          // Wait a bit for the cookie to be set
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const token = getCSRFToken();
+          if (!token) {
+            throw new Error('CSRF token not found in cookies after fetch');
+          }
+          
+          // Reset retry count on success
+          retryCount = 0;
+          return token;
+          
+        } catch (error) {
+          retryCount++;
+          if (retryCount >= MAX_RETRIES) {
+            throw error;
+          }
+          // Wait before retrying, with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100));
+        }
       }
       
-      // Wait a bit for the cookie to be set
-      await new Promise(resolve => setTimeout(resolve, 50));
+      throw new Error('Failed to get CSRF token after max retries');
       
-      const token = getCSRFToken();
-      if (!token) {
-        throw new Error('CSRF token not found in cookies after fetch');
-      }
-      
-      return token;
     } catch (error) {
       console.error('[CSRF] Error ensuring CSRF token:', error);
       throw error;
