@@ -253,63 +253,175 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
 }
 
 /**
- * Logout the current user
+ * Clear all browser storage and cached data
  */
-export async function logout(): Promise<void> {
+export function clearAllStorageAndCache(): void {
+  console.log('[Auth] Starting comprehensive storage and cache cleanup...');
+  
+  // 1. Clear localStorage completely
   try {
-    console.log('[Auth] Logging out');
+    const localStorageKeys = Object.keys(localStorage);
+    console.log('[Auth] Clearing localStorage keys:', localStorageKeys);
+    localStorage.clear();
+    console.log('[Auth] localStorage cleared');
+  } catch (e) {
+    console.warn('[Auth] Failed to clear localStorage:', e);
+  }
+  
+  // 2. Clear sessionStorage completely
+  try {
+    const sessionStorageKeys = Object.keys(sessionStorage);
+    console.log('[Auth] Clearing sessionStorage keys:', sessionStorageKeys);
+    sessionStorage.clear();
+    console.log('[Auth] sessionStorage cleared');
+  } catch (e) {
+    console.warn('[Auth] Failed to clear sessionStorage:', e);
+  }
+  
+  // 3. Clear all cookies more thoroughly
+  try {
+    console.log('[Auth] Current cookies before cleanup:', document.cookie);
     
-    // Logout is CSRF-exempt, so no CSRF token needed
-    const response = await fetchWithCreds(`${API_BASE}/api/auth/logout/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin,
+    // Get all cookies
+    const cookies = document.cookie.split(';');
+    const backendDomain = new URL(API_BASE).hostname;
+    const currentDomain = window.location.hostname;
+    
+    // Clear cookies for multiple domain/path combinations
+    cookies.forEach(cookie => {
+      const eqPos = cookie.indexOf('=');
+      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+      if (name) {
+        // Clear for current domain
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${currentDomain};`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${currentDomain};`;
+        
+        // Clear for backend domain if different
+        if (backendDomain !== currentDomain) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${backendDomain};`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${backendDomain};`;
+        }
       }
     });
     
-    console.log('[Auth] Logout response status:', response.status);
-    console.log('[Auth] Logout response headers:', Array.from(response.headers.entries()));
+    console.log('[Auth] Cookies after cleanup:', document.cookie);
+  } catch (e) {
+    console.warn('[Auth] Failed to clear cookies:', e);
+  }
+  
+  // 4. Clear browser cache where possible (limited by browser security)
+  try {
+    if ('caches' in window) {
+      caches.keys().then(cacheNames => {
+        console.log('[Auth] Found caches:', cacheNames);
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            console.log('[Auth] Deleting cache:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      }).then(() => {
+        console.log('[Auth] All caches cleared');
+      }).catch(e => {
+        console.warn('[Auth] Failed to clear some caches:', e);
+      });
+    }
+  } catch (e) {
+    console.warn('[Auth] Failed to access cache API:', e);
+  }
+  
+  console.log('[Auth] Storage and cache cleanup completed');
+}
+
+/**
+ * Logout the current user with comprehensive cleanup
+ * @param forceRefresh - If true, forces a page refresh after logout for completely clean state
+ */
+export async function logout(forceRefresh: boolean = false): Promise<void> {
+  try {
+    console.log('[Auth] Starting logout process...');
     
-    if (!response.ok) {
-      console.warn('[Auth] Logout request failed:', response.status);
-      const errorData = await response.text().catch(() => 'No error details');
-      console.warn('[Auth] Logout error details:', errorData);
-    } else {
-      console.log('[Auth] Logout request successful');
+    // Step 1: Call backend logout endpoint
+    try {
+      console.log('[Auth] Calling backend logout...');
+      const response = await fetchWithCreds(`${API_BASE}/api/auth/logout/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': window.location.origin,
+        }
+      });
+      
+      console.log('[Auth] Logout response status:', response.status);
+      
+      if (!response.ok) {
+        console.warn('[Auth] Backend logout failed:', response.status);
+        const errorData = await response.text().catch(() => 'No error details');
+        console.warn('[Auth] Logout error details:', errorData);
+      } else {
+        console.log('[Auth] Backend logout successful');
+      }
+    } catch (backendError) {
+      console.error('[Auth] Backend logout request failed:', backendError);
+      // Continue with cleanup even if backend call fails
     }
     
-    // Clear stored CSRF token
-    localStorage.removeItem('csrfToken');
-    console.log('[Auth] Cleared stored CSRF token from localStorage');
+    // Step 2: Clear all storage and cache
+    clearAllStorageAndCache();
     
-    // Clear all cookies for the backend domain
-    console.log('[Auth] Clearing cookies...');
-    const backendDomain = new URL(API_BASE).hostname;
-    
-    // Clear sessionid cookie
-    document.cookie = `sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${backendDomain};`;
-    document.cookie = `sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    
-    // Clear csrftoken cookie
-    document.cookie = `csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${backendDomain};`;
-    document.cookie = `csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    
-    console.log('[Auth] Cookies cleared. Current cookies:', document.cookie);
     console.log('[Auth] Logout completed successfully');
+    
+    // Force page refresh if requested
+    if (forceRefresh) {
+      forcePageRefresh();
+    }
     
   } catch (error) {
     console.error('[Auth] Logout error:', error);
     
-    // Even if logout fails, clear stored token and cookies
-    console.log('[Auth] Logout failed, but clearing stored data anyway...');
-    localStorage.removeItem('csrfToken');
+    // Even if everything fails, attempt cleanup
+    console.log('[Auth] Logout failed, attempting emergency cleanup...');
+    clearAllStorageAndCache();
     
-    const backendDomain = new URL(API_BASE).hostname;
-    document.cookie = `sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${backendDomain};`;
-    document.cookie = `sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    document.cookie = `csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${backendDomain};`;
-    document.cookie = `csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    console.log('[Auth] Logout completed (with errors)');
+    console.log('[Auth] Emergency cleanup completed');
+    
+    // Force refresh even on error if requested
+    if (forceRefresh) {
+      forcePageRefresh();
+    }
   }
+}
+
+/**
+ * Force refresh page after logout (call this after logout if needed)
+ */
+export function forcePageRefresh(): void {
+  console.log('[Auth] Forcing page refresh to ensure clean state...');
+  // Small delay to ensure logout operations complete
+  setTimeout(() => {
+    window.location.reload();
+  }, 100);
+}
+
+/**
+ * Developer utility: Manual cache and storage clearing
+ * Call this from browser console if you need to manually clear everything:
+ * window.clearAuthCache()
+ */
+export function debugClearAllData(): void {
+  console.log('[Debug] Manual cache and storage clearing initiated...');
+  clearAllStorageAndCache();
+  console.log('[Debug] Manual cleanup completed. You may want to refresh the page.');
+}
+
+// Make it available on window object for debugging
+declare global {
+  interface Window {
+    clearAuthCache: () => void;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.clearAuthCache = debugClearAllData;
 } 
