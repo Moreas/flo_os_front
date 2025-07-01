@@ -1,4 +1,4 @@
-import { ensureCsrfCookie } from '../utils/csrf';
+import { ensureCsrfCookie, getCSRFToken } from '../utils/csrf';
 
 // Basic fetch wrapper that includes credentials
 export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
@@ -8,6 +8,7 @@ export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
     headers: {
       ...init.headers,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     }
   });
 }
@@ -23,7 +24,12 @@ export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) 
   }
 
   // For operations that need CSRF, ensure we have a token
-  const token = await ensureCsrfCookie();
+  await ensureCsrfCookie();
+  const token = getCSRFToken();
+  
+  if (!token) {
+    throw new Error('No CSRF token available after ensuring cookie');
+  }
 
   const response = await fetch(input, {
     ...init,
@@ -31,6 +37,7 @@ export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) 
     headers: {
       ...init.headers,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'X-CSRFToken': token
     }
   });
@@ -40,7 +47,12 @@ export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) 
     const responseText = await response.text();
     if (responseText.includes('CSRF')) {
       // Force a new token fetch
-      const newToken = await ensureCsrfCookie();
+      await ensureCsrfCookie();
+      const newToken = getCSRFToken();
+      
+      if (!newToken) {
+        throw new Error('No CSRF token available after refresh');
+      }
       
       // Retry the request with the new token
       return fetch(input, {
@@ -49,6 +61,7 @@ export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) 
         headers: {
           ...init.headers,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'X-CSRFToken': newToken
         }
       });
