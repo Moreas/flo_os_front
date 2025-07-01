@@ -4,7 +4,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import API_BASE from '../apiBase';
 import { fetchWithCSRF } from '../api/fetchWithCreds';
-import apiClient from '../api/apiClient';
+import { apiClient } from '../api/apiConfig';
 
 const EmailsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
