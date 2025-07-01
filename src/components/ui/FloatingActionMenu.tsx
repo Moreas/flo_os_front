@@ -103,10 +103,7 @@ const FloatingActionMenu: React.FC = () => {
           text: quickTaskInput,
           responsible_ids: selectedTaskPersonIds,
           impacted_ids: selectedTaskPersonIds
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        })
       });
       
       if (!response.ok) {
@@ -162,10 +159,7 @@ const FloatingActionMenu: React.FC = () => {
                   content: quickJournalInput, 
                   emotion: quickJournalEmotion || null,
                   related_people_ids: selectedJournalPersonIds
-              }),
-              headers: {
-                  'Content-Type': 'application/json'
-              }
+              })
           });
           
           if (!response.ok) {
@@ -177,7 +171,6 @@ const FloatingActionMenu: React.FC = () => {
           setQuickJournalInput('');
           setQuickJournalEmotion('');
           setSelectedJournalPersonIds([]);
-          // refreshJournal(); // TODO: Add journal refresh context if needed
           setTimeout(() => { closeJournalModal(); }, 1000);
       } catch (err: any) {
           const errorMsg = err.message || 'Failed to create journal entry.';
@@ -223,10 +216,7 @@ const FloatingActionMenu: React.FC = () => {
         body: JSON.stringify({ 
           level: selectedMoodLevel,
           comment: moodComment.trim() || null 
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        })
       });
       
       if (!response.ok) {
@@ -237,7 +227,6 @@ const FloatingActionMenu: React.FC = () => {
       setSubmitMoodSuccess(true);
       setMoodComment('');
       setSelectedMoodLevel(null); 
-      // refreshMoods(); // Placeholder for a potential context refresh
       setTimeout(() => { closeMoodModal(); }, 1000);
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to track mood.';
@@ -276,29 +265,27 @@ const FloatingActionMenu: React.FC = () => {
     setIsSubmittingEnergy(true);
     setSubmitEnergyError(null);
     setSubmitEnergySuccess(false);
+    
     try {
       const response = await fetchWithCSRF(`${API_BASE}/api/energy/`, { 
         method: 'POST',
         body: JSON.stringify({ 
           level: selectedEnergyLevel,
           comment: energyComment.trim() || null 
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        })
       });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to track energy level (${response.status})`);
+        throw new Error(errorData.detail || `Failed to track energy (${response.status})`);
       }
       
       setSubmitEnergySuccess(true);
       setEnergyComment('');
-      setSelectedEnergyLevel(null);
+      setSelectedEnergyLevel(null); 
       setTimeout(() => { closeEnergyModal(); }, 1000);
     } catch (err: any) {
-      const errorMsg = err.message || 'Failed to track energy level.';
+      const errorMsg = err.message || 'Failed to track energy.';
       setSubmitEnergyError(errorMsg);
     } finally {
       setIsSubmittingEnergy(false);

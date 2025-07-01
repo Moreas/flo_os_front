@@ -1,12 +1,4 @@
-// Utility fetch wrapper that always sends cookies (credentials: 'include')
-export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
-  return fetch(input, { ...init, credentials: 'include' });
-}
-
-/**
- * Utility fetch wrapper for authenticated API requests that need CSRF tokens
- * Automatically includes the stored fresh CSRF token for POST/PUT/DELETE requests
- */
+// Utility fetch wrapper for authenticated API requests that need CSRF tokens
 export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
   const method = init.method?.toUpperCase() || 'GET';
   const needsCSRF = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
@@ -15,8 +7,9 @@ export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   
   // Add required headers for CORS and CSRF protection
-  headers.set('Origin', 'https://flo.com.co');
-  headers.set('Referer', 'https://flo.com.co/');
+  // Use window.location.origin instead of hardcoded value
+  headers.set('Origin', window.location.origin);
+  headers.set('Referer', window.location.href);
   
   // Add Content-Type if not set
   if (!headers.has('Content-Type')) {
@@ -31,12 +24,25 @@ export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
       console.log(`[API] Added CSRF token to ${method} request:`, '***' + csrfToken.slice(-4));
     } else {
       console.warn(`[API] No CSRF token available for ${method} request. Login may be required.`);
+      // Consider throwing an error or handling this case more explicitly
+      throw new Error('No CSRF token available. Please log in again.');
     }
   }
+  
+  // Log the actual headers being sent for debugging
+  console.log(`[API] Request headers for ${method} ${input}:`, Object.fromEntries(headers.entries()));
   
   return fetch(input, {
     ...init,
     credentials: 'include',
     headers
+  }).then(response => {
+    if (response.status === 403) {
+      // Log more details about the 403 error
+      console.error(`[API] CSRF validation failed for ${method} ${input}`);
+      console.error('[API] Response headers:', Object.fromEntries(response.headers.entries()));
+      // You might want to refresh the CSRF token here
+    }
+    return response;
   });
-} 
+}
