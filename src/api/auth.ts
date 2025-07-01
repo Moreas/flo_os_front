@@ -1,4 +1,4 @@
-import { apiClient, AUTH_CONFIG } from './apiConfig';
+import { apiClient } from './apiConfig';
 
 export interface LoginResponse {
   success: boolean;
