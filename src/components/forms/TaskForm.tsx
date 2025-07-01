@@ -161,33 +161,33 @@ const TaskForm: React.FC<TaskFormProps> = ({
     const apiMethod = isEditMode ? 'patch' : 'post';
 
     try {
-      const response = await fetchWithCSRF({ method: apiMethod, url: apiUrl, data: payload });
+      const response = await fetchWithCSRF(apiUrl, {
+        method: apiMethod.toUpperCase(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to ${isEditMode ? 'update' : 'create'} task (${response.status})`);
+      }
+      
+      const responseData = await response.json();
       setSubmitSuccess(true);
-      if (isEditMode && onTaskUpdated) onTaskUpdated(response.data);
+      if (isEditMode && onTaskUpdated) onTaskUpdated(responseData);
       else onTaskCreated();
       refreshTasks();
       setTimeout(() => onClose(), 1500);
     } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data;
-        let messages: string[] = [];
-        if (data.field_errors) {
-          for (const [field, errs] of Object.entries(data.field_errors)) {
-            messages.push(`${field}: ${(errs as string[]).join(', ')}`);
-          }
-        } else if (data.details) {
-          for (const [field, errs] of Object.entries(data.details)) {
-            messages.push(`${field}: ${(errs as string[]).join(', ')}`);
-          }
-        } else if (data.message) {
-          messages.push(data.message);
-        } else {
-          messages.push('Unknown error occurred.');
-        }
-        setSubmitError(messages.join('\n'));
-      } else {
-        setSubmitError(`Failed to ${isEditMode ? 'update' : 'create'} task. Please try again.`);
+      let errorMessage = `Failed to ${isEditMode ? 'update' : 'create'} task. Please try again.`;
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
       }
+      
+      setSubmitError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
