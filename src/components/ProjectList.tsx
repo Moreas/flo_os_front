@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { fetchWithCSRF } from '../api/fetchWithCreds';
 import API_BASE from '../apiBase';
 import { 
@@ -80,18 +79,28 @@ const ProjectList: React.FC = () => {
     const fetchData = async () => {
       try {
         const [projectsRes, tasksRes, goalsRes] = await Promise.all([
-          axios.get(`${API_BASE}/api/projects/`, { 
-            params: { search: searchQuery }
-          }),
-          axios.get(`${API_BASE}/api/tasks/`),
-          axios.get(`${API_BASE}/api/goals/`)
+          fetchWithCSRF(`${API_BASE}/api/projects/${searchQuery ? `?search=${searchQuery}` : ''}`),
+          fetchWithCSRF(`${API_BASE}/api/tasks/`),
+          fetchWithCSRF(`${API_BASE}/api/goals/`)
+        ]);
+
+        // Check responses
+        if (!projectsRes.ok || !tasksRes.ok || !goalsRes.ok) {
+          throw new Error('One or more API calls failed');
+        }
+
+        // Parse JSON responses
+        const [projectsData, tasksData, goalsData] = await Promise.all([
+          projectsRes.json(),
+          tasksRes.json(),
+          goalsRes.json()
         ]);
 
         // Combine projects with their tasks and goals
-        const projectsWithRelations = projectsRes.data.map((project: Project) => ({
+        const projectsWithRelations = projectsData.map((project: Project) => ({
           ...project,
-          tasks: tasksRes.data.filter((task: any) => task.project?.id === project.id),
-          goals: goalsRes.data.filter((goal: any) => goal.project?.id === project.id)
+          tasks: tasksData.filter((task: any) => task.project?.id === project.id),
+          goals: goalsData.filter((goal: any) => goal.project?.id === project.id)
         }));
 
         setProjects(projectsWithRelations);

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps } from 'recharts';
-import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import { ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import API_BASE from '../../apiBase';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 
 // Interface for energy data from the API
 interface EnergyEntry {
@@ -54,9 +54,11 @@ const EnergyTracker: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get<EnergyEntry[]>(`${API_BASE}/api/energy/`);
+        const response = await fetchWithCSRF(`${API_BASE}/api/energy/`);
+        if (!response.ok) throw new Error(`Failed to fetch energy data: ${response.status}`);
+        const data: EnergyEntry[] = await response.json();
         
-        const mappedData: (ChartData | null)[] = response.data.map(entry => {
+        const mappedData: (ChartData | null)[] = data.map(entry => {
             if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
               console.warn('Skipping energy entry due to missing or invalid created_at:', entry);
               return null; 

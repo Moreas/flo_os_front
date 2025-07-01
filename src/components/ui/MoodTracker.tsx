@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps } from 'recharts';
-import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import { ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'; // For loading/error
 import API_BASE from '../../apiBase';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 
 // Interface for mood data from the API
 interface MoodEntry {
@@ -51,9 +51,11 @@ const MoodTracker: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get<MoodEntry[]>(`${API_BASE}/api/moods/`);
+        const response = await fetchWithCSRF(`${API_BASE}/api/moods/`);
+        if (!response.ok) throw new Error(`Failed to fetch mood data: ${response.status}`);
+        const data: MoodEntry[] = await response.json();
         
-        const mappedData: (ChartData | null)[] = response.data.map(entry => {
+        const mappedData: (ChartData | null)[] = data.map(entry => {
             if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
               console.warn('Skipping mood entry due to missing or invalid created_at:', entry);
               return null; 
