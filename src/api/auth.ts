@@ -56,7 +56,7 @@ export async function login(username: string, password: string): Promise<LoginRe
       return {
         success: false,
         error: 'Username and password are required'
-      };
+    };
     }
   } catch (error) {
     console.error('[Auth] Login error:', error);
@@ -117,14 +117,14 @@ export async function logout(): Promise<void> {
 export function clearAllStorageAndCache(): void {
   try {
     // Clear storages
-    localStorage.clear();
-    sessionStorage.clear();
-    
+  localStorage.clear();
+  sessionStorage.clear();
+  
     // Clear caches
-    if ('caches' in window) {
-      caches.keys().then(keys => {
-        keys.forEach(key => caches.delete(key));
-      });
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key));
+    });
     }
     
     console.log('[Auth] Storage and cache cleared');

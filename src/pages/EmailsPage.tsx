@@ -44,7 +44,8 @@ const EmailsPage: React.FC = () => {
         setError(responseData.message || 'Failed to retrieve emails.');
       }
     } catch (err: any) {
-      setError('Error retrieving emails.');
+      const errorMsg = err?.message || 'Unknown error';
+      setError(`Error retrieving emails: ${errorMsg}`);
       console.error('Error retrieving emails:', err);
     } finally {
       setLoading(false);
