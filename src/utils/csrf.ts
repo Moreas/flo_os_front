@@ -12,17 +12,32 @@ export function getCookie(name: string): string | null {
       }
     }
   }
-  console.log(`[CSRF] getCookie('${name}') =`, cookieValue);
   return cookieValue;
 }
 
+export function getCSRFToken(): string | null {
+  return getCookie('csrftoken');
+}
+
 export async function ensureCsrfCookie() {
-  console.log('[CSRF] Calling ensureCsrfCookie: GET /api/csrf/');
-  const res = await fetchWithCreds('/api/csrf/', {
-    method: 'GET',
-    credentials: 'include'
-  });
-  console.log('[CSRF] ensureCsrfCookie response status:', res.status);
-  console.log('[CSRF] ensureCsrfCookie response headers:', Array.from(res.headers.entries()));
-  return res;
+  try {
+    const res = await fetchWithCreds('/api/csrf/', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Failed to get CSRF token: ${res.status}`);
+    }
+    
+    const token = getCSRFToken();
+    if (!token) {
+      throw new Error('CSRF token not found in cookies after fetch');
+    }
+    
+    return token;
+  } catch (error) {
+    console.error('[CSRF] Error ensuring CSRF token:', error);
+    throw error;
+  }
 } 

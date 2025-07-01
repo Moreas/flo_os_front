@@ -1,3 +1,5 @@
+import { getCSRFToken } from '../utils/csrf';
+
 // Basic fetch wrapper that includes credentials
 export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
   return fetch(input, { 
@@ -10,8 +12,8 @@ export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
   });
 }
 
-// Fetch wrapper for operations that need CSRF protection (POST/PUT/DELETE)
-export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
+// Fetch wrapper for operations that need CSRF protection
+export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
   const method = init.method?.toUpperCase() || 'GET';
   const needsCSRF = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
   
@@ -20,11 +22,10 @@ export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
     return fetchWithCreds(input, init);
   }
 
-  // For operations that need CSRF, add the token
-  const csrfToken = localStorage.getItem('csrfToken');
+  // Get CSRF token from cookie
+  const csrfToken = getCSRFToken();
   if (!csrfToken && needsCSRF) {
-    console.warn(`[API] No CSRF token available for ${method} request`);
-    return Promise.reject(new Error('No CSRF token available. Please log in again.'));
+    throw new Error('No CSRF token available. Please refresh the page.');
   }
 
   return fetch(input, {
@@ -33,7 +34,7 @@ export function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
     headers: {
       ...init.headers,
       'Content-Type': 'application/json',
-      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
+      'X-CSRFToken': csrfToken || '',
     }
   });
 }
