@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { ArrowPathIcon, ExclamationTriangleIcon, ClockIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import API_BASE from '../apiBase';
@@ -42,10 +43,21 @@ const HabitList: React.FC<HabitListProps> = ({ onUpdate }) => {
   const handleDelete = async (habitId: number) => {
     if (!window.confirm('Are you sure you want to delete this habit?')) return;
     
-    try {
-      await axios.delete(`${API_BASE}/api/habits/${habitId}/`);
-      setHabits(prev => prev.filter(habit => habit.id !== habitId));
-      if (onUpdate) onUpdate();
+          try {
+        const response = await fetchWithCSRF(`${API_BASE}/api/habits/${habitId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete habit (${response.status})`);
+        }
+        
+        setHabits(prev => prev.filter(habit => habit.id !== habitId));
+        if (onUpdate) onUpdate();
     } catch (err: unknown) {
       console.error("Error deleting habit:", err);
       setError("Failed to delete habit.");

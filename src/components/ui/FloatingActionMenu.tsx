@@ -1,11 +1,12 @@
 import React, { Fragment, useState, useCallback } from 'react';
 import { Dialog, Transition, Popover } from '@headlessui/react';
 import { PlusIcon, XMarkIcon, ArrowPathIcon, ExclamationCircleIcon, CheckCircleIcon, PencilSquareIcon, BookOpenIcon, FaceSmileIcon, BoltIcon, ClockIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
-import { useTaskRefresh } from '../../contexts/TaskRefreshContext';
-import MentionInput from './MentionInput';
-import API_BASE from '../../apiBase';
 import { Link } from 'react-router-dom';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
+import API_BASE from '../../apiBase';
+import MentionInput from './MentionInput';
+import { useTaskRefresh } from '../../contexts/TaskRefreshContext';
+import { useRefresh } from '../../contexts/RefreshContext';
 
 // Define emotions and their corresponding emojis
 const emotionsMap: { [key: string]: string } = {
@@ -96,21 +97,33 @@ const FloatingActionMenu: React.FC = () => {
     setSubmitTaskError(null);
     setSubmitTaskSuccess(false);
     try {
-      await axios.post(`${API_BASE}/api/quick_task/`, { 
-        text: quickTaskInput,
-        responsible_ids: selectedTaskPersonIds,
-        impacted_ids: selectedTaskPersonIds
+      const response = await fetchWithCSRF(`${API_BASE}/api/quick_task/`, { 
+        method: 'POST',
+        body: JSON.stringify({ 
+          text: quickTaskInput,
+          responsible_ids: selectedTaskPersonIds,
+          impacted_ids: selectedTaskPersonIds
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to create task (${response.status})`);
+      }
+      
       setSubmitTaskSuccess(true);
-      setQuickTaskInput(''); 
+      setQuickTaskInput('');
       setSelectedTaskPersonIds([]);
-      refreshTasks(); 
+      refreshTasks();
       setTimeout(() => { closeTaskModal(); }, 1000);
     } catch (err: any) {
-        const errorMsg = err.response?.data?.detail || 'Failed to add task.';
-        setSubmitTaskError(errorMsg);
+      const errorMsg = err.message || 'Failed to create task.';
+      setSubmitTaskError(errorMsg);
     } finally {
-        setIsSubmittingTask(false);
+      setIsSubmittingTask(false);
     }
   };
   // --- End Task Modal Logic ---
@@ -143,18 +156,31 @@ const FloatingActionMenu: React.FC = () => {
       setSubmitJournalSuccess(false);
 
       try {
-          await axios.post(`${API_BASE}/api/quick_journal/`, { 
-              content: quickJournalInput, 
-              emotion: quickJournalEmotion || null,
-              related_people_ids: selectedJournalPersonIds
+          const response = await fetchWithCSRF(`${API_BASE}/api/quick_journal/`, { 
+              method: 'POST',
+              body: JSON.stringify({ 
+                  content: quickJournalInput, 
+                  emotion: quickJournalEmotion || null,
+                  related_people_ids: selectedJournalPersonIds
+              }),
+              headers: {
+                  'Content-Type': 'application/json'
+              }
           });
+          
+          if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.detail || `Failed to create journal entry (${response.status})`);
+          }
+          
           setSubmitJournalSuccess(true);
           setQuickJournalInput('');
           setQuickJournalEmotion('');
           setSelectedJournalPersonIds([]);
+          // refreshJournal(); // TODO: Add journal refresh context if needed
           setTimeout(() => { closeJournalModal(); }, 1000);
       } catch (err: any) {
-          const errorMsg = err.response?.data?.detail || 'Failed to add journal entry.';
+          const errorMsg = err.message || 'Failed to create journal entry.';
           setSubmitJournalError(errorMsg);
       } finally {
           setIsSubmittingJournal(false);
@@ -191,17 +217,29 @@ const FloatingActionMenu: React.FC = () => {
     setSubmitMoodError(null);
     setSubmitMoodSuccess(false);
     try {
-      await axios.post(`${API_BASE}/api/moods/`, { 
-        level: selectedMoodLevel,
-        comment: moodComment.trim() || null 
+      const response = await fetchWithCSRF(`${API_BASE}/api/moods/`, { 
+        method: 'POST',
+        body: JSON.stringify({ 
+          level: selectedMoodLevel,
+          comment: moodComment.trim() || null 
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to track mood (${response.status})`);
+      }
+      
       setSubmitMoodSuccess(true);
       setMoodComment('');
       setSelectedMoodLevel(null); 
       // refreshMoods(); // Placeholder for a potential context refresh
       setTimeout(() => { closeMoodModal(); }, 1000);
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to track mood.';
+      const errorMsg = err.message || 'Failed to track mood.';
       setSubmitMoodError(errorMsg);
     } finally {
       setIsSubmittingMood(false);
@@ -238,16 +276,28 @@ const FloatingActionMenu: React.FC = () => {
     setSubmitEnergyError(null);
     setSubmitEnergySuccess(false);
     try {
-      await axios.post(`${API_BASE}/api/energy/`, { 
-        level: selectedEnergyLevel,
-        comment: energyComment.trim() || null 
+      const response = await fetchWithCSRF(`${API_BASE}/api/energy/`, { 
+        method: 'POST',
+        body: JSON.stringify({ 
+          level: selectedEnergyLevel,
+          comment: energyComment.trim() || null 
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to track energy level (${response.status})`);
+      }
+      
       setSubmitEnergySuccess(true);
       setEnergyComment('');
       setSelectedEnergyLevel(null);
       setTimeout(() => { closeEnergyModal(); }, 1000);
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to track energy level.';
+      const errorMsg = err.message || 'Failed to track energy level.';
       setSubmitEnergyError(errorMsg);
     } finally {
       setIsSubmittingEnergy(false);

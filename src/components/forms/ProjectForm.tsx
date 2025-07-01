@@ -2,6 +2,7 @@ import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 import API_BASE from '../../apiBase';
 
 interface ProjectFormProps {
@@ -134,14 +135,38 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProje
       business_id: selectedBusiness ? parseInt(selectedBusiness) : null,
       tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
     };
-    try {
-      if (isEditMode && initialProject) {
-        await axios.put(`${API_BASE}/api/projects/${initialProject.id}/`, projectData);
-        if (onProjectUpdated) onProjectUpdated();
-      } else {
-        await axios.post(`${API_BASE}/api/projects/`, projectData);
-        onClose();
-      }
+          try {
+        if (isEditMode && initialProject) {
+          const response = await fetchWithCSRF(`${API_BASE}/api/projects/${initialProject.id}/`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(projectData),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to update project (${response.status})`);
+          }
+          
+          if (onProjectUpdated) onProjectUpdated();
+        } else {
+          const response = await fetchWithCSRF(`${API_BASE}/api/projects/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(projectData),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to create project (${response.status})`);
+          }
+          
+          onClose();
+        }
     } catch (err: any) {
       let errorMsg = 'Failed to save project. Please try again.';
       if (err.response?.data) {

@@ -4,6 +4,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import API_BASE from '../../apiBase';
 import { Habit } from '../../types/habit';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 
 interface HabitFormProps {
   isOpen: boolean;
@@ -130,10 +131,34 @@ const HabitForm: React.FC<HabitFormProps> = ({
       console.log('Sending habit data:', formData);
 
       if (isEditMode && initialHabit) {
-        await axios.put(`${API_BASE}/api/habits/${initialHabit.id}/`, formData);
+        const response = await fetchWithCSRF(`${API_BASE}/api/habits/${initialHabit.id}/`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to update habit (${response.status})`);
+        }
       } else {
-        const response = await axios.post(`${API_BASE}/api/habits/`, formData);
-        console.log('API Response:', response.data);
+        const response = await fetchWithCSRF(`${API_BASE}/api/habits/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to create habit (${response.status})`);
+        }
+        
+        const responseData = await response.json();
+        console.log('API Response:', responseData);
       }
       onHabitCreated();
       onClose();

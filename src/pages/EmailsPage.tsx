@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import API_BASE from '../apiBase';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 
 const EmailsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -18,13 +19,20 @@ const EmailsPage: React.FC = () => {
     setMessage(null);
     setError(null);
     try {
-      const response = await axios.post(
-        `${API_BASE}/api/retrieve_emails/`,
-        {},
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      if (response.data.success) {
-        const saved = response.data.saved_count ?? 0;
+      const response = await fetchWithCSRF(`${API_BASE}/api/retrieve_emails/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to retrieve emails (${response.status})`);
+      }
+      
+      const responseData = await response.json();
+      if (responseData.success) {
+        const saved = responseData.saved_count ?? 0;
         
         // Only show message if emails were retrieved
         if (saved > 0) {
@@ -35,7 +43,7 @@ const EmailsPage: React.FC = () => {
         
         await emailListRef.current?.refresh();
       } else {
-        setError(response.data.message || 'Failed to retrieve emails.');
+        setError(responseData.message || 'Failed to retrieve emails.');
       }
     } catch (err: any) {
       setError('Error retrieving emails.');
@@ -48,7 +56,16 @@ const EmailsPage: React.FC = () => {
     setIsPurging(true);
     setError(null);
     try {
-      await axios.post(`${API_BASE}/api/emails/purge_all/`);
+      const response = await fetchWithCSRF(`${API_BASE}/api/emails/purge_all/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to purge emails (${response.status})`);
+      }
+      
       setMessage('All emails have been purged successfully.');
       setIsPurgeConfirmOpen(false);
       await emailListRef.current?.refresh();

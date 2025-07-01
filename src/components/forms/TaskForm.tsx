@@ -2,6 +2,7 @@ import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 import MentionInput from '../ui/MentionInput';
 import API_BASE from '../../apiBase';
 import { useRefresh } from '../../contexts/RefreshContext';
@@ -160,7 +161,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
     const apiMethod = isEditMode ? 'patch' : 'post';
 
     try {
-      const response = await axios({ method: apiMethod, url: apiUrl, data: payload });
+      const response = await fetchWithCSRF({ method: apiMethod, url: apiUrl, data: payload });
       setSubmitSuccess(true);
       if (isEditMode && onTaskUpdated) onTaskUpdated(response.data);
       else onTaskCreated();

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { 
   CheckCircleIcon, 
   XCircleIcon,
@@ -60,10 +61,21 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
         ? `${API_BASE}/api/habits/${selectedHabit.id}/mark_completed/`
         : `${API_BASE}/api/habits/${selectedHabit.id}/mark_not_completed/`;
       
-      await axios.post(endpoint, {
-        date: today,
-        notes: notes.trim() || null
-      });
+              const response = await fetchWithCSRF(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: today,
+            notes: notes.trim() || null
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to mark habit (${response.status})`);
+        }
       
       setShowNotesModal(false);
       setSelectedHabit(null);

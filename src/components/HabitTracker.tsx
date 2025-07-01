@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import axios from 'axios';
 import { 
   CheckCircleIcon, 
@@ -59,10 +60,21 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
         ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
         : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
       
-      await axios.post(endpoint, {
-        date: today,
-        notes: null
+      const response = await fetchWithCSRF(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: today,
+          notes: null
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to update habit (${response.status})`);
+      }
       
       // Refresh the status
       const statusRes = await axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${today}`);

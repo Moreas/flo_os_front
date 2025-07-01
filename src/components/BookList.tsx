@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import API_BASE from '../apiBase';
 import BookForm from './forms/BookForm';
@@ -44,9 +45,20 @@ const BookList: React.FC = () => {
   const handleDelete = async (bookId: number) => {
     if (!window.confirm('Are you sure you want to delete this book?')) return;
     
-    try {
-      await axios.delete(`${API_BASE}/api/books/${bookId}/`);
-      setBooks(books.filter(book => book.id !== bookId));
+          try {
+        const response = await fetchWithCSRF(`${API_BASE}/api/books/${bookId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete book (${response.status})`);
+        }
+        
+        setBooks(books.filter(book => book.id !== bookId));
     } catch (err: unknown) {
       console.error("Error deleting book:", err);
       setDeleteError("Failed to delete book. Please try again.");

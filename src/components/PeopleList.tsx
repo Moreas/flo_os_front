@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import PersonForm from './forms/PersonForm';
@@ -58,9 +59,20 @@ const PeopleList: React.FC = () => {
   const handleDelete = async (personId: number) => {
     if (!window.confirm('Are you sure you want to delete this person?')) return;
     
-    try {
-      await axios.delete(`${API_BASE}/api/people/${personId}/`);
-      setPeople(people.filter(person => person.id !== personId));
+          try {
+        const response = await fetchWithCSRF(`${API_BASE}/api/people/${personId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete person (${response.status})`);
+        }
+        
+        setPeople(people.filter(person => person.id !== personId));
     } catch (err: unknown) {
       console.error("Error deleting person:", err);
       setDeleteError("Failed to delete person. Please try again.");

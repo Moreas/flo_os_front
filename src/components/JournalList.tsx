@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns';
 import API_BASE from '../apiBase';
 import JournalForm from './forms/JournalForm';
 import { JournalEntry } from '../types/journal';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 
 // Define emotions and their corresponding emojis
 const emotionsMap: { [key: string]: string } = {
@@ -80,14 +81,25 @@ const JournalList: React.FC = () => {
       setIsDeleting(true);
       setDeleteError(null);
       try {
-          await axios.delete(`${API_BASE}/api/journal_entries/${entryToDeleteId}/`);
+          const response = await fetchWithCSRF(`${API_BASE}/api/journal_entries/${entryToDeleteId}/`, {
+              method: 'DELETE',
+              headers: {
+                  'Content-Type': 'application/json',
+              }
+          });
+          
+          if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.detail || `Failed to delete entry (${response.status})`);
+          }
+          
           // Remove entry from local state on success
           setEntries(currentEntries => currentEntries.filter(entry => entry.id !== entryToDeleteId));
           closeConfirmModal();
           console.log(`Journal entry ${entryToDeleteId} deleted.`);
       } catch (err: any) {
           console.error("Error deleting journal entry:", err);
-          const errorMsg = err.response?.data?.detail || 'Failed to delete entry.';
+          const errorMsg = err.message || 'Failed to delete entry.';
           setDeleteError(errorMsg);
           // Keep modal open to show error
       } finally {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import API_BASE from '../apiBase';
 import { 
   ArrowPathIcon, 
@@ -206,9 +207,20 @@ const ProjectList: React.FC = () => {
 
   const handleDelete = async (projectId: number) => {
     if (!window.confirm('Are you sure you want to delete this project?')) return;
-    try {
-      await axios.delete(`${API_BASE}/api/projects/${projectId}/`);
-      setProjects(projects.filter(p => p.id !== projectId));
+          try {
+        const response = await fetchWithCSRF(`${API_BASE}/api/projects/${projectId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete project (${response.status})`);
+        }
+        
+        setProjects(projects.filter(p => p.id !== projectId));
     } catch (err) {
       alert('Failed to delete project.');
     }

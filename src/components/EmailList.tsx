@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Fragment, useMemo, forwardRef, useImperativeHandle } from 'react';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { format, parseISO } from 'date-fns';
@@ -210,7 +211,16 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       // Find the email object to get the sender address
       const email = emails.find(e => e.id === assigningEmailId);
       if (!email) throw new Error('Email not found');
-      await axios.post(`${API_BASE}/api/people/${selectedPersonId}/assign_email_address/`, { email_address: email.sender });
+      const response = await fetchWithCSRF(`${API_BASE}/api/people/${selectedPersonId}/assign_email_address/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email_address: email.sender })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to assign email address (${response.status})`);
+      }
       setAssignSuccess('Sender assigned successfully!');
       setTimeout(() => {
         setAssignModalOpen(false);
@@ -239,10 +249,20 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         console.log(`Making POST request to: ${API_BASE}/api/emails/${emailId}/mark_handled/`);
         
         // Use the specific endpoint for marking as handled
-        const response = await axios.post(`${API_BASE}/api/emails/${emailId}/mark_handled/`);
-        console.log('Mark handled endpoint response data:', JSON.stringify(response.data, null, 2));
+        const response = await fetchWithCSRF(`${API_BASE}/api/emails/${emailId}/mark_handled/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to mark email as handled (${response.status})`);
+        }
+        
+        const responseData = await response.json();
+        console.log('Mark handled endpoint response data:', JSON.stringify(responseData, null, 2));
         console.log('Response status:', response.status);
-        console.log('Response headers:', JSON.stringify(response.headers, null, 2));
+        console.log('Response headers:', JSON.stringify(Array.from(response.headers.entries()), null, 2));
         console.log('Full response object keys:', Object.keys(response));
         
         // Add a small delay to ensure backend has processed
@@ -290,8 +310,19 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
           is_handled: false
         };
         
-        const response = await axios.patch(`${API_BASE}/api/emails/${emailId}/`, payload);
-        console.log('Unhandled PATCH response:', response.data);
+        const response = await fetchWithCSRF(`${API_BASE}/api/emails/${emailId}/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to update email (${response.status})`);
+        }
+        
+        const responseData = await response.json();
+        console.log('Unhandled PATCH response:', responseData);
         console.log('Response status:', response.status);
         
         // Update local state
@@ -340,8 +371,18 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         : `${API_BASE}/api/emails/${emailId}/mark_internal_handling/`;
       
       console.log(`Making POST request to: ${endpoint}`);
-      const response = await axios.post(endpoint);
-      console.log(`API response:`, JSON.stringify(response.data, null, 2));
+      const response = await fetchWithCSRF(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to mark handling type (${response.status})`);
+      }
+      
+      const responseData = await response.json();
+      console.log(`API response:`, JSON.stringify(responseData, null, 2));
       console.log(`Email ${emailId} marked as ${handlingType} handling`);
       
       // Update local state to reflect the change immediately

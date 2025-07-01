@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import GoalForm from './forms/GoalForm';
 import { Link } from 'react-router-dom';
 import API_BASE from '../apiBase';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 
 // Interface for Goal data
 interface Goal {
@@ -50,9 +51,20 @@ const GoalList: React.FC = () => {
   const handleDelete = async (goalId: number) => {
     if (!window.confirm('Are you sure you want to delete this goal?')) return;
     
-    try {
-      await axios.delete(`${API_BASE}/api/goals/${goalId}/`);
-      setGoals(goals.filter(goal => goal.id !== goalId));
+          try {
+        const response = await fetchWithCSRF(`${API_BASE}/api/goals/${goalId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete goal (${response.status})`);
+        }
+        
+        setGoals(goals.filter(goal => goal.id !== goalId));
     } catch (err) {
       console.error("Error deleting goal:", err);
       setDeleteError("Failed to delete goal. Please try again.");

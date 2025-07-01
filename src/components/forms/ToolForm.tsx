@@ -2,6 +2,7 @@ import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 import API_BASE from '../../apiBase';
 
 interface ToolFormProps {
@@ -80,20 +81,38 @@ const ToolForm: React.FC<ToolFormProps> = ({
       payload.last_used = payload.last_used.split('T')[0];
     }
 
-    try {
-      const response = isEditMode
-        ? await axios.patch(apiUrl, payload)
-        : await axios.post(apiUrl, payload);
+          try {
+        const response = isEditMode
+          ? await fetchWithCSRF(apiUrl, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            })
+          : await fetchWithCSRF(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            });
+            
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to ${isEditMode ? 'update' : 'create'} tool (${response.status})`);
+        }
       
       setSubmitSuccess(true);
-      onToolCreated(response.data); // Pass the created/updated tool back
+      const responseData = await response.json();
+      onToolCreated(responseData); // Pass the created/updated tool back
       if (!isEditMode) {
         setFormData(initialFormData);
       }
       setTimeout(() => { onClose(); }, 1500);
     } catch (err: any) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} tool:`, err);
-      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to ${isEditMode ? 'update' : 'create'} tool.`;
+      const errorMsg = err.message || `Failed to ${isEditMode ? 'update' : 'create'} tool.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { 
   ArrowPathIcon, 
   ExclamationTriangleIcon, 
@@ -151,7 +152,18 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
     if (!habit || !window.confirm('Are you sure you want to delete this habit?')) return;
     
     try {
-      await axios.delete(`${API_BASE}/api/habits/${habit.id}/`);
+      const response = await fetchWithCSRF(`${API_BASE}/api/habits/${habit.id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to delete habit (${response.status})`);
+      }
+      
       if (onBack) onBack();
     } catch (err: unknown) {
       console.error("Error deleting habit:", err);
@@ -181,16 +193,38 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
           ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
           : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
         
-        await axios.post(endpoint, {
-          date: dateStr,
-          notes: existingInstance.notes || null
+        const response = await fetchWithCSRF(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: dateStr,
+            notes: existingInstance.notes || null
+          })
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to update habit (${response.status})`);
+        }
       } else {
         // Create new instance as completed
-        await axios.post(`${API_BASE}/api/habits/${habitId}/mark_completed/`, {
-          date: dateStr,
-          notes: null
+        const response = await fetchWithCSRF(`${API_BASE}/api/habits/${habitId}/mark_completed/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: dateStr,
+            notes: null
+          })
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to mark habit as completed (${response.status})`);
+        }
       }
       
       // Refresh the progress data to show updated colors
@@ -206,7 +240,19 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
 
   const updateInstanceNote = async (instanceId: number, notes: string) => {
     try {
-      await axios.patch(`${API_BASE}/api/habit-instances/${instanceId}/`, { notes });
+      const response = await fetchWithCSRF(`${API_BASE}/api/habit-instances/${instanceId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to update note (${response.status})`);
+      }
+      
       setInstances(prev => prev.map(instance => 
         instance.id === instanceId ? { ...instance, notes } : instance
       ));

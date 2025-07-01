@@ -24,6 +24,7 @@ import { Task } from '../types/task';
 import { Category } from '../types/category';
 import { Project } from '../types/project';
 import { Business } from '../types/business';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 
 // Fallback Data
 const fallbackTasks: Task[] = [
@@ -210,9 +211,19 @@ const TaskList: React.FC = () => {
     
     try {
       // Actual API call to update the task status
-      await axios.patch(`${API_BASE}/api/tasks/${taskId}/`, { 
-          is_done: newIsDoneStatus 
+      const response = await fetchWithCSRF(`${API_BASE}/api/tasks/${taskId}/`, {
+          method: 'PATCH',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ is_done: newIsDoneStatus })
       });
+      
+      if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to update task status (${response.status})`);
+      }
+      
       // Success! Keep the optimistic update.
       console.log(`Task ${taskId} status updated successfully.`);
     } catch (error: any) {
@@ -220,7 +231,7 @@ const TaskList: React.FC = () => {
       // Revert UI on error
       setTasks(originalTasks);
       // Show error message to user
-      alert(`Error updating task: ${error.response?.data?.detail || 'Failed to update status.'}`);
+      alert(`Error updating task: ${error.message || 'Failed to update status.'}`);
     } finally {
       setIsToggling(false);
       setTaskBeingToggledId(null); // Clear indicator
@@ -250,7 +261,18 @@ const TaskList: React.FC = () => {
     setDeleteError(null);
 
     try {
-      await axios.delete(`${API_BASE}/api/tasks/${taskToDeleteId}/`);
+      const response = await fetchWithCSRF(`${API_BASE}/api/tasks/${taskToDeleteId}/`, {
+          method: 'DELETE',
+          headers: {
+              'Content-Type': 'application/json',
+          }
+      });
+      
+      if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete task (${response.status})`);
+      }
+      
       // Remove task from local state on success
       setTasks(currentTasks => currentTasks.filter(task => task.id !== taskToDeleteId));
       closeConfirmationModal();
@@ -258,7 +280,7 @@ const TaskList: React.FC = () => {
       console.log(`Task ${taskToDeleteId} deleted successfully.`);
     } catch (err: any) {
       console.error("Error deleting task:", err);
-      const errorMsg = err.response?.data?.detail || err.response?.data || 'Failed to delete task.';
+      const errorMsg = err.message || 'Failed to delete task.';
       setDeleteError(errorMsg);
       // Keep modal open to show error
     } finally {
@@ -471,9 +493,19 @@ const TaskList: React.FC = () => {
         // API call
         // Send the correct format required by the backend (YYYY-MM-DD or null)
         const payloadDueDate = newDateValue ? newDateValue : null; 
-        await axios.patch(`${API_BASE}/api/tasks/${taskId}/`, { 
-            due_date: payloadDueDate // Send YYYY-MM-DD or null
+        const response = await fetchWithCSRF(`${API_BASE}/api/tasks/${taskId}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ due_date: payloadDueDate })
         });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to update due date (${response.status})`);
+        }
+        
         // Success! Keep optimistic update
 
     } catch (error: any) {

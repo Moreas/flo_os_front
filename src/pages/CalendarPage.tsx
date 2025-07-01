@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import API_BASE from '../apiBase';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar-overrides.css';
@@ -125,13 +126,31 @@ const CalendarPage: React.FC = () => {
         participants: event.participants || [],
       };
 
-      if (selectedEvent?.id) {
-        // Update existing event
-        await axios.put(`${API_BASE}/api/calendar_events/${selectedEvent.id}/`, eventData);
-      } else {
-        // Create new event
-        await axios.post(`${API_BASE}/api/calendar_events/`, eventData);
-      }
+              if (selectedEvent?.id) {
+          // Update existing event
+          const response = await fetchWithCSRF(`${API_BASE}/api/calendar_events/${selectedEvent.id}/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to update event (${response.status})`);
+          }
+        } else {
+          // Create new event
+          const response = await fetchWithCSRF(`${API_BASE}/api/calendar_events/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to create event (${response.status})`);
+          }
+        }
 
       // Refresh events after save
       await fetchEvents();
@@ -146,10 +165,19 @@ const CalendarPage: React.FC = () => {
   const handleDeleteEvent = async () => {
     if (!selectedEvent?.id) return;
 
-    try {
-      await axios.delete(`${API_BASE}/api/calendar_events/${selectedEvent.id}/`);
-      await fetchEvents();
-      setIsModalOpen(false);
+          try {
+        const response = await fetchWithCSRF(`${API_BASE}/api/calendar_events/${selectedEvent.id}/`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete event (${response.status})`);
+        }
+        
+        await fetchEvents();
+        setIsModalOpen(false);
       setSelectedEvent(null);
     } catch (err) {
       setError('Failed to delete event');

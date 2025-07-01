@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { ArrowPathIcon, ExclamationTriangleIcon, WrenchIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ToolForm from './forms/ToolForm';
 import API_BASE from '../apiBase';
@@ -48,9 +49,20 @@ const ToolList: React.FC = () => {
   const handleDelete = async (toolId: number) => {
     if (!window.confirm('Are you sure you want to delete this tool?')) return;
     
-    try {
-      await axios.delete(`${API_BASE}/api/tools/${toolId}/`);
-      setTools(tools.filter(tool => tool.id !== toolId));
+          try {
+        const response = await fetchWithCSRF(`${API_BASE}/api/tools/${toolId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed to delete tool (${response.status})`);
+        }
+        
+        setTools(tools.filter(tool => tool.id !== toolId));
     } catch (err) {
       console.error("Error deleting tool:", err);
       setDeleteError("Failed to delete tool. Please try again.");
