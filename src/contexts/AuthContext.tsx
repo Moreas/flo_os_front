@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login as authLogin, getCurrentUser, logout as authLogout, forcePageRefresh } from '../api/auth';
+import { login as authLogin, getCurrentUser, logout as authLogout } from '../api/auth';
 
 interface User {
   id: number;
