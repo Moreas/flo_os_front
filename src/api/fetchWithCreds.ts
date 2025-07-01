@@ -1,5 +1,5 @@
 // Simple Basic Auth configuration for personal-only FloOS access
-const basicAuth = 'Basic ' + btoa('devuser:devpassword123');
+const basicAuth = 'Basic ' + btoa('flo:G?LB9?Q&y7xx7i4k9RFnGG9qC');
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;

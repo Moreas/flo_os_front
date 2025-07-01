@@ -1,183 +1,66 @@
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import API_BASE from '../apiBase';
 
-// Environment detection
-const isDevelopment = process.env.NODE_ENV === 'development';
-const isProduction = process.env.NODE_ENV === 'production';
-
-// Authentication configuration
-export const AUTH_CONFIG = {
-  // Development: Use Basic Auth for simplicity
-  development: {
-    type: 'basic',
-    credentials: {
-      username: 'devuser',
-      password: 'devpassword123'
-    }
-  },
-  // Production: Use Token Authentication for security
-  production: {
-    type: 'token',
-    tokenKey: 'authToken'
+// Basic Auth configuration
+const AUTH_CONFIG = {
+  basic: {
+    username: 'flo',
+    password: 'G?LB9?Q&y7xx7i4k9RFnGG9qC'
   }
 };
 
-// API Configuration
-export const API_CONFIG = {
+// Create axios instance with Basic Auth
+const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
-  timeout: 30000, // 30 seconds
-  retries: 3,
-  retryDelay: 1000, // 1 second
-};
-
-// Headers configuration
-export function getDefaultHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Accept': 'application/json',
+  timeout: 10000,
+  headers: {
     'Content-Type': 'application/json',
-  };
+  },
+});
 
-  if (isDevelopment) {
-    // Development: Basic Auth
-    const credentials = btoa(`${AUTH_CONFIG.development.credentials.username}:${AUTH_CONFIG.development.credentials.password}`);
-    headers['Authorization'] = `Basic ${credentials}`;
-  } else {
-    // Production: Token Auth
-    const token = localStorage.getItem(AUTH_CONFIG.production.tokenKey);
-    if (token) {
-      headers['Authorization'] = `Token ${token}`;
-    }
-  }
-
-  return headers;
-}
-
-// Error handling
-export class APIError extends Error {
-  constructor(
-    message: string,
-    public status?: number,
-    public response?: any
-  ) {
-    super(message);
-    this.name = 'APIError';
-  }
-}
-
-// Retry logic
-async function retryRequest<T>(
-  requestFn: () => Promise<T>,
-  retries: number = API_CONFIG.retries,
-  delay: number = API_CONFIG.retryDelay
-): Promise<T> {
-  try {
-    return await requestFn();
-  } catch (error) {
-    if (
-      retries > 0 &&
-      error instanceof APIError &&
-      typeof error.status === "number" &&
-      error.status >= 500
-    ) {
-      console.warn(`API request failed, retrying... (${retries} attempts left)`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return retryRequest(requestFn, retries - 1, delay * 2);
-    }
-    throw error;
-  }
-}
-
-// Main API client
-export class APIClient {
-  private static instance: APIClient;
-
-  private constructor() {}
-
-  static getInstance(): APIClient {
-    if (!APIClient.instance) {
-      APIClient.instance = new APIClient();
-    }
-    return APIClient.instance;
-  }
-
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_CONFIG.baseURL}${endpoint}`;
+// Request interceptor to add Basic Auth
+apiClient.interceptors.request.use(
+  (config) => {
+    // Add Basic Auth header to all requests
+    const basicAuth = 'Basic ' + btoa(`${AUTH_CONFIG.basic.username}:${AUTH_CONFIG.basic.password}`);
+    config.headers.Authorization = basicAuth;
     
-    const config: RequestInit = {
-      ...options,
-      headers: {
-        ...getDefaultHeaders(),
-        ...options.headers,
-      },
-    };
-
-    return retryRequest(async () => {
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        // Handle authentication errors
-        if (response.status === 401) {
-          // Clear invalid token in production
-          if (isProduction) {
-            localStorage.removeItem(AUTH_CONFIG.production.tokenKey);
-          }
-          throw new APIError('Authentication failed', response.status, response);
-        }
-        
-        // Handle other errors
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.detail || errorMessage;
-        } catch {
-          // Ignore JSON parsing errors
-        }
-        
-        throw new APIError(errorMessage, response.status, response);
-      }
-
-      // Handle empty responses
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      }
-      
-      return response.text() as T;
-    });
+    console.log(`[API] Making ${config.method?.toUpperCase()} request to: ${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('[API] Request error:', error);
+    return Promise.reject(error);
   }
+);
 
-  // Convenience methods
-  async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' });
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => {
+    console.log(`[API] ${response.status} response from: ${response.config.url}`);
+    return response;
+  },
+  (error) => {
+    // Provide more explicit error messages
+    if (error.response?.status === 401) {
+      console.error('[API] Authentication failed: Invalid username or password');
+      error.message = 'Authentication failed: Please check your username and password';
+    } else if (error.response?.status === 403) {
+      console.error('[API] Access forbidden: Insufficient permissions');
+      error.message = 'Access forbidden: You do not have permission to access this resource';
+    } else if (error.response?.status >= 500) {
+      console.error('[API] Server error:', error.response?.status, error.response?.data);
+      error.message = 'Server error: Please try again later';
+    } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Failed to fetch')) {
+      console.error('[API] Network error: Unable to connect to server');
+      error.message = 'Network error: Unable to connect to server. Please check your internet connection.';
+    } else {
+      console.error('[API] Response error:', error.response?.status, error.response?.data);
+      error.message = error.response?.data?.error || error.message || 'An unexpected error occurred';
+    }
+    
+    return Promise.reject(error);
   }
+);
 
-  async post<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async put<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async patch<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
-  }
-}
-
-// Export singleton instance
-export const apiClient = APIClient.getInstance(); 
+export { apiClient, AUTH_CONFIG }; 
