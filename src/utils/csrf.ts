@@ -23,12 +23,6 @@ let csrfPromise: Promise<string> | null = null;
 let lastTokenTimestamp = 0;
 const TOKEN_REFRESH_INTERVAL = 1000 * 60 * 60; // 1 hour
 
-async function waitForToken(attempt: number): Promise<string | null> {
-  const delay = Math.pow(2, attempt) * 100;
-  await new Promise(resolve => setTimeout(resolve, delay));
-  return getCSRFToken();
-}
-
 export async function ensureCsrfCookie(): Promise<string> {
   // Return existing promise if one is in progress
   if (csrfPromise) {
