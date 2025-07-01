@@ -93,8 +93,9 @@ const Dashboard: React.FC = () => {
     // Fetch emails
     apiClient.get('/api/emails/')
       .then(res => {
-        console.log('[Dashboard] Emails fetched:', res.data.length);
+        const totalEmails = res.data.length;
         const unhandledCount = res.data.filter((e: any) => e.is_handled === false).length;
+        console.log(`[Dashboard] Emails fetched: ${totalEmails} total, ${unhandledCount} unhandled`);
         setUnhandledEmails(unhandledCount);
       })
       .catch((error) => {

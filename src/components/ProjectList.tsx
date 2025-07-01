@@ -1,31 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
 import { 
   ArrowPathIcon, 
+  ChevronDownIcon, 
+  ChevronUpIcon, 
   ExclamationTriangleIcon,
-  BriefcaseIcon,
-  FlagIcon,
-  TagIcon,
-  DocumentTextIcon,
-  BeakerIcon,
-  ExclamationCircleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
-  PlusIcon
+  PlusIcon,
+  BriefcaseIcon,
+  FlagIcon
 } from '@heroicons/react/24/outline';
 import ProjectForm from './forms/ProjectForm';
 import { format, parseISO } from 'date-fns';
 import { apiClient } from '../api/apiConfig';
 import { Project } from '../types/project';
 
-type SortField = 'name' | 'status' | 'created_at';
+interface SortField {
+  field: 'name' | 'status' | 'created_at';
+}
+
 type SortDirection = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'paused' | 'archived';
-type DriverTypeFilter = 'all' | 'goal' | 'requirement' | 'problem' | 'experiment';
 
 const ProjectList: React.FC = () => {
   const navigate = useNavigate();
@@ -39,10 +36,9 @@ const ProjectList: React.FC = () => {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [driverTypeFilter, setDriverTypeFilter] = useState<DriverTypeFilter>('all');
 
   // Sorting
-  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortField, setSortField] = useState<SortField['field']>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   useEffect(() => {
@@ -74,7 +70,7 @@ const ProjectList: React.FC = () => {
     fetchData();
   }, [searchQuery]);
 
-  const handleSort = (field: SortField) => {
+  const handleSort = (field: SortField['field']) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -83,7 +79,7 @@ const ProjectList: React.FC = () => {
     }
   };
 
-  const renderSortIcon = (field: SortField) => {
+  const renderSortIcon = (field: SortField['field']) => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? (
       <ChevronUpIcon className="w-4 h-4" />
@@ -105,21 +101,6 @@ const ProjectList: React.FC = () => {
     }
   };
 
-  const getDriverTypeIcon = (type: string) => {
-    switch (type) {
-      case 'goal':
-        return <FlagIcon className="w-4 h-4 text-gray-400" />;
-      case 'requirement':
-        return <DocumentTextIcon className="w-4 h-4 text-gray-400" />;
-      case 'problem':
-        return <ExclamationCircleIcon className="w-4 h-4 text-gray-400" />;
-      case 'experiment':
-        return <BeakerIcon className="w-4 h-4 text-gray-400" />;
-      default:
-        return null;
-    }
-  };
-
   const toggleExpand = (projectId: number) => {
     setExpandedProjectId(expandedProjectId === projectId ? null : projectId);
   };
@@ -130,11 +111,6 @@ const ProjectList: React.FC = () => {
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(project => project.status === statusFilter);
-    }
-
-    // Apply driver type filter
-    if (driverTypeFilter !== 'all') {
-      filtered = filtered.filter(project => project.driver_type === driverTypeFilter);
     }
 
     // Apply sorting
@@ -152,8 +128,8 @@ const ProjectList: React.FC = () => {
           valB = b.status;
           break;
         case 'created_at':
-          valA = new Date(a.created_at).getTime();
-          valB = new Date(b.created_at).getTime();
+          valA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          valB = b.created_at ? new Date(b.created_at).getTime() : 0;
           break;
         default:
           return 0;
@@ -165,7 +141,7 @@ const ProjectList: React.FC = () => {
     });
 
     return filtered;
-  }, [projects, statusFilter, driverTypeFilter, sortField, sortDirection]);
+  }, [projects, statusFilter, sortField, sortDirection]);
 
   const handleEdit = (project: Project) => {
     setEditProject(project);
@@ -203,7 +179,7 @@ const ProjectList: React.FC = () => {
       )}
 
       {/* Search and Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Search Bar */}
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -228,19 +204,6 @@ const ProjectList: React.FC = () => {
           <option value="active">Active</option>
           <option value="paused">Paused</option>
           <option value="archived">Archived</option>
-        </select>
-
-        {/* Driver Type Filter */}
-        <select
-          value={driverTypeFilter}
-          onChange={(e) => setDriverTypeFilter(e.target.value as DriverTypeFilter)}
-          className="block w-full pl-3 pr-8 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-        >
-          <option value="all">All Driver Types</option>
-          <option value="goal">Goal</option>
-          <option value="requirement">Requirement</option>
-          <option value="problem">Problem</option>
-          <option value="experiment">Experiment</option>
         </select>
 
         {/* Sort Controls */}
@@ -279,11 +242,8 @@ const ProjectList: React.FC = () => {
               onClick={() => toggleExpand(project.id)}
             >
               <div className="flex items-center gap-2">
-                <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                  {project.status}
-                </div>
-                <div className="text-gray-400">
-                  {getDriverTypeIcon(project.driver_type)}
+                <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status || 'active')}`}>
+                  {project.status || 'active'}
                 </div>
                 <h3 className="text-sm font-semibold text-gray-900 truncate">
                   {project.name}
@@ -308,34 +268,8 @@ const ProjectList: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1.5 justify-end min-w-[120px]">
-                {project.categories.map((category) => (
-                  <span
-                    key={category.id}
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                  >
-                    <TagIcon className="w-3 h-3 mr-1 text-gray-500" />
-                    {category.name}
-                  </span>
-                ))}
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={e => { e.stopPropagation(); handleEdit(project); }}
-                  className="p-1 text-gray-400 hover:text-blue-500 rounded-full hover:bg-gray-100"
-                  title="Edit project"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={e => { e.stopPropagation(); handleDeleteProject(project.id); }}
-                  className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100"
-                  title="Delete project"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
             </div>
+
             {/* Expanded Content */}
             <div
               className={`grid grid-cols-1 gap-4 transition-all duration-200 ${
@@ -345,23 +279,26 @@ const ProjectList: React.FC = () => {
               }`}
             >
               {/* Description */}
-              <div>
-                <h4 className="text-xs font-medium text-gray-500 mb-1">Description</h4>
-                <p className="text-sm text-gray-700">{project.description}</p>
-              </div>
+              {project.description && (
+                <div>
+                  <h4 className="text-xs font-medium text-gray-500 mb-1">Description</h4>
+                  <p className="text-sm text-gray-700">{project.description}</p>
+                </div>
+              )}
+              
               {/* Project Details Grid */}
               <div className="grid grid-cols-2 gap-4">
-                {/* Driver Type and Title */}
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500 mb-1">Driver</h4>
-                  <div className="flex items-center gap-2">
-                    {getDriverTypeIcon(project.driver_type)}
-                    <span className="text-sm text-gray-700 capitalize">{project.driver_type}</span>
+                {/* Goal */}
+                {project.goal && (
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500 mb-1">Goal</h4>
+                    <div className="flex items-center gap-2">
+                      <FlagIcon className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-700">{project.goal.title}</span>
+                    </div>
                   </div>
-                  {project.goal && (
-                    <p className="text-sm text-gray-700 mt-1">{project.goal.title}</p>
-                  )}
-                </div>
+                )}
+                
                 {/* Business */}
                 <div>
                   <h4 className="text-xs font-medium text-gray-500 mb-1">Business</h4>
@@ -371,46 +308,81 @@ const ProjectList: React.FC = () => {
                   </div>
                 </div>
               </div>
+
               {/* Progress Bar */}
-              <div>
-                <h4 className="text-xs font-medium text-gray-500 mb-2">Progress</h4>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div 
-                    className="bg-primary-500 h-2 rounded-full" 
-                    style={{ 
-                      width: `${((project.tasks || []).filter(t => t.is_done).length / Math.max((project.tasks || []).length, 1)) * 100}%` 
+              {project.tasks && project.tasks.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-medium text-gray-500 mb-2">Progress</h4>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${(project.tasks.filter(t => t.is_done).length / project.tasks.length) * 100}%` 
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>{project.tasks.filter(t => t.is_done).length} completed</span>
+                    <span>{project.tasks.length} total tasks</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/projects/${project.id}`);
+                  }}
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  View Details
+                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(project);
                     }}
-                  />
+                    className="p-1 text-gray-400 hover:text-gray-600"
+                    title="Edit project"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteProject(project.id);
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-600"
+                    title="Delete project"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            </div>
-            <div className="flex justify-end p-3 border-t border-gray-100 mt-auto">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/projects/${project.id}`);
-                }}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                View Details
-              </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ProjectForm modal for editing */}
-      {isEditModalOpen && (
+      {/* Edit Modal */}
+      {isEditModalOpen && editProject && (
         <ProjectForm
           isOpen={isEditModalOpen}
-          onClose={() => { setIsEditModalOpen(false); setEditProject(null); }}
-          initialProject={editProject}
-          isEditMode={true}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditProject(null);
+          }}
           onProjectUpdated={() => {
             setIsEditModalOpen(false);
             setEditProject(null);
-            // Optionally refetch projects or update state
+            // Refetch projects to get updated data
+            window.location.reload();
           }}
+          initialProject={editProject}
+          isEditMode={true}
         />
       )}
     </div>

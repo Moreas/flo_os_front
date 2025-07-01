@@ -113,30 +113,31 @@ const PersonDetailPage: React.FC = () => {
 
   const handleEmailStatusChange = async (emailId: number, newStatus: boolean) => {
     try {
-      console.log(`Marking email ${emailId} as handled: ${newStatus}`);
+      console.log(`[PersonDetailPage] Marking email ${emailId} as handled: ${newStatus}`);
       
       if (newStatus) {
         // Use the specific endpoint for marking as handled
-        const response = await apiClient.post(`/emails/${emailId}/mark_handled/`);
-        console.log('Mark handled endpoint response:', response.data);
+        const response = await apiClient.post(`/api/emails/${emailId}/mark_handled/`);
+        console.log('[PersonDetailPage] Mark handled endpoint response:', response.data);
       } else {
         // For unhandling, use PATCH to set is_handled to false
         const payload = {
           is_handled: false
         };
         
-        const response = await apiClient.patch(`/emails/${emailId}/`, payload);
-        console.log('Unhandled PATCH response:', response.data);
+        const response = await apiClient.patch(`/api/emails/${emailId}/`, payload);
+        console.log('[PersonDetailPage] Unhandled PATCH response:', response.data);
       }
       
       // Refresh emails after update
-      const res = await apiClient.get(`/emails/?person=${id}`);
-      setEmails(res.data || []);
+      console.log('[PersonDetailPage] Refreshing emails after status change...');
+      await fetchEmails();
+      console.log(`[PersonDetailPage] Emails refreshed, current count: ${emails.length}`);
     } catch (err) {
-      console.error('Failed to update email status:', err);
+      console.error('[PersonDetailPage] Failed to update email status:', err);
       const errorAny = err as any;
       if (errorAny.response) {
-        console.error('API Error details:', {
+        console.error('[PersonDetailPage] API Error details:', {
           status: errorAny.response?.status,
           data: errorAny.response?.data,
           url: errorAny.config?.url,
@@ -148,18 +149,21 @@ const PersonDetailPage: React.FC = () => {
 
   const handleHandlingTypeChange = async (emailId: number, handlingType: 'external' | 'internal') => {
     try {
+      console.log(`[PersonDetailPage] Marking email ${emailId} as ${handlingType} handling`);
+      
       const endpoint = handlingType === 'external' 
-        ? `/emails/${emailId}/mark_external_handling/`
-        : `/emails/${emailId}/mark_internal_handling/`;
+        ? `/api/emails/${emailId}/mark_external_handling/`
+        : `/api/emails/${emailId}/mark_internal_handling/`;
       
       await apiClient.post(endpoint);
-      console.log(`Email ${emailId} marked as ${handlingType} handling`);
+      console.log(`[PersonDetailPage] Email ${emailId} marked as ${handlingType} handling`);
       
       // Refresh emails after update
-      const res = await apiClient.get(`/emails/?person=${id}`);
-      setEmails(res.data || []);
+      console.log('[PersonDetailPage] Refreshing emails after handling type change...');
+      await fetchEmails();
+      console.log(`[PersonDetailPage] Emails refreshed, current count: ${emails.length}`);
     } catch (err) {
-      console.error(`Failed to mark email as ${handlingType} handling:`, err);
+      console.error(`[PersonDetailPage] Failed to mark email as ${handlingType} handling:`, err);
     }
   };
 
@@ -378,7 +382,10 @@ const PersonDetailPage: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900 flex items-center">
                 <InboxIcon className="w-5 h-5 mr-2 text-primary-600" />
-                Emails
+                Emails 
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  {filteredEmails.length} of {emails.length}
+                </span>
               </h2>
               
               {/* Handling Filters */}

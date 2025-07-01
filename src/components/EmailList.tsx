@@ -1,6 +1,5 @@
 import React, { useState, useEffect, Fragment, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { apiClient } from '../api/apiConfig';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { format, parseISO } from 'date-fns';
@@ -9,7 +8,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import API_BASE from '../apiBase';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 
 // Interface for EmailMessage data based on the backend model
 interface EmailMessage {
@@ -88,16 +86,16 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get(`${API_BASE}/api/emails/`);
+      const response = await apiClient.get('/api/emails/');
       setEmails(response.data || []);
       if (response.data && Array.isArray(response.data)) {
+        console.log(`[EmailList] Fetched ${response.data.length} emails`);
         response.data.forEach(email => {
           if (email.person) {
             console.log('Email ID:', email.id, 'Person:', email.person);
           }
         });
       }
-      console.log('Fetched emails:', response.data); // Debug log
     } catch (err) {
       console.error("Error fetching emails:", err);
       setError("Failed to load emails. Displaying sample data.");
@@ -109,21 +107,21 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     refresh: async () => {
-      console.log('Starting email list refresh...');
+      console.log('[EmailList] Starting email list refresh...');
       try {
         // Add a small delay to ensure backend has processed changes
         await new Promise(resolve => setTimeout(resolve, 100));
         setRefreshKey(prev => prev + 1);
-        console.log('Refresh key updated, triggering new fetch...');
+        console.log('[EmailList] Refresh key updated, triggering new fetch...');
       } catch (error) {
-        console.error('Error during refresh:', error);
+        console.error('[EmailList] Error during refresh:', error);
         setError('Failed to refresh email list');
       }
     }
   }));
 
   useEffect(() => {
-    console.log('Fetching emails, refreshKey:', refreshKey);
+    console.log(`[EmailList] Fetching emails, refreshKey: ${refreshKey}`);
     fetchEmails();
   }, [refreshKey]);
 
@@ -196,7 +194,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     setAssignSuccess(null);
     setSelectedPersonId(null);
     try {
-      const res = await apiClient.get(`${API_BASE}/api/people/`);
+      const res = await apiClient.get('/api/people/');
       setPeople(res.data || []);
     } catch (err) {
       setAssignError('Failed to load people.');
@@ -212,16 +210,11 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
       // Find the email object to get the sender address
       const email = emails.find(e => e.id === assigningEmailId);
       if (!email) throw new Error('Email not found');
-      const response = await fetchWithCSRF(`${API_BASE}/api/people/${selectedPersonId}/assign_email_address/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email_address: email.sender })
+      
+      await apiClient.post(`/api/people/${selectedPersonId}/assign_email_address/`, {
+        email_address: email.sender
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to assign email address (${response.status})`);
-      }
       setAssignSuccess('Sender assigned successfully!');
       setTimeout(() => {
         setAssignModalOpen(false);
@@ -231,6 +224,7 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         setRefreshKey(prev => prev + 1); // Refresh email list
       }, 1000);
     } catch (err) {
+      console.error('Failed to assign sender:', err);
       setAssignError('Failed to assign sender.');
     } finally {
       setAssignLoading(false);
@@ -239,32 +233,20 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
 
   const handleEmailStatusChange = async (emailId: number, isHandled: boolean) => {
     try {
-      console.log(`=== EMAIL STATUS CHANGE DEBUG ===`);
-      console.log(`Email ID: ${emailId}, Setting handled: ${isHandled}`);
+      console.log(`[EmailList] === EMAIL STATUS CHANGE DEBUG ===`);
+      console.log(`[EmailList] Email ID: ${emailId}, Setting handled: ${isHandled}`);
       
       // Log current email state before update
       const currentEmail = emails.find(e => e.id === emailId);
-      console.log('Current email state:', JSON.stringify(currentEmail, null, 2));
+      console.log('[EmailList] Current email state:', JSON.stringify(currentEmail, null, 2));
       
       if (isHandled) {
-        console.log(`Making POST request to: ${API_BASE}/api/emails/${emailId}/mark_handled/`);
+        console.log(`[EmailList] Making POST request to: /api/emails/${emailId}/mark_handled/`);
         
         // Use the specific endpoint for marking as handled
-        const response = await fetchWithCSRF(`${API_BASE}/api/emails/${emailId}/mark_handled/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
+        await apiClient.post(`/api/emails/${emailId}/mark_handled/`);
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to mark email as handled (${response.status})`);
-        }
-        
-        const responseData = await response.json();
-        console.log('Mark handled endpoint response data:', JSON.stringify(responseData, null, 2));
-        console.log('Response status:', response.status);
-        console.log('Response headers:', JSON.stringify(Array.from(response.headers.entries()), null, 2));
-        console.log('Full response object keys:', Object.keys(response));
+        console.log('[EmailList] Mark handled request successful');
         
         // Add a small delay to ensure backend has processed
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -275,56 +257,29 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
             email.id === emailId ? { 
               ...email, 
               is_handled: true
-              // Note: We don't clear needs_internal_handling or waiting_external_handling
-              // because the backend doesn't do this either
             } : email
           );
           const updatedEmail = updatedEmails.find(e => e.id === emailId);
-          console.log('Updated emails state:', JSON.stringify(updatedEmail, null, 2));
+          console.log('[EmailList] Updated local email state:', JSON.stringify(updatedEmail, null, 2));
           return updatedEmails;
         });
         
-        console.log('Local state updated');
+        console.log('[EmailList] Local state updated');
         
         // Manually refresh to verify backend update
-        console.log('Refreshing email list to verify backend update...');
+        console.log('[EmailList] Refreshing email list to verify backend update...');
         await fetchEmails();
-        console.log('Email list refreshed');
+        console.log('[EmailList] Email list refreshed');
         
-        // Check if the email was actually updated in the backend
-        const refreshedEmail = emails.find(e => e.id === emailId);
-        console.log('Refreshed email state from backend:', JSON.stringify(refreshedEmail, null, 2));
-        console.log('Expected state vs actual state:', {
-          expected: { is_handled: true, needs_internal_handling: false, waiting_external_handling: false },
-          actual: refreshedEmail ? {
-            is_handled: refreshedEmail.is_handled,
-            needs_internal_handling: refreshedEmail.needs_internal_handling,
-            waiting_external_handling: refreshedEmail.waiting_external_handling
-          } : 'Email not found'
-        });
       } else {
-        console.log(`Making PATCH request to: ${API_BASE}/api/emails/${emailId}/`);
+        console.log(`[EmailList] Making PATCH request to: /api/emails/${emailId}/`);
         
-        // For unhandling, we might need a different approach
-        // For now, let's use PATCH to set is_handled to false
-        const payload = {
+        // For unhandling, use PATCH to set is_handled to false
+        await apiClient.patch(`/api/emails/${emailId}/`, {
           is_handled: false
-        };
-        
-        const response = await fetchWithCSRF(`${API_BASE}/api/emails/${emailId}/`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
         });
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to update email (${response.status})`);
-        }
-        
-        const responseData = await response.json();
-        console.log('Unhandled PATCH response:', responseData);
-        console.log('Response status:', response.status);
+        console.log('[EmailList] Unhandled PATCH request successful');
         
         // Update local state
         setEmails(prevEmails => prevEmails.map(email =>
@@ -335,54 +290,40 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
         ));
       }
       
-      // Log updated email state
-      const updatedEmails = emails.map(e => e.id === emailId ? { ...e, is_handled: isHandled } : e);
-      const updatedEmail = updatedEmails.find(e => e.id === emailId);
-      console.log('Final updated email state:', JSON.stringify(updatedEmail, null, 2));
-      console.log(`=== END DEBUG ===`);
+      console.log(`[EmailList] === END EMAIL STATUS CHANGE DEBUG ===`);
       
     } catch (err) {
-      console.error('=== EMAIL STATUS CHANGE ERROR ===');
-      console.error('Failed to update email status:', err);
+      console.error('[EmailList] === EMAIL STATUS CHANGE ERROR ===');
+      console.error('[EmailList] Failed to update email status:', err);
       const errorAny = err as any;
-      if (axios.isAxiosError(errorAny)) {
-        console.error('API Error details:', {
+      if (errorAny.response) {
+        console.error('[EmailList] API Error details:', {
           status: errorAny.response?.status,
           statusText: errorAny.response?.statusText,
           data: errorAny.response?.data,
         });
       }
-      console.error('=== END ERROR ===');
+      console.error('[EmailList] === END ERROR ===');
     }
   };
 
   const handleHandlingTypeChange = async (emailId: number, handlingType: 'external' | 'internal') => {
     try {
-      console.log(`=== HANDLING TYPE CHANGE DEBUG ===`);
-      console.log(`Email ID: ${emailId}, Changing to: ${handlingType}`);
+      console.log(`[EmailList] === HANDLING TYPE CHANGE DEBUG ===`);
+      console.log(`[EmailList] Email ID: ${emailId}, Changing to: ${handlingType}`);
       
       // Log current email state before update
       const currentEmail = emails.find(e => e.id === emailId);
-      console.log('Current email state before change:', JSON.stringify(currentEmail, null, 2));
+      console.log('[EmailList] Current email state before change:', JSON.stringify(currentEmail, null, 2));
       
       const endpoint = handlingType === 'external' 
-        ? `${API_BASE}/api/emails/${emailId}/mark_external_handling/`
-        : `${API_BASE}/api/emails/${emailId}/mark_internal_handling/`;
+        ? `/api/emails/${emailId}/mark_external_handling/`
+        : `/api/emails/${emailId}/mark_internal_handling/`;
       
-      console.log(`Making POST request to: ${endpoint}`);
-      const response = await fetchWithCSRF(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
+      console.log(`[EmailList] Making POST request to: ${endpoint}`);
+      await apiClient.post(endpoint);
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to mark handling type (${response.status})`);
-      }
-      
-      const responseData = await response.json();
-      console.log(`API response:`, JSON.stringify(responseData, null, 2));
-      console.log(`Email ${emailId} marked as ${handlingType} handling`);
+      console.log(`[EmailList] Email ${emailId} marked as ${handlingType} handling`);
       
       // Update local state to reflect the change immediately
       setEmails(prevEmails => {
@@ -395,13 +336,13 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
           } : email
         );
         const updatedEmail = updatedEmails.find(e => e.id === emailId);
-        console.log('Updated email state after local change:', JSON.stringify(updatedEmail, null, 2));
+        console.log('[EmailList] Updated email state after local change:', JSON.stringify(updatedEmail, null, 2));
         return updatedEmails;
       });
       
-      console.log(`=== END HANDLING TYPE CHANGE DEBUG ===`);
+      console.log(`[EmailList] === END HANDLING TYPE CHANGE DEBUG ===`);
     } catch (err) {
-      console.error(`Failed to mark email as ${handlingType} handling:`, err);
+      console.error(`[EmailList] Failed to mark email as ${handlingType} handling:`, err);
     }
   };
 
@@ -421,6 +362,17 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
           {error}
         </div>
       )}
+
+      {/* Email Count Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <InboxIcon className="w-5 h-5 mr-2 text-primary-600" />
+          Emails
+          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            {filteredEmails.length} of {emails.length}
+          </span>
+        </h3>
+      </div>
 
       {/* Filter Controls */}
       <div className="border-b border-gray-200 pb-4 mb-4">

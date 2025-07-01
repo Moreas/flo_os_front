@@ -11,9 +11,14 @@ export interface Project {
   status?: string;
   start_date?: string;
   end_date?: string;
+  created_at?: string;
   business?: {
     id: number;
     name: string;
+  };
+  goal?: {
+    id: number;
+    title: string;
   };
   tasks?: {
     id: number;
