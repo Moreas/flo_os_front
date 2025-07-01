@@ -17,7 +17,7 @@ import JournalForm from '../forms/JournalForm';
 import GoalForm from '../forms/GoalForm';
 import ProjectForm from '../forms/ProjectForm';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import { fetchWithCSRF } from '../../api/fetchWithCreds';
 import API_BASE from '../../apiBase';
 
 interface MenuItemProps {
@@ -70,29 +70,26 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
     
     try {
       // Fetch all unhandled emails
-      const emailsResponse = await axios.get(`${API_BASE}/api/emails/`, {
-        params: {
-          is_handled: false
-        }
-      });
+      const emailsResponse = await fetchWithCSRF(`${API_BASE}/api/emails/?is_handled=false`);
+      if (!emailsResponse.ok) throw new Error(`Failed to fetch emails: ${emailsResponse.status}`);
+      const emailsResponseData = await emailsResponse.json();
+      
       // Filter for internal handling only (frontend)
-      const emailsRaw = Array.isArray(emailsResponse.data) ? emailsResponse.data : emailsResponse.data.results || emailsResponse.data.emails || [];
+      const emailsRaw = Array.isArray(emailsResponseData) ? emailsResponseData : emailsResponseData.results || emailsResponseData.emails || [];
       const emails = emailsRaw.filter((email: any) => email.needs_internal_handling === true && email.waiting_external_handling === false);
       
       // Fetch tasks due today or before
       const today = new Date().toISOString().split('T')[0];
-      const tasksResponse = await axios.get(`${API_BASE}/api/tasks/`, {
-        params: {
-          due_date_before: today
-        }
-      });
+      const tasksResponse = await fetchWithCSRF(`${API_BASE}/api/tasks/?due_date_before=${today}`);
+      if (!tasksResponse.ok) throw new Error(`Failed to fetch tasks: ${tasksResponse.status}`);
+      const tasksResponseData = await tasksResponse.json();
       
-      console.log('Emails response:', emailsResponse.data);
-      console.log('Tasks response:', tasksResponse.data);
+      console.log('Emails response:', emailsResponseData);
+      console.log('Tasks response:', tasksResponseData);
       
       // Process tasks
-      const tasks = Array.isArray(tasksResponse.data) ? tasksResponse.data : 
-                   tasksResponse.data.results || tasksResponse.data.tasks || [];
+      const tasks = Array.isArray(tasksResponseData) ? tasksResponseData : 
+                   tasksResponseData.results || tasksResponseData.tasks || [];
       
       // Filter tasks to only include those due today or before
       const filteredTasks = tasks.filter((task: any) => {
