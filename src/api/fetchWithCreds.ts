@@ -1,4 +1,4 @@
-import { getCSRFToken, ensureCsrfCookie } from '../utils/csrf';
+import { ensureCsrfCookie } from '../utils/csrf';
 
 // Basic fetch wrapper that includes credentials
 export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
