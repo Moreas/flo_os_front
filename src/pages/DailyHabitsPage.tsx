@@ -13,6 +13,7 @@ import {
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import API_BASE from '../apiBase';
+import { fetchWithCSRF } from '../api/fetchWithCreds';
 import HabitForm from '../components/forms/HabitForm';
 import { PendingHabit, TrackingSummary } from '../types/habit';
 
@@ -65,10 +66,21 @@ const DailyHabitsPage: React.FC = () => {
         ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
         : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
       
-      await axios.post(endpoint, {
-        date: selectedDate,
-        notes: null
+      const response = await fetchWithCSRF(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: selectedDate,
+          notes: null
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to mark habit as ${type} (${response.status})`);
+      }
       
       await fetchDailyData();
     } catch (err) {

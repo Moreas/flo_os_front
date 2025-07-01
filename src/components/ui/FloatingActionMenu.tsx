@@ -216,6 +216,11 @@ const FloatingActionMenu: React.FC = () => {
     setIsSubmittingMood(true);
     setSubmitMoodError(null);
     setSubmitMoodSuccess(false);
+    
+    // Debug logging
+    console.log('[Mood] Submitting mood:', { level: selectedMoodLevel, comment: moodComment.trim() || null });
+    console.log('[Mood] CSRF token available:', localStorage.getItem('csrfToken') ? '***' + localStorage.getItem('csrfToken')!.slice(-4) : 'null');
+    
     try {
       const response = await fetchWithCSRF(`${API_BASE}/api/moods/`, { 
         method: 'POST',
@@ -228,8 +233,12 @@ const FloatingActionMenu: React.FC = () => {
         }
       });
       
+      console.log('[Mood] Response status:', response.status);
+      console.log('[Mood] Response headers:', Array.from(response.headers.entries()));
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('[Mood] Request failed:', { status: response.status, errorData });
         throw new Error(errorData.detail || `Failed to track mood (${response.status})`);
       }
       
@@ -239,6 +248,7 @@ const FloatingActionMenu: React.FC = () => {
       // refreshMoods(); // Placeholder for a potential context refresh
       setTimeout(() => { closeMoodModal(); }, 1000);
     } catch (err: any) {
+      console.error('[Mood] Submission error:', err);
       const errorMsg = err.message || 'Failed to track mood.';
       setSubmitMoodError(errorMsg);
     } finally {
