@@ -46,6 +46,8 @@ export async function getCSRFToken(): Promise<string> {
   
   // Clear any existing CSRF token first
   console.log('[Auth] Cookies before CSRF request:', document.cookie);
+  console.log('[Auth] Current domain:', window.location.hostname);
+  console.log('[Auth] Backend domain:', new URL(API_BASE).hostname);
   
   // Call /api/csrf/ to get a fresh CSRF token
   const response = await fetchWithCreds(`${API_BASE}/api/csrf/`, {
@@ -62,10 +64,42 @@ export async function getCSRFToken(): Promise<string> {
   
   console.log('[Auth] CSRF response status:', response.status);
   console.log('[Auth] CSRF response headers:', Array.from(response.headers.entries()));
-  console.log('[Auth] Cookies after CSRF request:', document.cookie);
   
-  // Wait a moment for the cookie to be set by the browser
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // Note: Set-Cookie headers are not accessible via fetch API for security reasons
+  // The browser handles them automatically, but we can't read them in JavaScript
+  console.log('[Auth] Note: Set-Cookie headers are not accessible via fetch API');
+  console.log('[Auth] Browser should handle cookie setting automatically');
+  
+  // Check specifically for Set-Cookie headers (will likely be null)
+  const setCookieHeaders = response.headers.get('set-cookie');
+  console.log('[Auth] Set-Cookie header from response (likely null):', setCookieHeaders);
+  
+  // Log all response headers that might contain cookie info
+  for (const [key, value] of Array.from(response.headers.entries())) {
+    if (key.toLowerCase().includes('cookie') || key.toLowerCase().includes('csrf')) {
+      console.log(`[Auth] Response header ${key}:`, value);
+    }
+  }
+  
+  console.log('[Auth] Cookies immediately after CSRF request:', document.cookie);
+  
+  // Wait longer for the cookie to be set by the browser
+  console.log('[Auth] Waiting for cookie to be set...');
+  await new Promise(resolve => setTimeout(resolve, 500)); // Increased from 100ms to 500ms
+  
+  console.log('[Auth] Cookies after waiting:', document.cookie);
+  
+  // Try to parse all cookies to see what we have
+  const allCookies = document.cookie.split(';').reduce((cookies, cookie) => {
+    const [name, value] = cookie.trim().split('=');
+    if (name && value) {
+      cookies[name] = value;
+    }
+    return cookies;
+  }, {} as Record<string, string>);
+  
+  console.log('[Auth] Parsed cookies object:', allCookies);
+  console.log('[Auth] Available cookie names:', Object.keys(allCookies));
   
   // Extract the CSRF token from the csrftoken cookie
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -79,7 +113,52 @@ export async function getCSRFToken(): Promise<string> {
       .filter(([key]) => key.toLowerCase() === 'set-cookie');
     console.log('[Auth] Set-Cookie headers:', setCookieHeaders);
     
-    throw new Error('CSRF token not found in cookies after calling /api/csrf/. Backend may not be setting the csrftoken cookie properly.');
+    // Try alternative approaches to get the token
+    console.log('[Auth] Attempting to read token from response body...');
+    try {
+      const responseText = await response.clone().text();
+      console.log('[Auth] Response body:', responseText);
+      
+      // Try to parse as JSON
+      const responseData = JSON.parse(responseText);
+      console.log('[Auth] Parsed response data:', responseData);
+      
+      if (responseData.csrf_token) {
+        console.log('[Auth] Found CSRF token in response body:', '***' + responseData.csrf_token.slice(-4));
+        return responseData.csrf_token;
+      }
+      
+      if (responseData.csrfToken) {
+        console.log('[Auth] Found csrfToken in response body:', '***' + responseData.csrfToken.slice(-4));
+        return responseData.csrfToken;
+      }
+      
+      if (responseData.token) {
+        console.log('[Auth] Found token in response body:', '***' + responseData.token.slice(-4));
+        return responseData.token;
+      }
+      
+    } catch (e) {
+      console.log('[Auth] Could not parse response body as JSON:', e);
+    }
+    
+    // Final attempt: Check if we're in a cross-origin situation
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const backendDomain = new URL(API_BASE).hostname;
+    const isCrossOrigin = window.location.hostname !== backendDomain;
+    
+    console.log('[Auth] Cross-origin analysis:');
+    console.log('[Auth] - Current domain:', window.location.hostname);
+    console.log('[Auth] - Backend domain:', backendDomain);
+    console.log('[Auth] - Is local:', isLocal);
+    console.log('[Auth] - Is cross-origin:', isCrossOrigin);
+    
+    if (isCrossOrigin) {
+      console.warn('[Auth] Cross-origin cookie issue detected. Browser may not be setting cookies for different domains.');
+      console.warn('[Auth] This is a known limitation when frontend and backend are on different domains.');
+    }
+    
+    throw new Error('CSRF token not found in cookies after calling /api/csrf/. Backend may not be setting the csrftoken cookie properly for cross-origin requests.');
   }
   
   const csrfToken = match[1];
