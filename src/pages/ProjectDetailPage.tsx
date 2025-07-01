@@ -230,4 +230,12 @@ const ProjectDetailPage: React.FC = () => {
           onProjectUpdated={() => {
             setIsEditModalOpen(false);
             // Refetch project details after edit
-            apiClient.get(`${API_BASE}/api/projects/${id}/`
+            apiClient.get(`${API_BASE}/api/projects/${id}/`).then(res => setProject(res.data));
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ProjectDetailPage;
