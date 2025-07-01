@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as authLogin, getCurrentUser, logout as authLogout, clearAllStorageAndCache } from '../api/auth';
 
 interface User {
@@ -16,7 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  checkAuth: (force?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!user;
 
-  const checkAuth = async (force = false) => {
+  const checkAuth = useCallback(async (force = false) => {
     const now = Date.now();
     // Skip check if recently checked and not forced
     if (!force && (now - lastAuthCheck) < AUTH_CHECK_INTERVAL) {
@@ -57,9 +57,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [lastAuthCheck]);
 
-  const startAuthCheckTimer = () => {
+  const startAuthCheckTimer = useCallback(() => {
     if (authCheckTimer) {
       clearInterval(authCheckTimer);
     }
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }, AUTH_CHECK_INTERVAL);
     setAuthCheckTimer(timer);
     return timer;
-  };
+  }, [authCheckTimer, checkAuth]);
 
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         clearInterval(timer);
       }
     };
-  }, []); // Empty dependency array - only run on mount
+  }, [checkAuth, startAuthCheckTimer]); // Add dependencies
 
   const value: AuthContextType = {
     user,
@@ -133,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     logout,
-    checkAuth: () => checkAuth(true) // Force check when manually called
+    checkAuth
   };
 
   return (
