@@ -44,7 +44,10 @@ export async function getCSRFToken(): Promise<string> {
     });
   }
   
-  // Ensure we're making a proper cross-origin request with explicit headers
+  // Clear any existing CSRF token first
+  console.log('[Auth] Cookies before CSRF request:', document.cookie);
+  
+  // Call /api/csrf/ to get a fresh CSRF token
   const response = await fetchWithCreds(`${API_BASE}/api/csrf/`, {
     method: 'GET',
     headers: {
@@ -59,29 +62,28 @@ export async function getCSRFToken(): Promise<string> {
   
   console.log('[Auth] CSRF response status:', response.status);
   console.log('[Auth] CSRF response headers:', Array.from(response.headers.entries()));
+  console.log('[Auth] Cookies after CSRF request:', document.cookie);
   
-  // Parse the csrftoken cookie
+  // Wait a moment for the cookie to be set by the browser
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Extract the CSRF token from the csrftoken cookie
   const match = document.cookie.match(/csrftoken=([^;]+)/);
   if (!match) {
-    console.warn('[Auth] CSRF token not found in cookies. Backend may not be setting the cookie properly.');
+    console.warn('[Auth] CSRF token not found in cookies after /api/csrf/ call');
     console.log('[Auth] Available cookies:', document.cookie);
+    console.log('[Auth] Response headers:', Array.from(response.headers.entries()));
     
-    // Temporary workaround: try to get token from response body if available
-    try {
-      const data = await response.json();
-      if (data.csrf_token) {
-        console.log('[Auth] Using CSRF token from response body');
-        return data.csrf_token;
-      }
-    } catch (e) {
-      // Response is not JSON, continue with error
-    }
+    // Check if the backend sent Set-Cookie header
+    const setCookieHeaders = Array.from(response.headers.entries())
+      .filter(([key]) => key.toLowerCase() === 'set-cookie');
+    console.log('[Auth] Set-Cookie headers:', setCookieHeaders);
     
-    throw new Error('CSRF token not found in cookies. Backend needs to set the csrftoken cookie.');
+    throw new Error('CSRF token not found in cookies after calling /api/csrf/. Backend may not be setting the csrftoken cookie properly.');
   }
   
   const csrfToken = match[1];
-  console.log('[Auth] CSRF token obtained:', csrfToken ? '***' + csrfToken.slice(-4) : 'null');
+  console.log('[Auth] CSRF token extracted from cookie:', csrfToken ? '***' + csrfToken.slice(-4) : 'null');
   return csrfToken;
 }
 
@@ -92,25 +94,44 @@ export async function login(username: string, password: string): Promise<LoginRe
   try {
     console.log('[Auth] Starting login process for user:', username);
     
-    // Try to get CSRF token, but don't fail if it's not available
+    // Always get a fresh CSRF token for login
     let csrfToken: string | null = null;
     try {
+      console.log('[Auth] Getting fresh CSRF token for login...');
       csrfToken = await getCSRFToken();
+      console.log('[Auth] Fresh CSRF token obtained for login:', csrfToken ? '***' + csrfToken.slice(-4) : 'null');
     } catch (error) {
-      console.warn('[Auth] CSRF token not available, proceeding without it:', error);
+      console.error('[Auth] Failed to get CSRF token for login:', error);
+      return {
+        success: false,
+        error: 'Failed to get CSRF token. Please try again.'
+      };
     }
     
-    // Prepare headers
+    // Prepare headers with CSRF token
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     
-    // Add CSRF token if available
+    // CSRF token is required for login
     if (csrfToken) {
       headers['X-CSRFToken'] = csrfToken;
+      console.log('[Auth] Added CSRF token to login headers:', '***' + csrfToken.slice(-4));
+    } else {
+      console.error('[Auth] No CSRF token available for login request');
+      return {
+        success: false,
+        error: 'CSRF token is required for login.'
+      };
     }
     
-    // Then login
+    console.log('[Auth] Login request headers (without token):', {
+      'Content-Type': headers['Content-Type'],
+      'X-CSRFToken': headers['X-CSRFToken'] ? '***' + headers['X-CSRFToken'].slice(-4) : 'none'
+    });
+    
+    // Make login request with fresh CSRF token
+    console.log('[Auth] Making login request to:', `${API_BASE}/api/auth/login/`);
     const response = await fetchWithCreds(`${API_BASE}/api/auth/login/`, {
       method: 'POST',
       headers,
@@ -118,10 +139,12 @@ export async function login(username: string, password: string): Promise<LoginRe
     });
     
     console.log('[Auth] Login response status:', response.status);
+    console.log('[Auth] Login response headers:', Array.from(response.headers.entries()));
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('[Auth] Login failed:', errorData);
+      console.error('[Auth] Login failed with status:', response.status);
+      console.error('[Auth] Login error data:', errorData);
       return {
         success: false,
         error: errorData.detail || errorData.error || `Login failed (${response.status})`
