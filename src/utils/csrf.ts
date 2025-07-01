@@ -20,23 +20,25 @@ export function getCSRFToken(): string | null {
 }
 
 let csrfPromise: Promise<string> | null = null;
-let retryDelay = 100;
+
+async function waitForToken(attempt: number): Promise<string | null> {
+  const delay = Math.pow(2, attempt) * 100;
+  await new Promise(resolve => setTimeout(resolve, delay));
+  return getCSRFToken();
+}
 
 export async function ensureCsrfCookie(): Promise<string> {
-  // Return existing promise if we're already fetching
   if (csrfPromise) {
     return csrfPromise;
   }
 
   csrfPromise = (async () => {
     try {
-      // First check if we already have a valid token
       const existingToken = getCSRFToken();
       if (existingToken) {
         return existingToken;
       }
 
-      // If no token, fetch a new one
       const res = await fetch(`${API_BASE}/api/csrf/`, {
         method: 'GET',
         credentials: 'include',
@@ -51,17 +53,13 @@ export async function ensureCsrfCookie(): Promise<string> {
       
       const data = await res.json();
       
-      // Wait for cookie to be set
+      // Try to get token with exponential backoff
       for (let i = 0; i < 3; i++) {
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-        const token = getCSRFToken();
-        if (token) {
-          return token;
-        }
-        retryDelay *= 2; // Exponential backoff
+        const token = await waitForToken(i);
+        if (token) return token;
       }
       
-      // If we still don't have a cookie token, try to use the token from response
+      // Fallback to response token
       if (data.csrf_token) {
         return data.csrf_token;
       }
@@ -72,7 +70,6 @@ export async function ensureCsrfCookie(): Promise<string> {
       throw error;
     } finally {
       csrfPromise = null;
-      retryDelay = 100; // Reset delay for next time
     }
   })();
 
