@@ -44,19 +44,50 @@ export async function ensureCsrfCookie(): Promise<string> {
 
   csrfPromise = (async () => {
     try {
-      // If we have a token but it's old, use it while we refresh
-      if (existingToken) {
-        // Start refresh in background
-        fetchNewToken().catch(console.error);
-        return existingToken;
+      // Make the request first
+      const res = await fetch(`${API_BASE}/api/csrf/`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to get CSRF token: ${res.status}`);
       }
-
-      // No token exists, we need to wait for the fetch
-      return await fetchNewToken();
+      
+      const data = await res.json();
+      
+      // Wait for cookie to be set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Try to get token from cookie first
+      const cookieToken = getCSRFToken();
+      if (cookieToken) {
+        lastTokenTimestamp = Date.now();
+        return cookieToken;
+      }
+      
+      // If no cookie token, try with exponential backoff
+      for (let i = 0; i < 3; i++) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 100));
+        const token = getCSRFToken();
+        if (token) {
+          lastTokenTimestamp = Date.now();
+          return token;
+        }
+      }
+      
+      // Fallback to response token if provided
+      if (data.csrf_token) {
+        lastTokenTimestamp = Date.now();
+        return data.csrf_token;
+      }
+      
+      throw new Error('CSRF token not found in cookies or response');
     } catch (error) {
       console.error('[CSRF] Error ensuring CSRF token:', error);
-      // If we have an existing token, return it as fallback
-      if (existingToken) return existingToken;
       throw error;
     } finally {
       csrfPromise = null;
@@ -81,7 +112,17 @@ async function fetchNewToken(): Promise<string> {
   
   const data = await res.json();
   
-  // Try to get token with exponential backoff
+  // Wait a bit for the cookie to be set
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Try to get token from cookie first
+  const cookieToken = getCSRFToken();
+  if (cookieToken) {
+    lastTokenTimestamp = Date.now();
+    return cookieToken;
+  }
+  
+  // If no cookie token, try with exponential backoff
   for (let i = 0; i < 3; i++) {
     const token = await waitForToken(i);
     if (token) {
@@ -90,7 +131,7 @@ async function fetchNewToken(): Promise<string> {
     }
   }
   
-  // Fallback to response token
+  // Fallback to response token if provided
   if (data.csrf_token) {
     lastTokenTimestamp = Date.now();
     return data.csrf_token;

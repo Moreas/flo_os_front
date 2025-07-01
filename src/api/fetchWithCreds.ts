@@ -1,80 +1,75 @@
-import { ensureCsrfCookie, getCSRFToken } from '../utils/csrf';
+import { ensureCsrfCookie } from '../utils/csrf';
+import API_BASE from '../apiBase';
 
-// Basic fetch wrapper that includes credentials
-export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
-  // Always include the CSRF token for all requests
-  const token = getCSRFToken();
-  return fetch(input, { 
-    ...init, 
+interface FetchOptions extends RequestInit {
+  skipCsrf?: boolean;
+}
+
+export async function fetchWithCreds(url: string, options: FetchOptions = {}) {
+  const defaultOptions: RequestInit = {
     credentials: 'include',
     headers: {
-      ...init.headers,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      ...(token ? { 'X-CSRFToken': token } : {}),
+    }
+  };
+
+  return fetch(url, {
+    ...defaultOptions,
+    ...options,
+    headers: {
+      ...defaultOptions.headers,
+      ...options.headers,
     }
   });
 }
 
-// Fetch wrapper for operations that need CSRF protection
-export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) {
-  const method = init.method?.toUpperCase() || 'GET';
-  const needsCSRF = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
-  
-  // For GET requests, just use fetchWithCreds
-  if (!needsCSRF) {
-    return fetchWithCreds(input, init);
+export async function fetchWithCSRF(url: string, options: FetchOptions = {}) {
+  // Skip CSRF for certain requests
+  if (options.skipCsrf) {
+    return fetchWithCreds(url, options);
   }
 
-  // For operations that need CSRF, ensure we have a token
-  const token = await ensureCsrfCookie();
-  
-  if (!token) {
-    throw new Error('No CSRF token available after ensuring cookie');
-  }
+  let retryCount = 0;
+  const maxRetries = 2;
 
-  const response = await fetch(input, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      ...init.headers,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-CSRFToken': token
-    }
-  });
-
-  // If we get a 403 with CSRF error, try to refresh the token and retry once
-  if (response.status === 403) {
+  while (retryCount <= maxRetries) {
     try {
-      const responseText = await response.text();
-      if (responseText.includes('CSRF')) {
-        // Force a new token fetch by clearing the cookie
-        document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        
-        // Get a new token
-        const newToken = await ensureCsrfCookie();
-        
-        if (!newToken) {
-          throw new Error('No CSRF token available after refresh');
+      // Get fresh CSRF token
+      const csrfToken = await ensureCsrfCookie();
+      
+      const response = await fetchWithCreds(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'X-CSRFToken': csrfToken,
         }
-        
-        // Retry the request with the new token
-        return fetch(input, {
-          ...init,
+      });
+
+      // If we get a 403 and haven't exceeded retries, try refreshing the token
+      if (response.status === 403 && retryCount < maxRetries) {
+        console.warn('[CSRF] Got 403, refreshing token and retrying...');
+        retryCount++;
+        // Force a new token fetch
+        await fetch(`${API_BASE}/api/csrf/`, {
+          method: 'GET',
           credentials: 'include',
           headers: {
-            ...init.headers,
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-CSRFToken': newToken
           }
         });
+        // Small delay to allow cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 100));
+        continue;
       }
+
+      return response;
     } catch (error) {
-      console.error('[CSRF] Error refreshing token:', error);
+      console.error('[CSRF] Error in fetchWithCSRF:', error);
+      if (retryCount >= maxRetries) throw error;
+      retryCount++;
     }
   }
 
-  return response;
+  throw new Error('Failed to complete request after retries');
 }
