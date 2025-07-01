@@ -16,6 +16,7 @@ export function getCookie(name: string): string | null {
 }
 
 export function getCSRFToken(): string | null {
+  
   return getCookie('csrftoken');
 }
 
