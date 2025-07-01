@@ -20,6 +20,7 @@ export function getCSRFToken(): string | null {
 }
 
 let csrfPromise: Promise<string> | null = null;
+let retryDelay = 100;
 
 export async function ensureCsrfCookie(): Promise<string> {
   // Return existing promise if we're already fetching
@@ -50,21 +51,28 @@ export async function ensureCsrfCookie(): Promise<string> {
       
       const data = await res.json();
       
-      // Wait a bit for the cookie to be set
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Try to get token from response first, then cookie
-      const token = data.csrf_token || getCSRFToken();
-      if (!token) {
-        throw new Error('CSRF token not found in response or cookies');
+      // Wait for cookie to be set
+      for (let i = 0; i < 3; i++) {
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        const token = getCSRFToken();
+        if (token) {
+          return token;
+        }
+        retryDelay *= 2; // Exponential backoff
       }
       
-      return token;
+      // If we still don't have a cookie token, try to use the token from response
+      if (data.csrf_token) {
+        return data.csrf_token;
+      }
+      
+      throw new Error('CSRF token not found in cookies or response');
     } catch (error) {
       console.error('[CSRF] Error ensuring CSRF token:', error);
       throw error;
     } finally {
       csrfPromise = null;
+      retryDelay = 100; // Reset delay for next time
     }
   })();
 

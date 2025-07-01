@@ -2,6 +2,8 @@ import { ensureCsrfCookie, getCSRFToken } from '../utils/csrf';
 
 // Basic fetch wrapper that includes credentials
 export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
+  // Always include the CSRF token for all requests
+  const token = getCSRFToken();
   return fetch(input, { 
     ...init, 
     credentials: 'include',
@@ -9,6 +11,7 @@ export function fetchWithCreds(input: RequestInfo, init: RequestInit = {}) {
       ...init.headers,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      ...(token ? { 'X-CSRFToken': token } : {}),
     }
   });
 }
@@ -24,8 +27,7 @@ export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) 
   }
 
   // For operations that need CSRF, ensure we have a token
-  await ensureCsrfCookie();
-  const token = getCSRFToken();
+  const token = await ensureCsrfCookie();
   
   if (!token) {
     throw new Error('No CSRF token available after ensuring cookie');
@@ -44,27 +46,33 @@ export async function fetchWithCSRF(input: RequestInfo, init: RequestInit = {}) 
 
   // If we get a 403 with CSRF error, try to refresh the token and retry once
   if (response.status === 403) {
-    const responseText = await response.text();
-    if (responseText.includes('CSRF')) {
-      // Force a new token fetch
-      await ensureCsrfCookie();
-      const newToken = getCSRFToken();
-      
-      if (!newToken) {
-        throw new Error('No CSRF token available after refresh');
-      }
-      
-      // Retry the request with the new token
-      return fetch(input, {
-        ...init,
-        credentials: 'include',
-        headers: {
-          ...init.headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRFToken': newToken
+    try {
+      const responseText = await response.text();
+      if (responseText.includes('CSRF')) {
+        // Force a new token fetch by clearing the cookie
+        document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        
+        // Get a new token
+        const newToken = await ensureCsrfCookie();
+        
+        if (!newToken) {
+          throw new Error('No CSRF token available after refresh');
         }
-      });
+        
+        // Retry the request with the new token
+        return fetch(input, {
+          ...init,
+          credentials: 'include',
+          headers: {
+            ...init.headers,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRFToken': newToken
+          }
+        });
+      }
+    } catch (error) {
+      console.error('[CSRF] Error refreshing token:', error);
     }
   }
 
