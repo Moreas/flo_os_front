@@ -5,6 +5,7 @@ import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, Arr
 import { format, parseISO } from 'date-fns';
 import PersonForm from '../components/forms/PersonForm';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
+import axios from 'axios';
 
 interface Person {
   id: number;
@@ -121,12 +122,13 @@ const PersonDetailPage: React.FC = () => {
       setEmails(res.data || []);
     } catch (err) {
       console.error('Failed to update email status:', err);
-      if (apiClient.isAxiosError(err)) {
+      const errorAny = err as any;
+      if (axios.isAxiosError(errorAny)) {
         console.error('API Error details:', {
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-          method: err.config?.method
+          status: errorAny.response?.status,
+          data: errorAny.response?.data,
+          url: errorAny.config?.url,
+          method: errorAny.config?.method
         });
       }
     }

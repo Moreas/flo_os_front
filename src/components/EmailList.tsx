@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import API_BASE from '../apiBase';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 // Interface for EmailMessage data based on the backend model
 interface EmailMessage {
@@ -343,14 +344,12 @@ const EmailList = forwardRef<EmailListRef>((props, ref) => {
     } catch (err) {
       console.error('=== EMAIL STATUS CHANGE ERROR ===');
       console.error('Failed to update email status:', err);
-      if (apiClient.isAxiosError(err)) {
+      const errorAny = err as any;
+      if (axios.isAxiosError(errorAny)) {
         console.error('API Error details:', {
-          status: err.response?.status,
-          statusText: err.response?.statusText,
-          data: err.response?.data,
-          url: err.config?.url,
-          method: err.config?.method,
-          headers: err.config?.headers
+          status: errorAny.response?.status,
+          statusText: errorAny.response?.statusText,
+          data: errorAny.response?.data,
         });
       }
       console.error('=== END ERROR ===');

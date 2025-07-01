@@ -3,7 +3,6 @@ import EmailList, { EmailListRef } from '../components/EmailList';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import API_BASE from '../apiBase';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
 import { apiClient } from '../api/apiConfig';
 
 const EmailsPage: React.FC = () => {
@@ -24,12 +23,12 @@ const EmailsPage: React.FC = () => {
         include_sent: true
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+      if (response.status < 200 || response.status >= 300) {
+        const errorData = response.data || {};
         throw new Error(errorData.detail || `Failed to retrieve emails (${response.status})`);
       }
       
-      const responseData = await response.json();
+      const responseData = response.data;
       if (responseData.success) {
         const saved = responseData.retrieved ?? 0;
         
@@ -60,8 +59,8 @@ const EmailsPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' }
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+      if (response.status < 200 || response.status >= 300) {
+        const errorData = response.data || {};
         throw new Error(errorData.detail || `Failed to purge emails (${response.status})`);
       }
       

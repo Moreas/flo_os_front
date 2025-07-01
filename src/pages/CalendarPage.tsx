@@ -124,23 +124,23 @@ const CalendarPage: React.FC = () => {
         participants: event.participants || [],
       };
 
-              if (selectedEvent?.id) {
-          // Update existing event
-          const response = await apiClient.put(`/api/calendar_events/${selectedEvent.id}/`, eventData);
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to update event (${response.status})`);
-          }
-        } else {
-          // Create new event
-          const response = await apiClient.post('/api/calendar_events/', eventData);
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to create event (${response.status})`);
-          }
+      if (selectedEvent?.id) {
+        // Update existing event
+        const response = await apiClient.put(`/api/calendar_events/${selectedEvent.id}/`, eventData);
+        
+        if (response.status < 200 || response.status >= 300) {
+          const errorData = response.data || {};
+          throw new Error(errorData.detail || `Failed to update event (${response.status})`);
         }
+      } else {
+        // Create new event
+        const response = await apiClient.post('/api/calendar_events/', eventData);
+        
+        if (response.status < 200 || response.status >= 300) {
+          const errorData = response.data || {};
+          throw new Error(errorData.detail || `Failed to create event (${response.status})`);
+        }
+      }
 
       // Refresh events after save
       await fetchEvents();
@@ -155,16 +155,16 @@ const CalendarPage: React.FC = () => {
   const handleDeleteEvent = async () => {
     if (!selectedEvent?.id) return;
 
-          try {
-        const response = await apiClient.delete(`/api/calendar_events/${selectedEvent.id}/`);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to delete event (${response.status})`);
-        }
-        
-        await fetchEvents();
-        setIsModalOpen(false);
+    try {
+      const response = await apiClient.delete(`/api/calendar_events/${selectedEvent.id}/`);
+      
+      if (response.status < 200 || response.status >= 300) {
+        const errorData = response.data || {};
+        throw new Error(errorData.detail || `Failed to delete event (${response.status})`);
+      }
+      
+      await fetchEvents();
+      setIsModalOpen(false);
       setSelectedEvent(null);
     } catch (err) {
       setError('Failed to delete event');
