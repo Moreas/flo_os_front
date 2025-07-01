@@ -10,8 +10,7 @@ import {
   FolderIcon,
   BellIcon,
   Bars3Icon,
-  ArrowRightOnRectangleIcon,
-  ArrowPathIcon
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import TaskForm from '../forms/TaskForm';
 import JournalForm from '../forms/JournalForm';

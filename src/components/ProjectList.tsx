@@ -8,12 +8,10 @@ import {
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
-  PlusIcon,
   BriefcaseIcon,
   FlagIcon
 } from '@heroicons/react/24/outline';
 import ProjectForm from './forms/ProjectForm';
-import { format, parseISO } from 'date-fns';
 import { apiClient } from '../api/apiConfig';
 import { Project } from '../types/project';
 

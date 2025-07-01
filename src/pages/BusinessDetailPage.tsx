@@ -5,12 +5,8 @@ import {
   ExclamationTriangleIcon, 
   ChevronUpIcon, 
   ChevronDownIcon,
-  PlusIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  CalendarDaysIcon
+  PlusIcon
 } from '@heroicons/react/24/outline';
-import { format, parseISO } from 'date-fns';
 import { apiClient } from '../api/apiConfig';
 import { Business } from '../types/business';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
@@ -80,7 +76,7 @@ const BusinessDetailPage: React.FC = () => {
 
       // Update the task in the business state
       setBusiness(prev => {
-        if (!prev) return null;
+        if (!prev || !prev.tasks) return prev;
         return {
           ...prev,
           tasks: prev.tasks.map(task => 
@@ -106,7 +102,7 @@ const BusinessDetailPage: React.FC = () => {
   };
 
   const filteredAndSortedTasks = useMemo(() => {
-    if (!business) return [];
+    if (!business || !business.tasks) return [];
 
     let filtered = [...business.tasks];
 
@@ -256,7 +252,7 @@ const BusinessDetailPage: React.FC = () => {
             </button>
           </div>
           <RelatedItemsList
-            items={business.projects}
+            items={business.projects || []}
             type="projects"
             onItemClick={(project) => navigate(`/projects/${project.id}`)}
           />
@@ -274,7 +270,7 @@ const BusinessDetailPage: React.FC = () => {
             </button>
           </div>
           <RelatedItemsList
-            items={business.goals}
+            items={business.goals || []}
             type="goals"
             onItemClick={(goal) => navigate(`/goals/${goal.id}`)}
           />

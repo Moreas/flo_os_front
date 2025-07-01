@@ -6,7 +6,7 @@ import { format, parseISO } from 'date-fns';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import API_BASE from '../apiBase';
+
 import { Link } from 'react-router-dom';
 
 // Interface for EmailMessage data based on the backend model

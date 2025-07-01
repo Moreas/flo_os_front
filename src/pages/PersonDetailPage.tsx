@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
-import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon, PlusIcon, CheckCircleIcon, XCircleIcon, CalendarDaysIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, ArrowLeftIcon, InboxIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import PersonForm from '../components/forms/PersonForm';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
@@ -68,7 +68,7 @@ const PersonDetailPage: React.FC = () => {
     }
   }, [id]);
 
-  const fetchEmails = async () => {
+  const fetchEmails = useCallback(async () => {
     try {
       const response = await apiClient.get(`/api/emails/`, {
         params: { person: id }
@@ -77,7 +77,7 @@ const PersonDetailPage: React.FC = () => {
     } catch (err) {
       console.error('Error fetching emails:', err);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -95,7 +95,7 @@ const PersonDetailPage: React.FC = () => {
     if (id) {
       loadData();
     }
-  }, [id, fetchPerson]);
+  }, [id, fetchPerson, fetchEmails]);
 
   const handlePersonUpdated = (updatedPerson: Person) => {
     setPerson(updatedPerson);

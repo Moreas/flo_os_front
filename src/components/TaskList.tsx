@@ -209,7 +209,7 @@ const TaskList: React.FC = () => {
     
     try {
       // Actual API call to update the task status
-      const response = await apiClient.patch(`/api/tasks/${taskId}/`, {
+      await apiClient.patch(`/api/tasks/${taskId}/`, {
         is_done: newIsDoneStatus
       });
       

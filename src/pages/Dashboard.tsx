@@ -24,7 +24,6 @@ const Dashboard: React.FC = () => {
   const [activeProjects, setActiveProjects] = useState<number | null>(null);
   const [activeHabits, setActiveHabits] = useState<number | null>(null);
   const [unhandledEmails, setUnhandledEmails] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     console.log('[Dashboard] Fetching dashboard data...');
@@ -61,9 +60,6 @@ const Dashboard: React.FC = () => {
       .catch((error) => {
         console.error('Tasks API error:', error);
         setTasksDueToday(0);
-      })
-      .finally(() => {
-        setLoading(false);
       });
     
     // Fetch projects
