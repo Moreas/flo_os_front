@@ -1,6 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { RefreshProvider } from './contexts/RefreshContext';
+import { TaskRefreshProvider } from './contexts/TaskRefreshContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/layout/Layout';
+
+// Pages
+import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import TasksPage from './pages/TasksPage';
@@ -8,28 +15,19 @@ import BusinessesPage from './pages/BusinessesPage';
 import PeoplePage from './pages/PeoplePage';
 import ToolsPage from './pages/ToolsPage';
 import GoalsPage from './pages/GoalsPage';
-import JournalPage from './pages/JournalPage';
-import EmailsPage from './pages/EmailsPage';
-import HealthPage from './pages/HealthPage';
-import FinancePage from './pages/FinancePage';
-import MeetingsPage from './pages/MeetingsPage';
-import { TaskRefreshProvider } from './contexts/TaskRefreshContext';
-import { RefreshProvider } from './contexts/RefreshContext';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import ProjectDetailPage from './pages/ProjectDetailPage';
-import BusinessDetailPage from './pages/BusinessDetailPage';
-import PersonDetailPage from './pages/PersonDetailPage';
-import SearchResultsPage from './pages/SearchResultsPage';
-import GoalDetailPage from './pages/GoalDetailPage';
-import NotificationsPage from './pages/NotificationsPage';
-import CalendarPage from './pages/CalendarPage';
 import BooksPage from './pages/BooksPage';
-import HabitsPage from './pages/HabitsPage';
-import HabitDetailPage from './pages/HabitDetailPage';
 import HabitsDashboardPage from './pages/HabitsDashboardPage';
-import DailyHabitsPage from './pages/DailyHabitsPage';
-import LoginPage from './pages/LoginPage';
+import EmailsPage from './pages/EmailsPage';
+import JournalPage from './pages/JournalPage';
+import MoodTrackerPage from './pages/MoodTrackerPage';
+import BusinessDetailPage from './pages/BusinessDetailPage';
+import GoalDetailPage from './pages/GoalDetailPage';
+import PersonDetailPage from './pages/PersonDetailPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
+import TaskDetailPage from './pages/TaskDetailPage';
+import BookDetailPage from './pages/BookDetailPage';
+import HabitDetailPage from './pages/HabitDetailPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -91,90 +89,6 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               } />
-              <Route path="/journal" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <JournalPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/emails" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <EmailsPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/health" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <HealthPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/finance" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FinancePage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/meetings" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <MeetingsPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/projects/:id" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ProjectDetailPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/businesses/:id" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <BusinessDetailPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/people/:id" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <PersonDetailPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/search" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <SearchResultsPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/goals/:id" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <GoalDetailPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/notifications" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <NotificationsPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/calendar" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <CalendarPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
               <Route path="/books" element={
                 <ProtectedRoute>
                   <Layout>
@@ -185,28 +99,86 @@ function App() {
               <Route path="/habits" element={
                 <ProtectedRoute>
                   <Layout>
-                    <HabitsPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/habits/:habitId" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <HabitDetailPage />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/habits-dashboard" element={
-                <ProtectedRoute>
-                  <Layout>
                     <HabitsDashboardPage />
                   </Layout>
                 </ProtectedRoute>
               } />
-              <Route path="/daily-habits" element={
+              <Route path="/emails" element={
                 <ProtectedRoute>
                   <Layout>
-                    <DailyHabitsPage />
+                    <EmailsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/journal" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <JournalPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/mood-tracker" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <MoodTrackerPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SettingsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              
+              {/* Detail pages */}
+              <Route path="/businesses/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BusinessDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/goals/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <GoalDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/people/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <PersonDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/projects/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ProjectDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/tasks/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <TaskDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/books/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BookDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/habits/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <HabitDetailPage />
                   </Layout>
                 </ProtectedRoute>
               } />

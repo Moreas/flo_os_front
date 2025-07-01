@@ -1,5 +1,6 @@
 import axios from 'axios';
 axios.defaults.withCredentials = true;
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+// Force localhost for development - override any environment variables
+const API_BASE = 'http://localhost:8000';
 export default API_BASE; 

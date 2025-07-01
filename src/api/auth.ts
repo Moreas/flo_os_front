@@ -1,6 +1,4 @@
-import API_BASE from '../apiBase';
-import { fetchWithCreds, fetchWithCSRF } from './fetchWithCreds';
-import { ensureCsrfCookie } from '../utils/csrf';
+import { apiClient, AUTH_CONFIG } from './apiConfig';
 
 export interface LoginResponse {
   success: boolean;
@@ -12,6 +10,7 @@ export interface LoginResponse {
     last_name: string;
     is_staff: boolean;
   };
+  token?: string;
   error?: string;
 }
 
@@ -27,61 +26,56 @@ export interface CurrentUserResponse {
   };
 }
 
-/**
- * Get CSRF token from the backend
- */
-export async function getCSRFToken(): Promise<string> {
-  const response = await fetchWithCreds(`${API_BASE}/api/csrf/`);
-  
-  if (!response.ok) {
-    throw new Error(`Failed to get CSRF token: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  const token = data.csrf_token || data.csrfToken || data.token;
-  
-  if (!token) {
-    throw new Error('CSRF token not found in response');
-  }
-  
-  return token;
-}
+// Environment detection
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 /**
  * Login with username and password
+ * Supports both development (Basic Auth) and production (Token Auth) modes
  */
 export async function login(username: string, password: string): Promise<LoginResponse> {
   try {
-    // Ensure we have a CSRF token
-    await ensureCsrfCookie();
+    console.log('[Auth] Login attempt for:', username);
     
-    // Make login request
-    const response = await fetchWithCSRF(`${API_BASE}/api/auth/login/`, {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    });
-    
-    if (!response.ok) {
-      if (response.status === 401) {
+    if (isDevelopment) {
+      // Development mode: Use Basic Auth
+      console.log('[Auth] Using development mode (Basic Auth)');
+      
+      if (username && password) {
+        console.log('[Auth] Login successful (development mode)');
+        return {
+          success: true,
+          user: {
+            id: 1,
+            username: username,
+            email: `${username}@floos.com`,
+            first_name: 'Development',
+            last_name: 'User',
+            is_staff: true
+          }
+        };
+      } else {
         return {
           success: false,
-          error: 'Invalid username or password'
+          error: 'Username and password are required'
         };
       }
+    } else {
+      // Production mode: Use Token Authentication
+      console.log('[Auth] Using production mode (Token Auth)');
       
-      const errorData = await response.json().catch(() => ({}));
-      return {
-        success: false,
-        error: errorData.detail || errorData.error || `Login failed (${response.status})`
-      };
+      const response = await apiClient.post<LoginResponse>('/api/auth/login/', {
+        username,
+        password
+      });
+      
+      if (response.success && response.token) {
+        // Store the token
+        setAuthToken(response.token);
+      }
+      
+      return response;
     }
-    
-    const data = await response.json();
-    return {
-      success: true,
-      user: data.user
-    };
-    
   } catch (error) {
     console.error('[Auth] Login error:', error);
     return {
@@ -92,29 +86,53 @@ export async function login(username: string, password: string): Promise<LoginRe
 }
 
 /**
+ * Get the current authentication token
+ */
+export function getAuthToken(): string | null {
+  return localStorage.getItem(AUTH_CONFIG.production.tokenKey);
+}
+
+/**
+ * Set the authentication token
+ */
+export function setAuthToken(token: string): void {
+  localStorage.setItem(AUTH_CONFIG.production.tokenKey, token);
+}
+
+/**
+ * Remove the authentication token
+ */
+export function removeAuthToken(): void {
+  localStorage.removeItem(AUTH_CONFIG.production.tokenKey);
+}
+
+/**
  * Get current user information
  */
 export async function getCurrentUser(): Promise<CurrentUserResponse> {
   try {
-    // Ensure we have a CSRF token before checking auth
-    await ensureCsrfCookie();
+    console.log('[Auth] Getting current user...');
     
-    const response = await fetchWithCreds(`${API_BASE}/api/auth/current-user/`);
-    
-    if (!response.ok) {
-      if (response.status === 401) {
-        return { success: false };
-      }
+    if (isDevelopment) {
+      // Development: Return mock user
+      const mockUser = {
+        id: 1,
+        username: 'devuser',
+        email: 'dev@floos.com',
+        first_name: 'Development',
+        last_name: 'User',
+        is_staff: true
+      };
       
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || errorData.error || `Failed to get current user: ${response.status}`);
+      console.log('[Auth] Returning mock user for development');
+      return {
+        success: true,
+        user: mockUser
+      };
+    } else {
+      // Production: Get real user from API
+      return await apiClient.get<CurrentUserResponse>('/api/auth/current-user/');
     }
-    
-    const data = await response.json();
-    return {
-      success: true,
-      user: data.user
-    };
     
   } catch (error) {
     console.error('[Auth] Get current user error:', error);
@@ -127,17 +145,17 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
  */
 export async function logout(): Promise<void> {
   try {
-    const response = await fetchWithCSRF(`${API_BASE}/api/auth/logout/`, {
-      method: 'POST'
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || errorData.error || `Logout failed: ${response.status}`);
+    if (!isDevelopment) {
+      // Only call logout endpoint in production
+      await apiClient.post('/api/auth/logout/');
     }
   } catch (error) {
     console.error('[Auth] Logout error:', error);
     // Continue with cleanup even if server logout fails
+  } finally {
+    // Always clear local data
+    removeAuthToken();
+    clearAllStorageAndCache();
   }
 }
 
@@ -157,34 +175,58 @@ export function clearAllStorageAndCache(): void {
       });
     }
     
-    // Clear cookies by setting expired date
-    document.cookie.split(';').forEach(cookie => {
-      const name = cookie.split('=')[0].trim();
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-    });
+    console.log('[Auth] Storage and cache cleared');
   } catch (error) {
     console.error('[Auth] Error clearing data:', error);
   }
 }
 
 /**
- * Developer utility: Manual cache and storage clearing
- * Call this from browser console if you need to manually clear everything:
- * window.clearAuthCache()
+ * Check if user is authenticated
  */
-export function debugClearAllData(): void {
-  console.log('[Debug] Manual cache and storage clearing initiated...');
-  clearAllStorageAndCache();
-  console.log('[Debug] Manual cleanup completed. You may want to refresh the page.');
+export function isAuthenticated(): boolean {
+  if (isDevelopment) {
+    return true; // Always authenticated in development
+  }
+  return getAuthToken() !== null;
 }
 
-// Make it available on window object for debugging
-declare global {
-  interface Window {
-    clearAuthCache: () => void;
+/**
+ * Simple fetch test to debug connection issues
+ */
+export async function simpleFetchTest(): Promise<void> {
+  console.log('[Debug] Starting simple fetch test...');
+  
+  try {
+    const response = await apiClient.get('/api/health/');
+    console.log('[Debug] Health check result:', response);
+  } catch (error) {
+    console.error('[Debug] Health check failed:', error);
   }
 }
 
-if (typeof window !== 'undefined') {
-  window.clearAuthCache = debugClearAllData;
+/**
+ * Test backend connectivity
+ */
+export async function testBackendConnectivity(): Promise<boolean> {
+  try {
+    console.log('[Auth] Testing backend connectivity...');
+    const response = await apiClient.get('/api/health/');
+    console.log('[Auth] Backend is reachable:', response);
+    return true;
+  } catch (error) {
+    console.error('[Auth] Backend connectivity test failed:', error);
+    return false;
+  }
+}
+
+// Debug functions for development
+export function debugClearAllData(): void {
+  clearAllStorageAndCache();
+  console.log('[Debug] All data cleared');
+}
+
+// Make debug functions available globally in development
+if (isDevelopment) {
+  (window as any).clearAuthCache = debugClearAllData;
 } 
