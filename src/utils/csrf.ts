@@ -21,51 +21,45 @@ export function getCSRFToken(): string | null {
 
 let csrfPromise: Promise<string> | null = null;
 
-async function fetchCSRFToken(attempt: number): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/csrf/`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Accept': 'application/json',
-    }
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to get CSRF token: ${res.status}`);
-  }
-  
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
-  const token = getCSRFToken();
-  if (!token) {
-    throw new Error('CSRF token not found in cookies after fetch');
-  }
-  
-  return token;
-}
-
 export async function ensureCsrfCookie(): Promise<string> {
+  // Return existing promise if we're already fetching
   if (csrfPromise) {
     return csrfPromise;
   }
 
   csrfPromise = (async () => {
     try {
+      // First check if we already have a valid token
       const existingToken = getCSRFToken();
       if (existingToken) {
         return existingToken;
       }
 
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          return await fetchCSRFToken(attempt);
-        } catch (error) {
-          if (attempt === 2) throw error;
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt + 1) * 100));
+      // If no token, fetch a new one
+      const res = await fetch(`${API_BASE}/api/csrf/`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
         }
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to get CSRF token: ${res.status}`);
       }
       
-      throw new Error('Failed to get CSRF token after max retries');
+      const data = await res.json();
+      
+      // Wait a bit for the cookie to be set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Try to get token from response first, then cookie
+      const token = data.csrf_token || getCSRFToken();
+      if (!token) {
+        throw new Error('CSRF token not found in response or cookies');
+      }
+      
+      return token;
     } catch (error) {
       console.error('[CSRF] Error ensuring CSRF token:', error);
       throw error;
