@@ -16,37 +16,6 @@ import { Business } from '../types/business';
 import RelatedItemsList from '../components/ui/RelatedItemsList';
 import { BusinessValuation } from '../components/BusinessValuation';
 
-interface Business {
-  id: number;
-  name: string;
-  description?: string;
-  is_active: boolean;
-  sde?: number;
-  valuation_multiple?: number;
-  gross_valuation?: number;
-  sale_cost?: number;
-  net_cash_if_sold?: number;
-  tasks: Array<{
-    id: number;
-    description: string;
-    status?: string;
-    due?: string | null;
-    is_done?: boolean;
-  }>;
-  projects: Array<{
-    id: number;
-    title: string;
-    description?: string;
-    status?: string;
-  }>;
-  goals: Array<{
-    id: number;
-    title: string;
-    description?: string;
-    status?: string;
-  }>;
-}
-
 type SortField = 'due' | 'status';
 type SortDirection = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'completed';
@@ -105,7 +74,7 @@ const BusinessDetailPage: React.FC = () => {
     
     setIsUpdatingTask(taskId);
     try {
-      await axios.patch(`${API_BASE}/api/tasks/${taskId}/`, {
+      await apiClient.patch(`/api/tasks/${taskId}/`, {
         is_done: !currentStatus
       });
 
