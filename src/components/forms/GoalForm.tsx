@@ -1,9 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 
 interface GoalFormProps {
   isOpen: boolean;
@@ -65,10 +63,6 @@ const GoalForm: React.FC<GoalFormProps> = ({
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
-
-    const apiUrl = isEditMode && initialGoal
-      ? `${API_BASE}/api/goals/${initialGoal.id}/`
-      : `${API_BASE}/api/goals/`;
     
     const payload: any = { ...formData };
     // Remove optional fields if empty
@@ -79,35 +73,24 @@ const GoalForm: React.FC<GoalFormProps> = ({
       payload.target_date = payload.target_date.split('T')[0];
     }
 
-          try {
-        const response = isEditMode
-          ? await fetchWithCSRF(apiUrl, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(payload),
-            })
-          : await fetchWithCSRF(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(payload),
-            });
-            
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to ${isEditMode ? 'update' : 'create'} goal (${response.status})`);
-        }
-      
-      setSubmitSuccess(true);
-      const responseData = await response.json();
-      onGoalCreated(responseData); // Pass the created/updated goal back
-      if (!isEditMode) {
-        setFormData(initialFormData);
+    try {
+      let response;
+      if (isEditMode && initialGoal) {
+        response = await apiClient.patch(`/api/goals/${initialGoal.id}/`, payload);
+      } else {
+        response = await apiClient.post('/api/goals/', payload);
       }
-      setTimeout(() => { onClose(); }, 1500);
+      
+      if (response.status >= 200 && response.status < 300) {
+        setSubmitSuccess(true);
+        onGoalCreated(response.data); // Pass the created/updated goal back
+        if (!isEditMode) {
+          setFormData(initialFormData);
+        }
+        setTimeout(() => { onClose(); }, 1500);
+      } else {
+        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} goal (${response.status})`);
+      }
     } catch (err: any) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} goal:`, err);
       const errorMsg = err.message || `Failed to ${isEditMode ? 'update' : 'create'} goal.`;

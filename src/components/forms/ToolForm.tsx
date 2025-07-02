@@ -1,9 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 
 interface ToolFormProps {
   isOpen: boolean;
@@ -66,10 +64,6 @@ const ToolForm: React.FC<ToolFormProps> = ({
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
-
-    const apiUrl = initialTool && initialTool.id
-      ? `${API_BASE}/api/tools/${initialTool.id}/`
-      : `${API_BASE}/api/tools/`;
     
     const payload: any = { ...formData };
     // Remove optional fields if empty
@@ -81,35 +75,24 @@ const ToolForm: React.FC<ToolFormProps> = ({
       payload.last_used = payload.last_used.split('T')[0];
     }
 
-          try {
-        const response = isEditMode
-          ? await fetchWithCSRF(apiUrl, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(payload),
-            })
-          : await fetchWithCSRF(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(payload),
-            });
-            
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to ${isEditMode ? 'update' : 'create'} tool (${response.status})`);
-        }
-      
-      setSubmitSuccess(true);
-      const responseData = await response.json();
-      onToolCreated(responseData); // Pass the created/updated tool back
-      if (!isEditMode) {
-        setFormData(initialFormData);
+    try {
+      let response;
+      if (isEditMode && initialTool?.id) {
+        response = await apiClient.patch(`/api/tools/${initialTool.id}/`, payload);
+      } else {
+        response = await apiClient.post('/api/tools/', payload);
       }
-      setTimeout(() => { onClose(); }, 1500);
+      
+      if (response.status >= 200 && response.status < 300) {
+        setSubmitSuccess(true);
+        onToolCreated(response.data); // Pass the created/updated tool back
+        if (!isEditMode) {
+          setFormData(initialFormData);
+        }
+        setTimeout(() => { onClose(); }, 1500);
+      } else {
+        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} tool (${response.status})`);
+      }
     } catch (err: any) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} tool:`, err);
       const errorMsg = err.message || `Failed to ${isEditMode ? 'update' : 'create'} tool.`;

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, BuildingOffice2Icon } from '@heroicons/react/24/outline';
-import API_BASE from '../apiBase';
 
 // Interface for Business data
 interface Business {
@@ -12,12 +11,6 @@ interface Business {
   is_active?: boolean;
 }
 
-// Fallback data for development
-const fallbackBusinesses: Business[] = [
-    { id: 1, name: "Acme Corporation", description: "Leading provider of innovative solutions." },
-    { id: 2, name: "Globex Inc.", description: "Pioneering advancements in technology." },
-];
-
 const BusinessList: React.FC = () => {
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -26,15 +19,13 @@ const BusinessList: React.FC = () => {
 
   useEffect(() => {
     const fetchBusinesses = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const response = await axios.get(`${API_BASE}/api/businesses/`);
-        setBusinesses(response.data || []);
-      } catch (err) {
-        console.error("Error fetching businesses:", err);
-        setError("Failed to load businesses. Displaying sample data.");
-        setBusinesses(fallbackBusinesses);
+        setLoading(true);
+        const response = await apiClient.get('/api/businesses/');
+        setBusinesses(response.data);
+      } catch (error) {
+        console.error('Error fetching businesses:', error);
+        setError('Failed to load businesses');
       } finally {
         setLoading(false);
       }

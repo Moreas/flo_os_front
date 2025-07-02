@@ -1,10 +1,8 @@
 import React, { Fragment, useState, useEffect } from 'react';
-import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 import { Habit } from '../../types/habit';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
 
 interface HabitFormProps {
   isOpen: boolean;
@@ -130,46 +128,24 @@ const HabitForm: React.FC<HabitFormProps> = ({
     try {
       console.log('Sending habit data:', formData);
 
+      let response;
       if (isEditMode && initialHabit) {
-        const response = await fetchWithCSRF(`${API_BASE}/api/habits/${initialHabit.id}/`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to update habit (${response.status})`);
-        }
+        response = await apiClient.put(`/api/habits/${initialHabit.id}/`, formData);
       } else {
-        const response = await fetchWithCSRF(`${API_BASE}/api/habits/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to create habit (${response.status})`);
-        }
-        
-        const responseData = await response.json();
-        console.log('API Response:', responseData);
+        response = await apiClient.post('/api/habits/', formData);
       }
-      onHabitCreated();
-      onClose();
+      
+      if (response.status >= 200 && response.status < 300) {
+        console.log('API Response:', response.data);
+        onHabitCreated();
+        onClose();
+      } else {
+        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} habit (${response.status})`);
+      }
     } catch (err: unknown) {
       console.error('Error saving habit:', err);
-      if (axios.isAxiosError(err) && err.response) {
-        console.error('API Error Response:', err.response.data);
-        setError(`Failed to save habit: ${err.response.data.message || err.response.data.detail || 'Please try again.'}`);
-      } else {
-        setError('Failed to save habit. Please try again.');
-      }
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save habit. Please try again.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

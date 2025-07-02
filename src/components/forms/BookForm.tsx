@@ -1,8 +1,7 @@
 import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 import { Book } from '../../types/book';
 
 interface BookFormProps {
@@ -79,25 +78,27 @@ const BookForm: React.FC<BookFormProps> = ({
     setSubmitError(null);
     setSubmitSuccess(false);
 
-    const apiUrl = isEditMode 
-      ? `${API_BASE}/api/books/${initialBook?.id}/`
-      : `${API_BASE}/api/books/`;
-    const apiMethod = isEditMode ? 'put' : 'post';
-
     try {
-      await axios({ method: apiMethod, url: apiUrl, data: formData });
-
-      setSubmitSuccess(true);
-      onBookCreated();
-      
-      if (!isEditMode) {
-        setFormData(initialFormData);
+      if (isEditMode) {
+        const response = await apiClient.put(`/api/books/${initialBook?.id}/`, formData);
+        if (response.status >= 200 && response.status < 300) {
+          setSubmitSuccess(true);
+          onBookCreated();
+          setTimeout(() => { onClose(); }, 1500);
+        } else {
+          throw new Error(`Failed to update book (${response.status})`);
+        }
+      } else {
+        const response = await apiClient.post('/api/books/', formData);
+        if (response.status >= 200 && response.status < 300) {
+          setSubmitSuccess(true);
+          onBookCreated();
+          setFormData(initialFormData);
+          setTimeout(() => { onClose(); }, 1500);
+        } else {
+          throw new Error(`Failed to create book (${response.status})`);
+        }
       }
-
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-
     } catch (err: unknown) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} book:`, err);
       const errorMsg = err instanceof Error ? err.message : 

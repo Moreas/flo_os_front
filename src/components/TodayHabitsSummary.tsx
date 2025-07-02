@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { 
   CheckCircleIcon, 
   ClockIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import API_BASE from '../apiBase';
 import { TrackingSummary, PendingHabit } from '../types/habit';
 
 interface TodayHabitsSummaryProps {
@@ -25,8 +24,8 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       const [summaryRes, pendingRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/habits/tracking_summary/?start_date=${today}&end_date=${today}`),
-        axios.get(`${API_BASE}/api/habits/pending_for_date/?date=${today}`)
+        apiClient.get(`/api/habits/tracking_summary/?start_date=${today}&end_date=${today}`),
+        apiClient.get(`/api/habits/pending_for_date/?date=${today}`)
       ]);
       
       setTrackingSummary(summaryRes.data || []);

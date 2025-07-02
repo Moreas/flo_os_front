@@ -1,8 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 import { useRefresh } from '../../contexts/RefreshContext';
 import MentionInput from '../ui/MentionInput';
 import { JournalEntry } from '../../types/journal';
@@ -106,36 +105,27 @@ const JournalForm: React.FC<JournalFormProps> = ({
       tags: formData.tags,
     };
 
-    const apiUrl = initialEntry?.id
-      ? `${API_BASE}/api/journal_entries/${initialEntry.id}/`
-      : `${API_BASE}/api/journal_entries/`;
-
     try {
-      const response = await fetchWithCSRF(apiUrl, {
-        method: isEditMode ? 'PATCH' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to ${isEditMode ? 'update' : 'create'} journal entry.`);
+      let response;
+      if (initialEntry?.id && isEditMode) {
+        response = await apiClient.patch(`/api/journal_entries/${initialEntry.id}/`, payload);
+      } else {
+        response = await apiClient.post('/api/journal_entries/', payload);
       }
       
-      const data = await response.json();
-      setSubmitSuccess(true);
-      if (isEditMode && onJournalEntryUpdated) onJournalEntryUpdated(data);
-      else onJournalEntryCreated();
-      refreshJournal();
-      setTimeout(() => onClose(), 1500);
+      if (response.status >= 200 && response.status < 300) {
+        setSubmitSuccess(true);
+        if (isEditMode && onJournalEntryUpdated) onJournalEntryUpdated(response.data);
+        else onJournalEntryCreated();
+        refreshJournal();
+        setTimeout(() => onClose(), 1500);
+      } else {
+        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} journal entry (${response.status})`);
+      }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error 
         ? err.message 
-        : err && typeof err === 'object' && 'response' in err
-          ? (err.response as any)?.data?.detail || JSON.stringify((err.response as any)?.data)
-          : `Failed to ${isEditMode ? 'update' : 'create'} journal entry.`;
+        : `Failed to ${isEditMode ? 'update' : 'create'} journal entry.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);

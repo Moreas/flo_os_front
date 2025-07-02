@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, FlagIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import GoalForm from './forms/GoalForm';
 import { Link } from 'react-router-dom';
-import API_BASE from '../apiBase';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
 
 // Interface for Goal data
 interface Goal {
@@ -26,14 +24,13 @@ const GoalList: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchGoals = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/goals/`);
-      setGoals(response.data || []);
-    } catch (err) {
-      console.error("Error fetching goals:", err);
-      setError("Failed to load goals.");
+      setLoading(true);
+      const response = await apiClient.get('/api/goals/');
+      setGoals(response.data);
+    } catch (error) {
+      console.error('Error fetching goals:', error);
+      setError('Failed to load goals');
     } finally {
       setLoading(false);
     }
@@ -51,20 +48,14 @@ const GoalList: React.FC = () => {
   const handleDelete = async (goalId: number) => {
     if (!window.confirm('Are you sure you want to delete this goal?')) return;
     
-          try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/goals/${goalId}/`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to delete goal (${response.status})`);
-        }
-        
+    try {
+      const response = await apiClient.delete(`/api/goals/${goalId}/`);
+      
+      if (response.status >= 200 && response.status < 300) {
         setGoals(goals.filter(goal => goal.id !== goalId));
+      } else {
+        throw new Error(`Failed to delete goal (${response.status})`);
+      }
     } catch (err) {
       console.error("Error deleting goal:", err);
       setDeleteError("Failed to delete goal. Please try again.");

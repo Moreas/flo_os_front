@@ -1,9 +1,7 @@
 import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 
 interface ProjectFormProps {
   isOpen: boolean;
@@ -67,12 +65,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProje
       setBusinessError(null);
       try {
         const [catResponse, bizResponse] = await Promise.all([
-          axios.get(`${API_BASE}/api/categories/`).catch(err => {
+          apiClient.get('/api/categories/').catch(err => {
             console.error('Error fetching categories:', err);
             setCategoryError('Failed to load categories. Select later if needed.');
             return { data: [] };
           }),
-          axios.get(`${API_BASE}/api/businesses/`).catch(err => {
+          apiClient.get('/api/businesses/').catch(err => {
             console.error('Error fetching businesses:', err);
             setBusinessError('Failed to load businesses. Select later if needed.');
             return { data: [] };
@@ -135,38 +133,22 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProje
       business_id: selectedBusiness ? parseInt(selectedBusiness) : null,
       tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
     };
-          try {
-        if (isEditMode && initialProject) {
-          const response = await fetchWithCSRF(`${API_BASE}/api/projects/${initialProject.id}/`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(projectData),
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to update project (${response.status})`);
-          }
-          
+    try {
+      if (isEditMode && initialProject) {
+        const response = await apiClient.put(`/api/projects/${initialProject.id}/`, projectData);
+        if (response.status >= 200 && response.status < 300) {
           if (onProjectUpdated) onProjectUpdated();
         } else {
-          const response = await fetchWithCSRF(`${API_BASE}/api/projects/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(projectData),
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to create project (${response.status})`);
-          }
-          
-          onClose();
+          throw new Error(`Update failed with status ${response.status}`);
         }
+      } else {
+        const response = await apiClient.post('/api/projects/', projectData);
+        if (response.status >= 200 && response.status < 300) {
+          onClose();
+        } else {
+          throw new Error(`Creation failed with status ${response.status}`);
+        }
+      }
     } catch (err: any) {
       let errorMsg = 'Failed to save project. Please try again.';
       if (err.response?.data) {

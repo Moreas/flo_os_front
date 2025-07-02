@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
+import { apiClient } from '../api/apiConfig';
 import { 
   CheckCircleIcon, 
   XCircleIcon,
@@ -9,7 +8,6 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import API_BASE from '../apiBase';
 import { PendingHabit } from '../types/habit';
 
 interface QuickHabitTrackerProps {
@@ -31,7 +29,7 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
     setError(null);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const response = await axios.get(`${API_BASE}/api/habits/pending_for_date/?date=${today}`);
+      const response = await apiClient.get(`/api/habits/pending_for_date/?date=${today}`);
       setPendingHabits(response.data || []);
     } catch (err: unknown) {
       console.error("Error fetching pending habits:", err);
@@ -54,37 +52,31 @@ const QuickHabitTracker: React.FC<QuickHabitTrackerProps> = ({ onUpdate }) => {
   const handleSubmitWithNotes = async () => {
     if (!selectedHabit) return;
     
-    setUpdatingHabitId(selectedHabit.id);
     try {
+      setUpdatingHabitId(selectedHabit.id);
+      
       const today = format(new Date(), 'yyyy-MM-dd');
-      const endpoint = completionType === 'completed' 
-        ? `${API_BASE}/api/habits/${selectedHabit.id}/mark_completed/`
-        : `${API_BASE}/api/habits/${selectedHabit.id}/mark_not_completed/`;
+      const endpoint = completionType === 'completed'
+        ? `/api/habits/${selectedHabit.id}/mark_completed/`
+        : `/api/habits/${selectedHabit.id}/mark_not_completed/`;
       
-              const response = await fetchWithCSRF(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: today,
-            notes: notes.trim() || null
-          })
-        });
+      const response = await apiClient.post(endpoint, {
+        date: today,
+        notes: notes.trim() || null
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        setShowNotesModal(false);
+        setSelectedHabit(null);
+        setNotes('');
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to mark habit (${response.status})`);
-        }
-      
-      setShowNotesModal(false);
-      setSelectedHabit(null);
-      setNotes('');
-      
-      await fetchPendingHabits();
-      if (onUpdate) onUpdate();
-    } catch (err) {
-      console.error("Error marking habit:", err);
+        await fetchPendingHabits();
+        if (onUpdate) onUpdate();
+      } else {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error marking habit:", error);
       setError("Failed to mark habit.");
       setTimeout(() => setError(null), 3000);
     } finally {

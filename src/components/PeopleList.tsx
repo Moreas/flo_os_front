@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
+import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, UserCircleIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import PersonForm from './forms/PersonForm';
-import API_BASE from '../apiBase';
 
 // Interface for Person data - should match definition in PeoplePage or a shared types file
 interface Person {
@@ -29,19 +27,13 @@ const PeopleList: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchPeople = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/people/`);
-      setPeople(response.data || []);
-      if (response.data && Array.isArray(response.data)) {
-        response.data.forEach(person => {
-          console.log('Person:', person);
-        });
-      }
-    } catch (err: unknown) {
-      console.error("Error fetching people:", err);
-      setError("Failed to load people.");
+      setLoading(true);
+      const response = await apiClient.get('/api/people/');
+      setPeople(response.data);
+    } catch (error) {
+      console.error('Error fetching people:', error);
+      setError('Failed to load people');
     } finally {
       setLoading(false);
     }
@@ -57,24 +49,22 @@ const PeopleList: React.FC = () => {
   };
 
   const handleDelete = async (personId: number) => {
-    if (!window.confirm('Are you sure you want to delete this person?')) return;
-    
-          try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/people/${personId}/`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to delete person (${response.status})`);
-        }
-        
+    if (!window.confirm('Are you sure you want to delete this person?')) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.delete(`/api/people/${personId}/`);
+
+      if (response.status >= 200 && response.status < 300) {
         setPeople(people.filter(person => person.id !== personId));
-    } catch (err: unknown) {
-      console.error("Error deleting person:", err);
+        setDeleteError(null);
+      } else {
+        const errorData = response.data;
+        throw new Error(errorData?.detail || `Failed to delete person (${response.status})`);
+      }
+    } catch (error) {
+      console.error('Error deleting person:', error);
       setDeleteError("Failed to delete person. Please try again.");
       setTimeout(() => setDeleteError(null), 3000);
     }

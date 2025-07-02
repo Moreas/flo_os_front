@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
+import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import API_BASE from '../apiBase';
 import BookForm from './forms/BookForm';
 import { Book, Chapter } from '../types/book';
 
@@ -13,28 +11,27 @@ const BookList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const fetchBooks = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = async () => {
     try {
+      setLoading(true);
       const [booksRes, chaptersRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/books/`),
-        axios.get(`${API_BASE}/api/chapters/`)
+        apiClient.get('/api/books/'),
+        apiClient.get('/api/chapters/')
       ]);
-      setBooks(booksRes.data || []);
-      setChapters(chaptersRes.data || []);
-    } catch (err: unknown) {
-      console.error("Error fetching books:", err);
-      setError("Failed to load books.");
+      
+      setBooks(booksRes.data);
+      setChapters(chaptersRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Failed to load books data');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBooks();
+    fetchData();
   }, []);
 
   const handleEdit = (book: Book) => {
@@ -43,31 +40,24 @@ const BookList: React.FC = () => {
   };
 
   const handleDelete = async (bookId: number) => {
-    if (!window.confirm('Are you sure you want to delete this book?')) return;
-    
-          try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/books/${bookId}/`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to delete book (${response.status})`);
-        }
-        
+    try {
+      const response = await apiClient.delete(`/api/books/${bookId}/`);
+      
+      if (response.status >= 200 && response.status < 300) {
         setBooks(books.filter(book => book.id !== bookId));
-    } catch (err: unknown) {
-      console.error("Error deleting book:", err);
-      setDeleteError("Failed to delete book. Please try again.");
-      setTimeout(() => setDeleteError(null), 3000);
+      } else {
+        const errorData = response.data;
+        console.error('Delete failed:', errorData);
+        alert('Failed to delete book: ' + (errorData?.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting book:', error);
+      alert('Failed to delete book');
     }
   };
 
   const handleBookUpdated = () => {
-    fetchBooks();
+    fetchData();
     setIsEditModalOpen(false);
     setSelectedBook(null);
   };
@@ -101,13 +91,6 @@ const BookList: React.FC = () => {
         <div className="flex items-center p-3 text-sm text-red-700 bg-red-50 rounded-md border border-red-200">
           <ExclamationTriangleIcon className="w-5 h-5 mr-2" />
           {error}
-        </div>
-      )}
-
-      {deleteError && (
-        <div className="flex items-center p-3 text-sm text-red-700 bg-red-50 rounded-md border border-red-200">
-          <ExclamationTriangleIcon className="w-5 h-5 mr-2" />
-          {deleteError}
         </div>
       )}
 

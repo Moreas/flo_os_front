@@ -1,8 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 
 interface BusinessFormProps {
   isOpen: boolean;
@@ -55,24 +54,20 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
     setSubmitError(null);
     setSubmitSuccess(false);
 
-    const apiUrl = `${API_BASE}/api/businesses/`;
-    const apiMethod = 'post';
-
     try {
-      await axios({ method: apiMethod, url: apiUrl, data: formData });
-
-      setSubmitSuccess(true);
-      onBusinessCreated();
+      const response = await apiClient.post('/api/businesses/', formData);
       
-      setFormData(initialFormData); // Clear form
-
-      setTimeout(() => {
-          onClose();
-      }, 1500);
-
+      if (response.status >= 200 && response.status < 300) {
+        setSubmitSuccess(true);
+        onBusinessCreated();
+        setFormData(initialFormData); // Clear form
+        setTimeout(() => { onClose(); }, 1500);
+      } else {
+        throw new Error(`Failed to create business (${response.status})`);
+      }
     } catch (err: any) {
       console.error(`Error creating business:`, err);
-      const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || `Failed to create business.`;
+      const errorMsg = err.message || `Failed to create business.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);

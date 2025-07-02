@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { apiClient } from '../../api/apiConfig';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
-import API_BASE from '../../apiBase';
 
 interface Person {
   id: number;
@@ -36,12 +35,13 @@ const MentionInput: React.FC<MentionInputProps> = ({
   useEffect(() => {
     const fetchPeople = async () => {
       try {
-        const response = await axios.get(`${API_BASE}/api/people/`);
-        setPeople(response.data || []);
-      } catch (err) {
-        console.error("Error fetching people:", err);
+        const response = await apiClient.get('/api/people/');
+        setPeople(response.data);
+      } catch (error) {
+        console.error('Error fetching people:', error);
       }
     };
+
     fetchPeople();
   }, []);
 

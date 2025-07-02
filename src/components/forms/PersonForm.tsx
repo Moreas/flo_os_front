@@ -1,8 +1,7 @@
 import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 
 interface Person {
   id: number;
@@ -80,18 +79,23 @@ const PersonForm: React.FC<PersonFormProps> = ({
     setError(null);
 
     try {
-      const url = isEditMode
-        ? `${API_BASE}/api/people/${initialPerson?.id}/`
-        : `${API_BASE}/api/people/`;
+      let response;
+      if (isEditMode && initialPerson?.id) {
+        response = await apiClient.put(`/api/people/${initialPerson.id}/`, formData);
+      } else {
+        response = await apiClient.post('/api/people/', formData);
+      }
       
-      const method = isEditMode ? 'put' : 'post';
-      
-      const response = await axios[method](url, formData);
-      onPersonCreated(response.data);
-      onClose();
+      if (response.status >= 200 && response.status < 300) {
+        onPersonCreated(response.data);
+        onClose();
+      } else {
+        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} person (${response.status})`);
+      }
     } catch (err: unknown) {
       console.error("Error saving person:", err);
-      setError("Failed to save person. Please try again.");
+      const errorMsg = err instanceof Error ? err.message : "Failed to save person. Please try again.";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

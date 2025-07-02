@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { 
   CheckCircleIcon, 
   XCircleIcon, 
@@ -9,7 +8,6 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import API_BASE from '../apiBase';
 import { Habit, HabitStatusForDate } from '../types/habit';
 
 interface HabitTrackerProps {
@@ -30,8 +28,8 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       const [habitRes, statusRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/habits/${habitId}/`),
-        axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${today}`)
+        apiClient.get(`/api/habits/${habitId}/`),
+        apiClient.get(`/api/habits/${habitId}/status_for_date/?date=${today}`)
       ]);
       
       setHabit(habitRes.data);
@@ -57,31 +55,24 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ habitId, onUpdate }) => {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       const endpoint = type === 'completed' 
-        ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
-        : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
+        ? `/api/habits/${habitId}/mark_completed/`
+        : `/api/habits/${habitId}/mark_not_completed/`;
       
-      const response = await fetchWithCSRF(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: today,
-          notes: null
-        })
+      const response = await apiClient.post(endpoint, {
+        date: today,
+        notes: null
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to update habit (${response.status})`);
-      }
-      
-      // Refresh the status
-      const statusRes = await axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${today}`);
-      setTodayStatus(statusRes.data);
-      
-      if (onUpdate) {
-        onUpdate();
+      if (response.status >= 200 && response.status < 300) {
+        // Refresh the status
+        const statusRes = await apiClient.get(`/api/habits/${habitId}/status_for_date/?date=${today}`);
+        setTodayStatus(statusRes.data);
+        
+        if (onUpdate) {
+          onUpdate();
+        }
+      } else {
+        throw new Error(`Failed to update habit (${response.status})`);
       }
     } catch (err) {
       console.error("Error updating habit completion:", err);

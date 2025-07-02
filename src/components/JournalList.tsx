@@ -1,12 +1,10 @@
 import React, { useState, useEffect, Fragment, useCallback } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon, ExclamationCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { format, parseISO } from 'date-fns';
-import API_BASE from '../apiBase';
 import JournalForm from './forms/JournalForm';
 import { JournalEntry } from '../types/journal';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
 
 // Define emotions and their corresponding emojis
 const emotionsMap: { [key: string]: string } = {
@@ -42,22 +40,22 @@ const JournalList: React.FC = () => {
   const [editEntry, setEditEntry] = useState<JournalEntry | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchEntries = async () => {
+  const fetchJournalEntries = async () => {
+    try {
       setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get(`${API_BASE}/api/journal_entries/`);
-        setEntries(response.data || []);
-      } catch (err) {
-        console.error("Error fetching journal entries:", err);
-        setError("Failed to load journal entries. Displaying sample data.");
-        setEntries(fallbackEntries);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchEntries();
+      const response = await apiClient.get('/api/journal_entries/');
+      setEntries(response.data || []);
+    } catch (error) {
+      console.error('Error fetching journal entries:', error);
+      setError('Failed to load journal entries');
+      setEntries(fallbackEntries);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJournalEntries();
   }, []);
   
   // Delete Modal Handlers
@@ -81,22 +79,16 @@ const JournalList: React.FC = () => {
       setIsDeleting(true);
       setDeleteError(null);
       try {
-          const response = await fetchWithCSRF(`${API_BASE}/api/journal_entries/${entryToDeleteId}/`, {
-              method: 'DELETE',
-              headers: {
-                  'Content-Type': 'application/json',
-              }
-          });
+          const response = await apiClient.delete(`/api/journal_entries/${entryToDeleteId}/`);
           
-          if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              throw new Error(errorData.detail || `Failed to delete entry (${response.status})`);
+          if (response.status >= 200 && response.status < 300) {
+              // Remove entry from local state on success
+              setEntries(currentEntries => currentEntries.filter(entry => entry.id !== entryToDeleteId));
+              closeConfirmModal();
+              console.log(`Journal entry ${entryToDeleteId} deleted.`);
+          } else {
+              throw new Error(`Failed to delete entry (${response.status})`);
           }
-          
-          // Remove entry from local state on success
-          setEntries(currentEntries => currentEntries.filter(entry => entry.id !== entryToDeleteId));
-          closeConfirmModal();
-          console.log(`Journal entry ${entryToDeleteId} deleted.`);
       } catch (err: any) {
           console.error("Error deleting journal entry:", err);
           const errorMsg = err.message || 'Failed to delete entry.';

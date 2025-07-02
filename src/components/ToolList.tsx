@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
+import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, WrenchIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ToolForm from './forms/ToolForm';
-import API_BASE from '../apiBase';
 
 // Interface for Tool data
 interface Tool {
@@ -21,17 +19,15 @@ const ToolList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchTools = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/api/tools/`);
-      setTools(response.data || []);
-    } catch (err) {
-      console.error("Error fetching tools:", err);
-      setError("Failed to load tools.");
+      setLoading(true);
+      const response = await apiClient.get('/api/tools/');
+      setTools(response.data);
+    } catch (error) {
+      console.error('Error fetching tools:', error);
+      setError('Failed to load tools');
     } finally {
       setLoading(false);
     }
@@ -49,24 +45,19 @@ const ToolList: React.FC = () => {
   const handleDelete = async (toolId: number) => {
     if (!window.confirm('Are you sure you want to delete this tool?')) return;
     
-          try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/tools/${toolId}/`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to delete tool (${response.status})`);
-        }
-        
+    try {
+      const response = await apiClient.delete(`/api/tools/${toolId}/`);
+      
+      if (response.status >= 200 && response.status < 300) {
         setTools(tools.filter(tool => tool.id !== toolId));
-    } catch (err) {
-      console.error("Error deleting tool:", err);
-      setDeleteError("Failed to delete tool. Please try again.");
-      setTimeout(() => setDeleteError(null), 3000);
+      } else {
+        const errorData = response.data;
+        console.error('Delete failed:', errorData);
+        alert('Failed to delete tool: ' + (errorData?.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting tool:', error);
+      alert('Failed to delete tool');
     }
   };
 
@@ -110,13 +101,6 @@ const ToolList: React.FC = () => {
         <div className="flex items-center p-3 text-sm text-red-700 bg-red-50 rounded-md border border-red-200">
           <ExclamationTriangleIcon className="w-5 h-5 mr-2" />
           {error}
-        </div>
-      )}
-
-      {deleteError && (
-        <div className="flex items-center p-3 text-sm text-red-700 bg-red-50 rounded-md border border-red-200">
-          <ExclamationTriangleIcon className="w-5 h-5 mr-2" />
-          {deleteError}
         </div>
       )}
 

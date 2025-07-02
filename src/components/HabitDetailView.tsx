@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { fetchWithCSRF } from '../api/fetchWithCreds';
+import { apiClient } from '../api/apiConfig';
 import { 
   ArrowPathIcon, 
   ExclamationTriangleIcon, 
@@ -15,7 +14,6 @@ import {
   MinusIcon
 } from '@heroicons/react/24/outline';
 import { format, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, subDays } from 'date-fns';
-import API_BASE from '../apiBase';
 import HabitForm from './forms/HabitForm';
 import { Habit, HabitInstance, HabitTrackingStatus } from '../types/habit';
 
@@ -42,7 +40,7 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
   const getStatusForDate = useCallback(async (date: Date): Promise<'completed' | 'not_completed' | 'pending' | 'not_tracked'> => {
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const response = await axios.get(`${API_BASE}/api/habits/${habitId}/status_for_date/?date=${dateStr}`);
+      const response = await apiClient.get(`/api/habits/${habitId}/status_for_date/?date=${dateStr}`);
       return response.data.status;
     } catch (err) {
       console.error("Error fetching status for date:", date, err);
@@ -93,9 +91,9 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
       const endDate = format(endOfWeek(selectedDate), 'yyyy-MM-dd');
       
       const [habitRes, instancesRes, trackingRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/habits/${habitId}/`),
-        axios.get(`${API_BASE}/api/habit-instances/?habit_id=${habitId}`),
-        axios.get(`${API_BASE}/api/habits/${habitId}/tracking_status/?start_date=${startDate}&end_date=${endDate}`)
+        apiClient.get(`/api/habits/${habitId}/`),
+        apiClient.get(`/api/habit-instances/?habit_id=${habitId}`),
+        apiClient.get(`/api/habits/${habitId}/tracking_status/?start_date=${startDate}&end_date=${endDate}`)
       ]);
       
       setHabit(habitRes.data);
@@ -152,19 +150,13 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
     if (!habit || !window.confirm('Are you sure you want to delete this habit?')) return;
     
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/habits/${habit.id}/`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      const response = await apiClient.delete(`/api/habits/${habit.id}/`);
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to delete habit (${response.status})`);
+      if (response.status >= 200 && response.status < 300) {
+        if (onBack) onBack();
+      } else {
+        throw new Error(`Failed to delete habit (${response.status})`);
       }
-      
-      if (onBack) onBack();
     } catch (err: unknown) {
       console.error("Error deleting habit:", err);
       setError("Failed to delete habit. Please try again.");
@@ -190,48 +182,37 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
         // If instance exists, toggle its completion status
         const newCompleted = !existingInstance.completed;
         const endpoint = newCompleted 
-          ? `${API_BASE}/api/habits/${habitId}/mark_completed/`
-          : `${API_BASE}/api/habits/${habitId}/mark_not_completed/`;
+          ? `/api/habits/${habitId}/mark_completed/`
+          : `/api/habits/${habitId}/mark_not_completed/`;
         
-        const response = await fetchWithCSRF(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: dateStr,
-            notes: existingInstance.notes || null
-          })
+        const response = await apiClient.post(endpoint, {
+          date: dateStr,
+          notes: existingInstance.notes || null
         });
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to update habit (${response.status})`);
+        if (response.status >= 200 && response.status < 300) {
+          // Refresh data after successful update
+          await fetchHabitData();
+        } else {
+          throw new Error(`Failed to update habit (${response.status})`);
         }
       } else {
-        // Create new instance as completed
-        const response = await fetchWithCSRF(`${API_BASE}/api/habits/${habitId}/mark_completed/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: dateStr,
-            notes: null
-          })
+        // Create new completed instance
+        const response = await apiClient.post(`/api/habits/${habitId}/mark_completed/`, {
+          date: dateStr,
+          notes: null
         });
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Failed to mark habit as completed (${response.status})`);
+        if (response.status >= 200 && response.status < 300) {
+          // Refresh data after successful creation
+          await fetchHabitData();
+        } else {
+          throw new Error(`Failed to create habit instance (${response.status})`);
         }
       }
-      
-      // Refresh the progress data to show updated colors
-      await updateProgressData(instances, trackingStatus);
-    } catch (err) {
-      console.error("Error updating habit instance:", err);
-      setError("Failed to update habit completion.");
+    } catch (err: unknown) {
+      console.error("Error toggling habit completion:", err);
+      setError("Failed to update habit. Please try again.");
       setTimeout(() => setError(null), 3000);
     } finally {
       setUpdatingInstance(null);
@@ -240,27 +221,27 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
 
   const updateInstanceNote = async (instanceId: number, notes: string) => {
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/habit-instances/${instanceId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ notes })
+      const response = await apiClient.put(`/api/habit-instances/${instanceId}/`, {
+        notes: notes
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to update note (${response.status})`);
+      if (response.status >= 200 && response.status < 300) {
+        // Update local state
+        setInstances(prev => 
+          prev.map(inst => 
+            inst.id === instanceId 
+              ? { ...inst, notes: notes }
+              : inst
+          )
+        );
+        setShowNotes(null);
+        setNewNote('');
+      } else {
+        throw new Error(`Failed to update notes (${response.status})`);
       }
-      
-      setInstances(prev => prev.map(instance => 
-        instance.id === instanceId ? { ...instance, notes } : instance
-      ));
-      setShowNotes(null);
-      setNewNote('');
-    } catch (err) {
-      console.error("Error updating note:", err);
-      setError("Failed to update note.");
+    } catch (err: unknown) {
+      console.error("Error updating instance note:", err);
+      setError("Failed to update notes. Please try again.");
       setTimeout(() => setError(null), 3000);
     }
   };

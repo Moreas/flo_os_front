@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'; // For loading/error
-import API_BASE from '../../apiBase';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
+import { apiClient } from '../../api/apiConfig';
 
 // Interface for mood data from the API
 interface MoodEntry {
@@ -48,14 +47,15 @@ const MoodTracker: React.FC = () => {
 
   useEffect(() => {
     const fetchMoodData = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/moods/`);
-        if (!response.ok) throw new Error(`Failed to fetch mood data: ${response.status}`);
-        const data: MoodEntry[] = await response.json();
+        setLoading(true);
+        setError(null);
+        const response = await apiClient.get('/api/moods/');
         
-        const mappedData: (ChartData | null)[] = data.map(entry => {
+        if (response.status >= 200 && response.status < 300) {
+          const data: MoodEntry[] = response.data;
+          
+          const mappedData: (ChartData | null)[] = data.map(entry => {
             if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
               console.warn('Skipping mood entry due to missing or invalid created_at:', entry);
               return null; 
@@ -78,15 +78,18 @@ const MoodTracker: React.FC = () => {
             }
           });
           
-        // Filter out nulls using a type guard
-        const filteredData: ChartData[] = mappedData.filter(
+          // Filter out nulls using a type guard
+          const filteredData: ChartData[] = mappedData.filter(
             (item): item is ChartData => item !== null
-        );
+          );
 
-        setMoodData(filteredData);
-      } catch (err) {
-        console.error("Error fetching mood data:", err);
-        setError("Failed to load mood data. Please try again later.");
+          setMoodData(filteredData);
+        } else {
+          throw new Error(`Failed to fetch mood data: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Error fetching mood data:', error);
+        setError('Failed to load mood data');
       } finally {
         setLoading(false);
       }

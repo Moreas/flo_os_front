@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import API_BASE from '../../apiBase';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
+import { apiClient } from '../../api/apiConfig';
 
 // Interface for energy data from the API
 interface EnergyEntry {
@@ -51,14 +50,15 @@ const EnergyTracker: React.FC = () => {
 
   useEffect(() => {
     const fetchEnergyData = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const response = await fetchWithCSRF(`${API_BASE}/api/energy/`);
-        if (!response.ok) throw new Error(`Failed to fetch energy data: ${response.status}`);
-        const data: EnergyEntry[] = await response.json();
+        setLoading(true);
+        setError(null);
+        const response = await apiClient.get('/api/energy/');
         
-        const mappedData: (ChartData | null)[] = data.map(entry => {
+        if (response.status >= 200 && response.status < 300) {
+          const data: EnergyEntry[] = response.data;
+          
+          const mappedData: (ChartData | null)[] = data.map(entry => {
             if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
               console.warn('Skipping energy entry due to missing or invalid created_at:', entry);
               return null; 
@@ -81,15 +81,18 @@ const EnergyTracker: React.FC = () => {
             }
           });
           
-        // Filter out nulls using a type guard
-        const filteredData: ChartData[] = mappedData.filter(
+          // Filter out nulls using a type guard
+          const filteredData: ChartData[] = mappedData.filter(
             (item): item is ChartData => item !== null
-        );
+          );
 
-        setEnergyData(filteredData);
-      } catch (err) {
-        console.error("Error fetching energy data:", err);
-        setError("Failed to load energy data. Please try again later.");
+          setEnergyData(filteredData);
+        } else {
+          throw new Error(`Failed to fetch energy data: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Error fetching energy data:', error);
+        setError('Failed to load energy data');
       } finally {
         setLoading(false);
       }

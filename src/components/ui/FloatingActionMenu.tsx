@@ -2,8 +2,7 @@ import React, { Fragment, useState, useCallback } from 'react';
 import { Dialog, Transition, Popover } from '@headlessui/react';
 import { PlusIcon, XMarkIcon, ArrowPathIcon, ExclamationCircleIcon, CheckCircleIcon, PencilSquareIcon, BookOpenIcon, FaceSmileIcon, BoltIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
-import { fetchWithCSRF } from '../../api/fetchWithCreds';
-import API_BASE from '../../apiBase';
+import { apiClient } from '../../api/apiConfig';
 import MentionInput from './MentionInput';
 import { useTaskRefresh } from '../../contexts/TaskRefreshContext';
 
@@ -97,25 +96,21 @@ const FloatingActionMenu: React.FC = () => {
     setSubmitTaskError(null);
     setSubmitTaskSuccess(false);
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/quick_task/`, { 
-        method: 'POST',
-        body: JSON.stringify({ 
-          text: quickTaskInput,
-          responsible_ids: selectedTaskPersonIds,
-          impacted_ids: selectedTaskPersonIds
-        })
+      const response = await apiClient.post('/api/quick_task/', { 
+        text: quickTaskInput,
+        responsible_ids: selectedTaskPersonIds,
+        impacted_ids: selectedTaskPersonIds
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to create task (${response.status})`);
+      if (response.status >= 200 && response.status < 300) {
+        setSubmitTaskSuccess(true);
+        setQuickTaskInput('');
+        setSelectedTaskPersonIds([]);
+        refreshTasks();
+        setTimeout(() => { closeTaskModal(); }, 1000);
+      } else {
+        throw new Error(`Failed to create task (${response.status})`);
       }
-      
-      setSubmitTaskSuccess(true);
-      setQuickTaskInput('');
-      setSelectedTaskPersonIds([]);
-      refreshTasks();
-      setTimeout(() => { closeTaskModal(); }, 1000);
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to create task.';
       setSubmitTaskError(errorMsg);
@@ -153,25 +148,21 @@ const FloatingActionMenu: React.FC = () => {
       setSubmitJournalSuccess(false);
 
       try {
-          const response = await fetchWithCSRF(`${API_BASE}/api/quick_journal/`, { 
-              method: 'POST',
-              body: JSON.stringify({ 
-                  content: quickJournalInput, 
-                  emotion: quickJournalEmotion || null,
-                  related_people_ids: selectedJournalPersonIds
-              })
+          const response = await apiClient.post('/api/quick_journal/', { 
+              content: quickJournalInput, 
+              emotion: quickJournalEmotion || null,
+              related_people_ids: selectedJournalPersonIds
           });
           
-          if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              throw new Error(errorData.detail || `Failed to create journal entry (${response.status})`);
+          if (response.status >= 200 && response.status < 300) {
+              setSubmitJournalSuccess(true);
+              setQuickJournalInput('');
+              setQuickJournalEmotion('');
+              setSelectedJournalPersonIds([]);
+              setTimeout(() => { closeJournalModal(); }, 1000);
+          } else {
+              throw new Error(`Failed to create journal entry (${response.status})`);
           }
-          
-          setSubmitJournalSuccess(true);
-          setQuickJournalInput('');
-          setQuickJournalEmotion('');
-          setSelectedJournalPersonIds([]);
-          setTimeout(() => { closeJournalModal(); }, 1000);
       } catch (err: any) {
           const errorMsg = err.message || 'Failed to create journal entry.';
           setSubmitJournalError(errorMsg);
@@ -211,23 +202,19 @@ const FloatingActionMenu: React.FC = () => {
     setSubmitMoodSuccess(false);
     
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/moods/`, { 
-        method: 'POST',
-        body: JSON.stringify({ 
-          level: selectedMoodLevel,
-          comment: moodComment.trim() || null 
-        })
+      const response = await apiClient.post('/api/moods/', { 
+        level: selectedMoodLevel,
+        comment: moodComment.trim() || null 
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to track mood (${response.status})`);
+      if (response.status >= 200 && response.status < 300) {
+        setSubmitMoodSuccess(true);
+        setMoodComment('');
+        setSelectedMoodLevel(null); 
+        setTimeout(() => { closeMoodModal(); }, 1000);
+      } else {
+        throw new Error(`Failed to track mood (${response.status})`);
       }
-      
-      setSubmitMoodSuccess(true);
-      setMoodComment('');
-      setSelectedMoodLevel(null); 
-      setTimeout(() => { closeMoodModal(); }, 1000);
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to track mood.';
       setSubmitMoodError(errorMsg);
@@ -267,23 +254,19 @@ const FloatingActionMenu: React.FC = () => {
     setSubmitEnergySuccess(false);
     
     try {
-      const response = await fetchWithCSRF(`${API_BASE}/api/energy/`, { 
-        method: 'POST',
-        body: JSON.stringify({ 
-          level: selectedEnergyLevel,
-          comment: energyComment.trim() || null 
-        })
+      const response = await apiClient.post('/api/energy/', { 
+        level: selectedEnergyLevel,
+        comment: energyComment.trim() || null 
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to track energy (${response.status})`);
+      if (response.status >= 200 && response.status < 300) {
+        setSubmitEnergySuccess(true);
+        setEnergyComment('');
+        setSelectedEnergyLevel(null); 
+        setTimeout(() => { closeEnergyModal(); }, 1000);
+      } else {
+        throw new Error(`Failed to track energy (${response.status})`);
       }
-      
-      setSubmitEnergySuccess(true);
-      setEnergyComment('');
-      setSelectedEnergyLevel(null); 
-      setTimeout(() => { closeEnergyModal(); }, 1000);
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to track energy.';
       setSubmitEnergyError(errorMsg);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { apiClient } from '../api/apiConfig';
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 
 interface Category {
@@ -18,12 +18,12 @@ const CategoryList: React.FC = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/categories/');
+        setIsLoading(true);
+        const response = await apiClient.get('/api/categories/');
         setCategories(response.data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch categories. Please try again later.');
-        console.error('Error fetching categories:', err);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setError('Failed to load categories');
       } finally {
         setIsLoading(false);
       }
