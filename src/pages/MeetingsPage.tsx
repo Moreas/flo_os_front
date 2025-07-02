@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/apiConfig';
+import { Card } from '../components/ui/card';
 import { 
   CalendarIcon, 
   UserGroupIcon, 
-  PencilIcon, 
-  CheckIcon,
+  PencilIcon,
   XMarkIcon,
   PlayIcon,
   DocumentTextIcon,
