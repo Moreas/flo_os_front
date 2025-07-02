@@ -20,6 +20,7 @@ import HabitsDashboardPage from './pages/HabitsDashboardPage';
 import EmailsPage from './pages/EmailsPage';
 import JournalPage from './pages/JournalPage';
 import MoodTrackerPage from './pages/MoodTrackerPage';
+import MeetingsPage from './pages/MeetingsPage';
 import BusinessDetailPage from './pages/BusinessDetailPage';
 import GoalDetailPage from './pages/GoalDetailPage';
 import PersonDetailPage from './pages/PersonDetailPage';
@@ -107,6 +108,13 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <EmailsPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/meetings" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <MeetingsPage />
                   </Layout>
                 </ProtectedRoute>
               } />
