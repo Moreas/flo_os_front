@@ -624,21 +624,21 @@ const MeetingEditForm: React.FC<MeetingEditFormProps> = ({
   onSave,
   onCancel
 }) => {
-  const [businessId, setBusinessId] = useState(meeting.business?.id || '');
-  const [projectId, setProjectId] = useState(meeting.project?.id || '');
-  const [categoryId, setCategoryId] = useState(meeting.category?.id || '');
+  const [businessId, setBusinessId] = useState(meeting.business?.id?.toString() || '');
+  const [projectId, setProjectId] = useState(meeting.project?.id?.toString() || '');
+  const [categoryId, setCategoryId] = useState(meeting.category?.id?.toString() || '');
 
   const handleSave = () => {
     const updates: Partial<Meeting> = {
-      business: businessId ? businesses.find(b => b.id === parseInt(businessId)) : undefined,
-      project: projectId ? projects.find(p => p.id === parseInt(projectId)) : undefined,
-      category: categoryId ? categories.find(c => c.id === parseInt(categoryId)) : undefined,
+      business: businessId ? businesses.find(b => b.id === parseInt(businessId, 10)) : undefined,
+      project: projectId ? projects.find(p => p.id === parseInt(projectId, 10)) : undefined,
+      category: categoryId ? categories.find(c => c.id === parseInt(categoryId, 10)) : undefined,
     };
     onSave(updates);
   };
 
   const filteredProjects = businessId 
-    ? projects.filter(p => p.business?.id === parseInt(businessId))
+    ? projects.filter(p => p.business?.id === parseInt(businessId, 10))
     : projects;
 
   return (
@@ -652,8 +652,8 @@ const MeetingEditForm: React.FC<MeetingEditFormProps> = ({
               setBusinessId(e.target.value);
               // Reset project if business changes
               if (projectId && e.target.value) {
-                const selectedProject = projects.find(p => p.id === parseInt(projectId));
-                if (selectedProject?.business?.id !== parseInt(e.target.value)) {
+                const selectedProject = projects.find(p => p.id === parseInt(projectId, 10));
+                if (selectedProject?.business?.id !== parseInt(e.target.value, 10)) {
                   setProjectId('');
                 }
               }
