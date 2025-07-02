@@ -145,39 +145,118 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
 
 /**
  * Logout the current user
+ * For Basic Auth, we need to force the browser to clear its credential cache
  */
 export async function logout(): Promise<void> {
   try {
-    // Clear cached authentication state
+    console.log('[Auth] Starting logout process...');
+    
+    // Step 1: Clear our frontend cache first
     currentUser = null;
     lastAuthCheck = 0;
     
-    console.log('[Auth] Logout successful (Basic Auth)');
+    // Step 2: Call backend logout endpoint if it exists
+    try {
+      await apiClient.post('/api/logout/');
+      console.log('[Auth] Backend logout successful');
+    } catch (error) {
+      // Backend logout might fail, but we continue with client-side cleanup
+      console.log('[Auth] Backend logout not available, continuing with client-side logout');
+    }
+    
+    // Step 3: Force browser to clear Basic Auth cache
+    // This is the key step - we make a request with invalid credentials
+    // to force the browser to forget the cached Basic Auth credentials
+    try {
+      const invalidAuthHeader = 'Basic ' + btoa('invalid:invalid');
+      await fetch(apiClient.defaults.baseURL + '/api/health/', {
+        method: 'GET',
+        headers: {
+          'Authorization': invalidAuthHeader,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include'
+      });
+    } catch (error) {
+      // This is expected to fail - we're intentionally sending invalid credentials
+      console.log('[Auth] Browser Basic Auth cache invalidated');
+    }
+    
+    // Step 4: Clear all browser storage and caches
+    clearAllStorageAndCache();
+    
+    // Step 5: Force a page reload to ensure clean state
+    // This ensures the browser doesn't use any cached credentials
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 100);
+    
+    console.log('[Auth] Logout process completed');
   } catch (error) {
     console.error('[Auth] Logout error:', error);
-  } finally {
-    // Always clear local data
+    // Even if logout fails, clear local data and redirect
     clearAllStorageAndCache();
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 100);
   }
 }
 
 /**
- * Clear all storage and cache
+ * Clear all storage and cache - Enhanced for Basic Auth logout
  */
 export function clearAllStorageAndCache(): void {
   try {
-    // Clear storages
+    console.log('[Auth] Clearing all browser storage and caches...');
+    
+    // Clear all storage
     localStorage.clear();
     sessionStorage.clear();
     
-    // Clear caches
+    // Clear IndexedDB if available
+    if ('indexedDB' in window) {
+      try {
+        indexedDB.databases?.()?.then(databases => {
+          databases.forEach(db => {
+            if (db.name) {
+              indexedDB.deleteDatabase(db.name);
+            }
+          });
+        });
+      } catch (error) {
+        console.log('[Auth] IndexedDB cleanup skipped:', error);
+      }
+    }
+    
+    // Clear service worker caches
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => caches.delete(key));
       });
     }
     
-    console.log('[Auth] Storage and cache cleared');
+    // Clear cookies (if we have any)
+    if (document.cookie) {
+      document.cookie.split(";").forEach(cookie => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      });
+    }
+    
+    // Clear any potential credential managers
+    if ('credentials' in navigator) {
+      try {
+        // This might not work in all browsers, but it's worth trying
+        (navigator as any).credentials?.preventSilentAccess?.();
+      } catch (error) {
+        console.log('[Auth] Credential manager cleanup skipped:', error);
+      }
+    }
+    
+    console.log('[Auth] Storage and cache clearing completed');
   } catch (error) {
     console.error('[Auth] Error clearing data:', error);
   }
@@ -221,6 +300,54 @@ export async function testBackendConnectivity(): Promise<boolean> {
   }
 }
 
+/**
+ * Force logout - Nuclear option to clear everything and reload
+ * Use this if normal logout doesn't work properly
+ */
+export async function forceLogout(): Promise<void> {
+  try {
+    console.log('[Auth] FORCE LOGOUT - Clearing everything...');
+    
+    // Clear frontend state
+    currentUser = null;
+    lastAuthCheck = 0;
+    
+    // Clear all storage immediately
+    clearAllStorageAndCache();
+    
+    // Try multiple methods to invalidate Basic Auth
+    const invalidHeaders = [
+      'Basic ' + btoa('invalid:invalid'),
+      'Basic ' + btoa('logout:logout'),
+      'Basic ' + btoa('clear:clear'),
+    ];
+    
+    for (const header of invalidHeaders) {
+      try {
+        await fetch(window.location.origin + '/api/health/', {
+          method: 'GET',
+          headers: {
+            'Authorization': header,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          credentials: 'include'
+        });
+      } catch (error) {
+        // Expected to fail
+      }
+    }
+    
+    // Force reload the entire page
+    window.location.replace('/login');
+  } catch (error) {
+    console.error('[Auth] Force logout error:', error);
+    // Last resort - just reload
+    window.location.replace('/login');
+  }
+}
+
 // Debug functions for development
 export function debugClearAllData(): void {
   clearAllStorageAndCache();
@@ -229,7 +356,17 @@ export function debugClearAllData(): void {
   console.log('[Debug] All data cleared');
 }
 
+/**
+ * Debug function to test logout behavior
+ */
+export function debugForceLogout(): void {
+  console.log('[Debug] Testing force logout...');
+  forceLogout();
+}
+
 // Make debug functions available globally in development
 if (isDevelopment) {
   (window as any).clearAuthCache = debugClearAllData;
+  (window as any).forceLogout = debugForceLogout;
+  (window as any).testLogout = logout;
 } 
