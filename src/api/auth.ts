@@ -146,60 +146,101 @@ export async function getCurrentUser(): Promise<CurrentUserResponse> {
 /**
  * Logout the current user
  * For Basic Auth, we need to force the browser to clear its credential cache
+ * This uses multiple aggressive techniques to ensure logout works properly
  */
 export async function logout(): Promise<void> {
   try {
-    console.log('[Auth] Starting logout process...');
+    console.log('[Auth] Starting AGGRESSIVE logout process...');
     
     // Step 1: Clear our frontend cache first
     currentUser = null;
     lastAuthCheck = 0;
     
-    // Step 2: Call backend logout endpoint if it exists
+    // Step 2: Call backend logout endpoint
     try {
-      await apiClient.post('/api/logout/');
-      console.log('[Auth] Backend logout successful');
+      const logoutResponse = await apiClient.post('/api/logout/');
+      console.log('[Auth] Backend logout response:', logoutResponse.data);
     } catch (error) {
-      // Backend logout might fail, but we continue with client-side cleanup
-      console.log('[Auth] Backend logout not available, continuing with client-side logout');
+      console.log('[Auth] Backend logout failed, continuing with client-side logout');
     }
     
-    // Step 3: Force browser to clear Basic Auth cache
-    // This is the key step - we make a request with invalid credentials
-    // to force the browser to forget the cached Basic Auth credentials
+    // Step 3: AGGRESSIVE browser credential invalidation - Multiple attempts
+    const baseUrl = apiClient.defaults.baseURL;
+    const invalidCredentials = [
+      'Basic ' + btoa('logout:logout'),
+      'Basic ' + btoa('invalid:invalid'),
+      'Basic ' + btoa('clear:clear'),
+      'Basic ' + btoa('expired:expired'),
+      'Basic ' + btoa('revoked:revoked'),
+    ];
+    
+    // Make multiple requests with different invalid credentials to force browser to forget
+    for (const invalidAuth of invalidCredentials) {
+      try {
+        await fetch(baseUrl + '/api/force-logout/', {
+          method: 'GET',
+          headers: {
+            'Authorization': invalidAuth,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          credentials: 'include'
+        });
+      } catch (error) {
+        // Expected to fail - we're sending invalid credentials intentionally
+      }
+    }
+    
+    // Step 4: Try to trigger browser credential dialog with 401 responses
     try {
-      const invalidAuthHeader = 'Basic ' + btoa('invalid:invalid');
-      await fetch(apiClient.defaults.baseURL + '/api/health/', {
-        method: 'GET',
+      await fetch(baseUrl + '/api/force-logout/', {
+        method: 'POST',
         headers: {
-          'Authorization': invalidAuthHeader,
-          'Cache-Control': 'no-cache',
+          'Authorization': 'Basic ' + btoa('force-clear:credentials'),
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache'
         },
         credentials: 'include'
       });
     } catch (error) {
-      // This is expected to fail - we're intentionally sending invalid credentials
-      console.log('[Auth] Browser Basic Auth cache invalidated');
+      // Expected to fail
     }
     
-    // Step 4: Clear all browser storage and caches
+    // Step 5: Clear all browser storage and caches
     clearAllStorageAndCache();
     
-    // Step 5: Force a page reload to ensure clean state
-    // This ensures the browser doesn't use any cached credentials
-    setTimeout(() => {
-      window.location.href = '/login';
-    }, 100);
+    // Step 6: Make one final request to health endpoint with invalid credentials
+    // This often triggers the browser to clear its credential cache
+    try {
+      await fetch(baseUrl + '/api/health/', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + btoa('final-clear:logout-complete'),
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'
+        },
+        credentials: 'include'
+      });
+    } catch (error) {
+      // Expected to fail
+    }
     
-    console.log('[Auth] Logout process completed');
+    // Step 7: Wait a moment for browser to process, then redirect
+    setTimeout(() => {
+      console.log('[Auth] Redirecting to login page...');
+      window.location.replace('/login');
+    }, 200);
+    
+    console.log('[Auth] AGGRESSIVE logout process completed');
   } catch (error) {
     console.error('[Auth] Logout error:', error);
     // Even if logout fails, clear local data and redirect
     clearAllStorageAndCache();
     setTimeout(() => {
-      window.location.href = '/login';
-    }, 100);
+      window.location.replace('/login');
+    }, 200);
   }
 }
 
@@ -306,45 +347,100 @@ export async function testBackendConnectivity(): Promise<boolean> {
  */
 export async function forceLogout(): Promise<void> {
   try {
-    console.log('[Auth] FORCE LOGOUT - Clearing everything...');
+    console.log('[Auth] FORCE LOGOUT - Nuclear option activated...');
     
-    // Clear frontend state
+    // Clear frontend state immediately
     currentUser = null;
     lastAuthCheck = 0;
     
     // Clear all storage immediately
     clearAllStorageAndCache();
     
-    // Try multiple methods to invalidate Basic Auth
+    // NUCLEAR credential invalidation - try every possible method
+    const baseUrl = window.location.origin;
     const invalidHeaders = [
+      'Basic ' + btoa('nuclear:logout'),
+      'Basic ' + btoa('force:clear'),
       'Basic ' + btoa('invalid:invalid'),
       'Basic ' + btoa('logout:logout'),
       'Basic ' + btoa('clear:clear'),
+      'Basic ' + btoa('expired:expired'),
+      'Basic ' + btoa('revoked:revoked'),
+      'Basic ' + btoa('terminated:session'),
+      'Basic ' + btoa('cleared:credentials'),
     ];
     
+    // Multiple parallel requests to different endpoints
+    const endpoints = [
+      '/api/force-logout/',
+      '/api/health/',
+      '/api/logout/',
+      '/api/auth/logout/',
+    ];
+    
+    const requests = [];
+    
     for (const header of invalidHeaders) {
-      try {
-        await fetch(window.location.origin + '/api/health/', {
-          method: 'GET',
-          headers: {
-            'Authorization': header,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          },
-          credentials: 'include'
-        });
-      } catch (error) {
-        // Expected to fail
+      for (const endpoint of endpoints) {
+        // GET request
+        requests.push(
+          fetch(baseUrl + endpoint, {
+            method: 'GET',
+            headers: {
+              'Authorization': header,
+              'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+              'Pragma': 'no-cache',
+              'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'
+            },
+            credentials: 'include'
+          }).catch(() => {}) // Ignore all errors
+        );
+        
+        // POST request
+        requests.push(
+          fetch(baseUrl + endpoint, {
+            method: 'POST',
+            headers: {
+              'Authorization': header,
+              'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+              'Pragma': 'no-cache',
+              'Expires': 'Thu, 01 Jan 1970 00:00:00 GMT'
+            },
+            credentials: 'include'
+          }).catch(() => {}) // Ignore all errors
+        );
       }
     }
     
-    // Force reload the entire page
-    window.location.replace('/login');
+    // Execute all requests in parallel (they should all fail, which is what we want)
+    await Promise.allSettled(requests);
+    
+    // Additional browser-specific credential clearing attempts
+    try {
+      // Try to access the credential manager if available
+      if ('credentials' in navigator) {
+        (navigator as any).credentials?.preventSilentAccess?.();
+      }
+      
+      // Clear any cached authentication
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(registration => {
+            registration.unregister();
+          });
+        });
+      }
+    } catch (error) {
+      // Ignore errors
+    }
+    
+    // Force reload the entire page to ensure completely clean state
+    console.log('[Auth] NUCLEAR LOGOUT - Forcing complete page reload...');
+    window.location.replace('/login?logout=forced');
   } catch (error) {
     console.error('[Auth] Force logout error:', error);
     // Last resort - just reload
-    window.location.replace('/login');
+    window.location.replace('/login?logout=error');
   }
 }
 
