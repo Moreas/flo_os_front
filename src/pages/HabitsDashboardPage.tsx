@@ -34,18 +34,6 @@ interface HabitInstance {
   notes?: string;
 }
 
-interface HabitsTrackingSummary {
-  habit_id: number;
-  habit_name: string;
-  completed_count: number;
-  not_completed_count: number;
-  pending_count: number;
-  total_days: number;
-  completion_rate: number;
-  current_streak: number;
-  longest_streak: number;
-}
-
 const HabitsDashboardPage: React.FC = () => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [instances, setInstances] = useState<HabitInstance[]>([]);
@@ -59,7 +47,6 @@ const HabitsDashboardPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
       const [habitsRes, instancesRes] = await Promise.all([
         apiClient.get('/api/habits/'),
         apiClient.get('/api/habit-instances/')
@@ -74,81 +61,81 @@ const HabitsDashboardPage: React.FC = () => {
     }
   };
 
-  const calculateTotalStreaks = async () => {
-    try {
-      const activeHabits = habits.filter(habit => habit.is_active);
-      if (activeHabits.length === 0) {
-        setTotalStreaks(0);
-        return;
-      }
-
-      let currentStreak = 0;
-      const today = new Date();
-      
-      // Check each day going backwards from today
-      for (let i = 0; i < 30; i++) { // Check last 30 days maximum
-        const checkDate = new Date(today);
-        checkDate.setDate(today.getDate() - i);
-        const dateStr = format(checkDate, 'yyyy-MM-dd');
-        
-        // Fetch tracking summary for this specific date
-        try {
-          const summaryRes = await apiClient.get(`/api/habits/tracking_summary/?start_date=${dateStr}&end_date=${dateStr}`);
-          const habitsData = summaryRes.data?.habits || [];
-          
-          // Check if ALL active habits were completed on this day
-          let allCompleted = true;
-          let hasAnyData = false;
-          
-          for (const activeHabit of activeHabits) {
-            const habitData = habitsData.find((h: any) => h.id === activeHabit.id);
-            if (habitData && habitData.summary) {
-              hasAnyData = true;
-              const completed = habitData.summary.completed || 0;
-              const pending = habitData.summary.pending || 0;
-              const notCompleted = habitData.summary.not_completed || 0;
-              
-              // If this habit has any pending or not completed instances, not all habits were completed
-              if (pending > 0 || notCompleted > 0 || completed === 0) {
-                allCompleted = false;
-                break;
-              }
-            } else {
-              // No data for this habit on this date means not completed
-              allCompleted = false;
-              break;
-            }
-          }
-          
-          // If we have data and all habits were completed, increment streak
-          if (hasAnyData && allCompleted) {
-            currentStreak++;
-          } else {
-            // Streak is broken, stop checking
-            break;
-          }
-        } catch (error) {
-          // If we can't fetch data for this date, assume streak is broken
-          break;
-        }
-      }
-      
-      setTotalStreaks(currentStreak);
-    } catch (error) {
-      console.error('Error calculating total streaks:', error);
-      setTotalStreaks(0);
-    }
-  };
-
   useEffect(() => {
     fetchHabitsData();
   }, [refreshKey]);
 
   useEffect(() => {
+    const calculateTotalStreaks = async () => {
+      try {
+        const activeHabits = habits.filter(habit => habit.is_active);
+        if (activeHabits.length === 0) {
+          setTotalStreaks(0);
+          return;
+        }
+
+        let currentStreak = 0;
+        const today = new Date();
+        
+        // Check each day going backwards from today
+        for (let i = 0; i < 30; i++) { // Check last 30 days maximum
+          const checkDate = new Date(today);
+          checkDate.setDate(today.getDate() - i);
+          const dateStr = format(checkDate, 'yyyy-MM-dd');
+          
+          // Fetch tracking summary for this specific date
+          try {
+            const summaryRes = await apiClient.get(`/api/habits/tracking_summary/?start_date=${dateStr}&end_date=${dateStr}`);
+            const habitsData = summaryRes.data?.habits || [];
+            
+            // Check if ALL active habits were completed on this day
+            let allCompleted = true;
+            let hasAnyData = false;
+            
+            for (const activeHabit of activeHabits) {
+              const habitData = habitsData.find((h: any) => h.id === activeHabit.id);
+              if (habitData && habitData.summary) {
+                hasAnyData = true;
+                const completed = habitData.summary.completed || 0;
+                const pending = habitData.summary.pending || 0;
+                const notCompleted = habitData.summary.not_completed || 0;
+                
+                // If this habit has any pending or not completed instances, not all habits were completed
+                if (pending > 0 || notCompleted > 0 || completed === 0) {
+                  allCompleted = false;
+                  break;
+                }
+              } else {
+                // No data for this habit on this date means not completed
+                allCompleted = false;
+                break;
+              }
+            }
+            
+            // If we have data and all habits were completed, increment streak
+            if (hasAnyData && allCompleted) {
+              currentStreak++;
+            } else {
+              // Streak is broken, stop checking
+              break;
+            }
+          } catch (error) {
+            // If we can't fetch data for this date, assume streak is broken
+            break;
+          }
+        }
+        
+        setTotalStreaks(currentStreak);
+      } catch (error) {
+        console.error('Error calculating total streaks:', error);
+        setTotalStreaks(0);
+      }
+    };
+
     if (habits.length > 0) {
       calculateTotalStreaks();
     }
-  }, [habits, instances, calculateTotalStreaks]);
+  }, [habits, instances]);
 
   const handleHabitCreated = () => {
     setRefreshKey(prev => prev + 1);
