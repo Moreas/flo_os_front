@@ -11,8 +11,6 @@ import {
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import HabitForm from '../components/forms/HabitForm';
-import HabitTracker from '../components/HabitTracker';
-import QuickHabitTracker from '../components/QuickHabitTracker';
 import TodayHabitsSummary from '../components/TodayHabitsSummary';
 
 interface Habit {
@@ -221,37 +219,6 @@ const HabitsDashboardPage: React.FC = () => {
       {/* Today's Summary */}
       <div className="bg-white shadow-sm rounded-lg p-6">
         <TodayHabitsSummary onUpdate={handleHabitUpdated} />
-      </div>
-
-      {/* Today's Habits */}
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Today's Habits</h2>
-        {habits.filter(habit => habit.is_active).length === 0 ? (
-          <div className="text-center py-8">
-            <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm font-medium text-gray-900">No active habits</p>
-            <p className="mt-1 text-sm text-gray-500">
-              Create your first habit to start tracking
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {habits
-              .filter(habit => habit.is_active)
-              .map(habit => (
-                <HabitTracker
-                  key={habit.id}
-                  habitId={habit.id}
-                  onUpdate={handleHabitUpdated}
-                />
-              ))}
-          </div>
-        )}
-      </div>
-
-      {/* Quick Habit Tracker */}
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <QuickHabitTracker onUpdate={handleHabitUpdated} />
       </div>
 
       {/* Habit Form Modal */}
