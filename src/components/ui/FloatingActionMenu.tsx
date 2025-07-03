@@ -330,7 +330,7 @@ const FloatingActionMenu: React.FC = () => {
                     Track Energy
                   </button>
                   <Link
-                    to="/daily-habits"
+                    to="/habits"
                     onClick={() => close()}
                     className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                   >
