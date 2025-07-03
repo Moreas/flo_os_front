@@ -274,14 +274,14 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
                             <button
                               onClick={() => handleMarkCompleted(habit.habit_id)}
                               disabled={isLoading}
-                              className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {isLoading ? '...' : 'Done'}
                             </button>
                             <button
                               onClick={() => handleMarkMissed(habit.habit_id)}
                               disabled={isLoading}
-                              className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {isLoading ? '...' : 'Missed'}
                             </button>

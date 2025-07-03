@@ -10,7 +10,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import HabitForm from '../components/forms/HabitForm';
 import TodayHabitsSummary from '../components/TodayHabitsSummary';
@@ -211,12 +210,6 @@ const HabitsDashboardPage: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Link
-            to="/habits"
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            View All Habits
-          </Link>
           <button
             onClick={() => setIsHabitFormOpen(true)}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
