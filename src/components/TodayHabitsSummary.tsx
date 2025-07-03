@@ -4,7 +4,9 @@ import {
   CheckCircleIcon, 
   ClockIcon,
   ExclamationTriangleIcon,
-  XCircleIcon
+  XCircleIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import { format, isToday } from 'date-fns';
 import { TrackingSummary } from '../types/habit';
@@ -19,6 +21,13 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  // Hide completed habits by default for today, show all for other dates
+  const [hideCompleted, setHideCompleted] = useState(isToday(selectedDate));
+
+  // Update hideCompleted when selectedDate changes
+  useEffect(() => {
+    setHideCompleted(isToday(selectedDate));
+  }, [selectedDate]);
 
   const fetchTodaySummary = useCallback(async () => {
     setLoading(true);
@@ -163,6 +172,11 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
   const missedToday = trackingSummary.filter(h => h.not_completed_count > 0).length;
   const pendingCount = totalHabits - completedToday - missedToday;
   
+  // Filter habits based on hideCompleted setting
+  const filteredHabits = hideCompleted 
+    ? trackingSummary.filter(h => h.completed_count === 0) 
+    : trackingSummary;
+  
   // Calculate progress percentage for the selected date
   const progressPercentage = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
 
@@ -179,12 +193,33 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
         <h3 className="text-lg font-semibold text-gray-900">
           {isToday(selectedDate) ? "Today's Habits" : "Habits"}
         </h3>
-        <div className="text-right">
-          <div className="text-sm text-gray-500">
-            {format(selectedDate, 'MMM d, yyyy')}
-          </div>
-          <div className="text-lg font-bold text-blue-600">
-            {progressPercentage}% complete
+        <div className="flex items-center space-x-3">
+          {/* Filter Toggle */}
+          {completedToday > 0 && (
+            <button
+              onClick={() => setHideCompleted(!hideCompleted)}
+              className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+            >
+              {hideCompleted ? (
+                <>
+                  <EyeSlashIcon className="w-4 h-4" />
+                  <span>Show completed</span>
+                </>
+              ) : (
+                <>
+                  <EyeIcon className="w-4 h-4" />
+                  <span>Hide completed</span>
+                </>
+              )}
+            </button>
+          )}
+          <div className="text-right">
+            <div className="text-sm text-gray-500">
+              {format(selectedDate, 'MMM d, yyyy')}
+            </div>
+            <div className="text-lg font-bold text-blue-600">
+              {progressPercentage}% complete
+            </div>
           </div>
         </div>
       </div>
@@ -209,17 +244,25 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
         </div>
       </div>
 
-      {trackingSummary.length === 0 ? (
+      {filteredHabits.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-sm font-medium text-gray-900">No habits found</p>
+          <p className="mt-2 text-sm font-medium text-gray-900">
+            {hideCompleted && completedToday > 0 
+              ? `All ${completedToday} habits completed! 🎉` 
+              : "No habits found"
+            }
+          </p>
           <p className="mt-1 text-sm text-gray-500">
-            Create your first habit to start tracking
+            {hideCompleted && completedToday > 0 
+              ? "Click 'Show completed' to see finished habits"
+              : "Create your first habit to start tracking"
+            }
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {trackingSummary.map(habit => {
+          {filteredHabits.map(habit => {
             const isCompleted = habit.completed_count > 0;
             const isMissed = habit.not_completed_count > 0;
             const isPending = !isCompleted && !isMissed;
