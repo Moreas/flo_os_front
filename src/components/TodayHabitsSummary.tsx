@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
 import { 
   CheckCircleIcon, 
@@ -17,6 +18,7 @@ interface TodayHabitsSummaryProps {
 }
 
 const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = new Date(), onUpdate }) => {
+  const navigate = useNavigate();
   const [trackingSummary, setTrackingSummary] = useState<TrackingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -271,11 +273,12 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
             return (
               <div 
                 key={habit.habit_id} 
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150"
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150 cursor-pointer"
+                onClick={() => navigate(`/habits/${habit.habit_id}`)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-900">{habit.habit_name}</h4>
+                    <h4 className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors">{habit.habit_name}</h4>
                     <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                       <span>
                         Status: {isCompleted ? (
@@ -311,18 +314,27 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
                     
                     {/* Action Buttons - Only show for today or future dates */}
                     {(isToday(selectedDate) || selectedDate > new Date()) && (
-                      <div className="flex space-x-2 ml-3">
+                      <div 
+                        className="flex space-x-2 ml-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {isPending ? (
                           <>
                             <button
-                              onClick={() => handleMarkCompleted(habit.habit_id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkCompleted(habit.habit_id);
+                              }}
                               disabled={isLoading}
                               className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {isLoading ? '...' : 'Done'}
                             </button>
                             <button
-                              onClick={() => handleMarkMissed(habit.habit_id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkMissed(habit.habit_id);
+                              }}
                               disabled={isLoading}
                               className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
@@ -331,7 +343,10 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
                           </>
                         ) : (
                           <button
-                            onClick={() => handleUndo(habit.habit_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUndo(habit.habit_id);
+                            }}
                             disabled={isLoading}
                             className="px-3 py-1 text-xs font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >

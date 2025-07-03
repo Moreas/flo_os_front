@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { format, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, subDays } from 'date-fns';
 import HabitForm from './forms/HabitForm';
+import HabitProgressGraph from './HabitProgressGraph';
 import { Habit, HabitInstance, HabitTrackingStatus } from '../types/habit';
 
 interface HabitDetailViewProps {
@@ -405,6 +406,9 @@ const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habitId, onBack }) =>
           )}
         </div>
       </div>
+
+      {/* GitHub-style Progress Graph */}
+      <HabitProgressGraph habitId={habitId} habitName={habit.name} />
 
       <div className="bg-white shadow-sm rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
