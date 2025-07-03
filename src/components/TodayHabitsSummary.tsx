@@ -93,6 +93,29 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
     }
   };
 
+  const handleUndo = async (habitId: number) => {
+    setActionLoading(habitId);
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      await apiClient.post(`/api/habits/${habitId}/undo_habit/`, {
+        date: today
+      });
+      
+      // Refresh the data
+      await fetchTodaySummary();
+      
+      // Call onUpdate if provided
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (err) {
+      console.error('Error undoing habit:', err);
+      setError('Failed to undo habit');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getCompletionRateColor = (rate: number) => {
     if (rate >= 80) return 'text-green-600';
     if (rate >= 60) return 'text-yellow-600';
@@ -211,25 +234,35 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
                       <ClockIcon className="w-5 h-5 text-yellow-600" />
                     )}
                     
-                    {/* Action Buttons - only show for pending habits */}
-                    {isPending && (
-                      <div className="flex space-x-2 ml-3">
+                    {/* Action Buttons */}
+                    <div className="flex space-x-2 ml-3">
+                      {isPending ? (
+                        <>
+                          <button
+                            onClick={() => handleMarkCompleted(habit.habit_id)}
+                            disabled={isLoading}
+                            className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isLoading ? '...' : 'Done'}
+                          </button>
+                          <button
+                            onClick={() => handleMarkMissed(habit.habit_id)}
+                            disabled={isLoading}
+                            className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isLoading ? '...' : 'Missed'}
+                          </button>
+                        </>
+                      ) : (
                         <button
-                          onClick={() => handleMarkCompleted(habit.habit_id)}
+                          onClick={() => handleUndo(habit.habit_id)}
                           disabled={isLoading}
-                          className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-1 text-xs font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          {isLoading ? '...' : 'Done'}
+                          {isLoading ? '...' : 'Undo'}
                         </button>
-                        <button
-                          onClick={() => handleMarkMissed(habit.habit_id)}
-                          disabled={isLoading}
-                          className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {isLoading ? '...' : 'Missed'}
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
