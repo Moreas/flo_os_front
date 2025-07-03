@@ -30,13 +30,26 @@ interface HabitInstance {
   id: number;
   habit_id: number;
   date: string;
-  completed: boolean;
+  completed_at: string | null;
   notes?: string;
+}
+
+interface HabitsTrackingSummary {
+  habit_id: number;
+  habit_name: string;
+  completed_count: number;
+  not_completed_count: number;
+  pending_count: number;
+  total_days: number;
+  completion_rate: number;
+  current_streak: number;
+  longest_streak: number;
 }
 
 const HabitsDashboardPage: React.FC = () => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [instances, setInstances] = useState<HabitInstance[]>([]);
+  const [trackingSummary, setTrackingSummary] = useState<HabitsTrackingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHabitFormOpen, setIsHabitFormOpen] = useState(false);
@@ -46,12 +59,45 @@ const HabitsDashboardPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [habitsRes, instancesRes] = await Promise.all([
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const [habitsRes, instancesRes, summaryRes] = await Promise.all([
         apiClient.get('/api/habits/'),
-        apiClient.get('/api/habit-instances/')
+        apiClient.get('/api/habit-instances/'),
+        apiClient.get(`/api/habits/tracking_summary/?start_date=${today}&end_date=${today}`)
       ]);
       setHabits(habitsRes.data || []);
       setInstances(instancesRes.data || []);
+      
+      // Extract tracking summary data from the API response structure
+      const habitsData = summaryRes.data?.habits || [];
+      const summaryData = habitsData.map((habit: any) => {
+        const summary = habit.summary || {};
+        const completed = summary.completed || 0;
+        const notCompleted = summary.not_completed || 0;
+        const pending = summary.pending || 0;
+        const notTracked = summary.not_tracked || 0;
+        const totalDates = summary.total_dates || 0;
+        
+        // Calculate completion rate based on actual tracking days (exclude not_tracked)
+        const actualTrackingDays = totalDates - notTracked;
+        const completionRate = actualTrackingDays > 0 
+          ? Math.round((completed / actualTrackingDays) * 100) 
+          : 0;
+        
+        return {
+          habit_id: habit.id,
+          habit_name: habit.name,
+          completed_count: completed,
+          not_completed_count: notCompleted,
+          pending_count: pending,
+          total_days: totalDates,
+          completion_rate: completionRate,
+          current_streak: summary.current_streak || 0,
+          longest_streak: summary.longest_streak || 0,
+        };
+      });
+      
+      setTrackingSummary(summaryData);
     } catch (err: unknown) {
       console.error("Error fetching habits data:", err);
       setError("Failed to load habits data.");
@@ -77,7 +123,9 @@ const HabitsDashboardPage: React.FC = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayInstances = instances.filter(instance => instance.date === today);
     const activeHabits = habits.filter(habit => habit.is_active);
-    const completedToday = todayInstances.filter(instance => instance.completed).length;
+    
+    // Check for completed habits using completed_at field (not boolean completed)
+    const completedToday = todayInstances.filter(instance => instance.completed_at !== null).length;
     const totalActive = activeHabits.length;
     
     return {
@@ -87,7 +135,14 @@ const HabitsDashboardPage: React.FC = () => {
     };
   };
 
+  const getTotalStreaks = () => {
+    // Calculate total streaks - consecutive days where ALL habits were completed
+    // For now, we'll sum individual current streaks as requested
+    return trackingSummary.reduce((sum, habit) => sum + habit.current_streak, 0);
+  };
+
   const stats = getCompletionStats();
+  const totalStreaks = getTotalStreaks();
 
   if (loading) {
     return (
@@ -199,7 +254,7 @@ const HabitsDashboardPage: React.FC = () => {
                     Total Streaks
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {habits.reduce((sum, habit) => sum + habit.current_streak, 0)}
+                    {totalStreaks}
                   </dd>
                 </dl>
               </div>
