@@ -49,8 +49,8 @@ const HabitsDashboardPage: React.FC = () => {
     setError(null);
     try {
       const [habitsRes, instancesRes] = await Promise.all([
-        apiClient.get('/habits/'),
-        apiClient.get('/habit-instances/')
+        apiClient.get('/api/habits/'),
+        apiClient.get('/api/habit-instances/')
       ]);
       setHabits(habitsRes.data || []);
       setInstances(instancesRes.data || []);

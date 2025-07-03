@@ -33,8 +33,8 @@ const DailyHabitsPage: React.FC = () => {
     
     try {
       const [pendingRes, summaryRes] = await Promise.all([
-        apiClient.get(`/habits/pending_for_date/?date=${targetDate}`),
-        apiClient.get(`/habits/tracking_summary/?start_date=${targetDate}&end_date=${targetDate}`)
+        apiClient.get(`/api/habits/pending_for_date/?date=${targetDate}`),
+        apiClient.get(`/api/habits/tracking_summary/?start_date=${targetDate}&end_date=${targetDate}`)
       ]);
       
       // Ensure we have arrays, even if the API returns unexpected data
@@ -62,8 +62,8 @@ const DailyHabitsPage: React.FC = () => {
     setUpdatingHabitId(habitId);
     try {
       const endpoint = type === 'completed' 
-        ? `/habits/${habitId}/mark_completed/`
-        : `/habits/${habitId}/mark_not_completed/`;
+        ? `/api/habits/${habitId}/mark_completed/`
+        : `/api/habits/${habitId}/mark_not_completed/`;
       
       const response = await fetchWithCSRF(endpoint, {
         method: 'POST',

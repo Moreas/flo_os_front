@@ -28,7 +28,15 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
         apiClient.get(`/api/habits/pending_for_date/?date=${today}`)
       ]);
       
-      setTrackingSummary(summaryRes.data || []);
+      // Extract tracking summary data from the API response structure
+      const habitsData = summaryRes.data?.habits || [];
+      const summaryData = habitsData.map(habit => ({
+        habit_id: habit.id,
+        habit_name: habit.name,
+        ...habit.summary
+      }));
+      
+      setTrackingSummary(summaryData);
       setPendingHabits(pendingRes.data || []);
     } catch (err: unknown) {
       console.error("Error fetching today's summary:", err);
