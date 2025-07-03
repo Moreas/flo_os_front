@@ -50,8 +50,8 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
           pending_count: pending,
           total_days: totalDates,
           completion_rate: completionRate,
-          current_streak: 0, // TODO: Backend should provide this
-          longest_streak: 0, // TODO: Backend should provide this
+          current_streak: summary.current_streak || 0,
+          longest_streak: summary.longest_streak || 0,
         };
       });
       
@@ -161,6 +161,9 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
   const completedToday = trackingSummary.filter(h => h.completed_count > 0).length;
   const missedToday = trackingSummary.filter(h => h.not_completed_count > 0).length;
   const pendingCount = totalHabits - completedToday - missedToday;
+  
+  // Calculate today's progress percentage
+  const todayProgressPercentage = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
 
   return (
     <div className="space-y-4">
@@ -173,9 +176,14 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
 
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Today's Habits</h3>
-        <span className="text-sm text-gray-500">
-          {format(new Date(), 'MMM d, yyyy')}
-        </span>
+        <div className="text-right">
+          <div className="text-sm text-gray-500">
+            {format(new Date(), 'MMM d, yyyy')}
+          </div>
+          <div className="text-lg font-bold text-blue-600">
+            {todayProgressPercentage}% complete
+          </div>
+        </div>
       </div>
 
       {/* Summary Stats */}
