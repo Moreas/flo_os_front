@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/apiConfig';
 import { 
   ArrowPathIcon, 
@@ -6,10 +6,12 @@ import {
   PlusIcon,
   ChartBarIcon,
   CalendarIcon,
-  ClockIcon
+  ClockIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, addDays, subDays, isToday } from 'date-fns';
 import HabitForm from '../components/forms/HabitForm';
 import TodayHabitsSummary from '../components/TodayHabitsSummary';
 
@@ -37,19 +39,21 @@ interface HabitInstance {
 const HabitsDashboardPage: React.FC = () => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [instances, setInstances] = useState<HabitInstance[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHabitFormOpen, setIsHabitFormOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [totalStreaks, setTotalStreaks] = useState(0);
 
-  const fetchHabitsData = async () => {
+  const fetchHabitsData = useCallback(async (date: Date = selectedDate) => {
     setLoading(true);
     setError(null);
     try {
+      const dateStr = format(date, 'yyyy-MM-dd');
       const [habitsRes, instancesRes] = await Promise.all([
         apiClient.get('/api/habits/'),
-        apiClient.get('/api/habit-instances/')
+        apiClient.get(`/api/habit-instances/?start_date=${dateStr}&end_date=${dateStr}`)
       ]);
       setHabits(habitsRes.data || []);
       setInstances(instancesRes.data || []);
@@ -59,11 +63,11 @@ const HabitsDashboardPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate]);
 
   useEffect(() => {
-    fetchHabitsData();
-  }, [refreshKey]);
+    fetchHabitsData(selectedDate);
+  }, [fetchHabitsData, refreshKey, selectedDate]);
 
   useEffect(() => {
     const calculateTotalStreaks = async () => {
@@ -75,12 +79,12 @@ const HabitsDashboardPage: React.FC = () => {
         }
 
         let currentStreak = 0;
-        const today = new Date();
+        const startDate = new Date(selectedDate);
         
-        // Check each day going backwards from today
+        // Check each day going backwards from the selected date
         for (let i = 0; i < 30; i++) { // Check last 30 days maximum
-          const checkDate = new Date(today);
-          checkDate.setDate(today.getDate() - i);
+          const checkDate = new Date(startDate);
+          checkDate.setDate(startDate.getDate() - i);
           const dateStr = format(checkDate, 'yyyy-MM-dd');
           
           // Fetch tracking summary for this specific date
@@ -135,7 +139,7 @@ const HabitsDashboardPage: React.FC = () => {
     if (habits.length > 0) {
       calculateTotalStreaks();
     }
-  }, [habits, instances]);
+  }, [habits, instances, selectedDate]);
 
   const handleHabitCreated = () => {
     setRefreshKey(prev => prev + 1);
@@ -146,19 +150,35 @@ const HabitsDashboardPage: React.FC = () => {
     setRefreshKey(prev => prev + 1);
   };
 
+  const handleDateChange = (newDate: Date) => {
+    setSelectedDate(newDate);
+  };
+
+  const handlePreviousDay = () => {
+    setSelectedDate(prev => subDays(prev, 1));
+  };
+
+  const handleNextDay = () => {
+    setSelectedDate(prev => addDays(prev, 1));
+  };
+
+  const handleToday = () => {
+    setSelectedDate(new Date());
+  };
+
   const getCompletionStats = () => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const todayInstances = instances.filter(instance => instance.date === today);
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const dateInstances = instances.filter(instance => instance.date === dateStr);
     const activeHabits = habits.filter(habit => habit.is_active);
     
     // Check for completed habits using completed_at field (not boolean completed)
-    const completedToday = todayInstances.filter(instance => instance.completed_at !== null).length;
+    const completedOnDate = dateInstances.filter(instance => instance.completed_at !== null).length;
     const totalActive = activeHabits.length;
     
     return {
-      completed: completedToday,
+      completed: completedOnDate,
       total: totalActive,
-      percentage: totalActive > 0 ? Math.round((completedToday / totalActive) * 100) : 0
+      percentage: totalActive > 0 ? Math.round((completedOnDate / totalActive) * 100) : 0
     };
   };
 
@@ -198,110 +218,119 @@ const HabitsDashboardPage: React.FC = () => {
           </Link>
           <button
             onClick={() => setIsHabitFormOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
           >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Habit
+            <PlusIcon className="w-4 h-4 mr-2 inline" />
+            Add Habit
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ChartBarIcon className="h-6 w-6 text-green-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Today's Progress
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats.completed}/{stats.total}
-                  </dd>
-                </dl>
-              </div>
+      {/* Date Navigation */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <CalendarIcon className="w-5 h-5 mr-2 text-blue-600" />
+              {isToday(selectedDate) ? 'Today' : format(selectedDate, 'MMMM d, yyyy')}
+            </h2>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={handlePreviousDay}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                title="Previous day"
+              >
+                <ChevronLeftIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleNextDay}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                title="Next day"
+                disabled={isToday(selectedDate) || selectedDate >= new Date()}
+              >
+                <ChevronRightIcon className={`w-4 h-4 ${(isToday(selectedDate) || selectedDate >= new Date()) ? 'opacity-30' : ''}`} />
+              </button>
+              {!isToday(selectedDate) && (
+                <button
+                  onClick={handleToday}
+                  className="ml-2 px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100"
+                >
+                  Today
+                </button>
+              )}
             </div>
           </div>
-          <div className="bg-gray-50 px-5 py-3">
-            <div className="text-sm">
-              <span className="text-green-600 font-medium">{stats.percentage}%</span>
-              <span className="text-gray-500"> completed</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ClockIcon className="h-6 w-6 text-blue-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Active Habits
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {habits.filter(h => h.is_active).length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 px-5 py-3">
-            <div className="text-sm">
-              <span className="text-blue-600 font-medium">
-                {habits.filter(h => !h.is_active).length}
-              </span>
-              <span className="text-gray-500"> inactive</span>
-            </div>
+          
+          <div className="flex items-center space-x-2">
+            <input
+              type="date"
+              value={format(selectedDate, 'yyyy-MM-dd')}
+              onChange={(e) => handleDateChange(new Date(e.target.value))}
+              max={format(new Date(), 'yyyy-MM-dd')} // Don't allow future dates
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
         </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
+        
+        {/* Date Summary */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CalendarIcon className="h-6 w-6 text-purple-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Streaks
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {totalStreaks}
-                  </dd>
-                </dl>
-              </div>
+              <ChartBarIcon className="w-5 h-5 text-blue-600 mr-2" />
+              <span className="text-sm font-medium text-blue-900">
+                {isToday(selectedDate) ? "Today's Progress" : "Day's Progress"}
+              </span>
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold text-blue-600">
+                {stats.completed}/{stats.total}
+              </span>
+              <span className="ml-2 text-sm text-blue-600">
+                ({stats.percentage}%)
+              </span>
             </div>
           </div>
-          <div className="bg-gray-50 px-5 py-3">
-            <div className="text-sm">
-              <span className="text-purple-600 font-medium">
-                {format(new Date(), 'MMM d')}
-              </span>
-              <span className="text-gray-500"> today</span>
+          
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="flex items-center">
+              <ClockIcon className="w-5 h-5 text-green-600 mr-2" />
+              <span className="text-sm font-medium text-green-900">Total Streaks</span>
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold text-green-600">{totalStreaks}</span>
+              <span className="ml-2 text-sm text-green-600">days</span>
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 rounded-lg p-4">
+            <div className="flex items-center">
+              <CalendarIcon className="w-5 h-5 text-purple-600 mr-2" />
+              <span className="text-sm font-medium text-purple-900">Active Habits</span>
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold text-purple-600">{habits.filter(h => h.is_active).length}</span>
+              <span className="ml-2 text-sm text-purple-600">habits</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Today's Summary */}
+      {/* Today's Habits Summary */}
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <TodayHabitsSummary onUpdate={handleHabitUpdated} />
+        <TodayHabitsSummary 
+          selectedDate={selectedDate}
+          onUpdate={handleHabitUpdated} 
+        />
       </div>
 
       {/* Habit Form Modal */}
-      <HabitForm 
-        isOpen={isHabitFormOpen} 
-        onClose={() => setIsHabitFormOpen(false)} 
-        onHabitCreated={handleHabitCreated}
-      />
+      {isHabitFormOpen && (
+        <HabitForm
+          isOpen={isHabitFormOpen}
+          onClose={() => setIsHabitFormOpen(false)}
+          onHabitCreated={handleHabitCreated}
+        />
+      )}
     </div>
   );
 };

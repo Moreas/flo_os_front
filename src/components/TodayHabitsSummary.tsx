@@ -6,14 +6,15 @@ import {
   ExclamationTriangleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
-import { format } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { TrackingSummary } from '../types/habit';
 
 interface TodayHabitsSummaryProps {
+  selectedDate?: Date;
   onUpdate?: () => void;
 }
 
-const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => {
+const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = new Date(), onUpdate }) => {
   const [trackingSummary, setTrackingSummary] = useState<TrackingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +24,8 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
     setLoading(true);
     setError(null);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const summaryRes = await apiClient.get(`/api/habits/tracking_summary/?start_date=${today}&end_date=${today}`);
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const summaryRes = await apiClient.get(`/api/habits/tracking_summary/?start_date=${dateStr}&end_date=${dateStr}`);
       
       // Extract tracking summary data from the API response structure
       const habitsData = summaryRes.data?.habits || [];
@@ -57,12 +58,12 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
       
       setTrackingSummary(summaryData);
     } catch (err: unknown) {
-      console.error("Error fetching today's summary:", err);
-      setError("Failed to load today's habits summary.");
+      console.error("Error fetching habits summary:", err);
+      setError("Failed to load habits summary.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchTodaySummary();
@@ -71,9 +72,9 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
   const handleMarkCompleted = async (habitId: number) => {
     setActionLoading(habitId);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       await apiClient.post(`/api/habits/${habitId}/mark_completed/`, {
-        date: today
+        date: dateStr
       });
       
       // Refresh the data
@@ -94,9 +95,9 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
   const handleMarkMissed = async (habitId: number) => {
     setActionLoading(habitId);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       await apiClient.post(`/api/habits/${habitId}/mark_not_completed/`, {
-        date: today
+        date: dateStr
       });
       
       // Refresh the data
@@ -117,9 +118,9 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
   const handleUndo = async (habitId: number) => {
     setActionLoading(habitId);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       await apiClient.post(`/api/habits/${habitId}/undo_habit/`, {
-        date: today
+        date: dateStr
       });
       
       // Refresh the data
@@ -162,8 +163,8 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
   const missedToday = trackingSummary.filter(h => h.not_completed_count > 0).length;
   const pendingCount = totalHabits - completedToday - missedToday;
   
-  // Calculate today's progress percentage
-  const todayProgressPercentage = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
+  // Calculate progress percentage for the selected date
+  const progressPercentage = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
 
   return (
     <div className="space-y-4">
@@ -175,13 +176,15 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
       )}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Today's Habits</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          {isToday(selectedDate) ? "Today's Habits" : "Habits"}
+        </h3>
         <div className="text-right">
           <div className="text-sm text-gray-500">
-            {format(new Date(), 'MMM d, yyyy')}
+            {format(selectedDate, 'MMM d, yyyy')}
           </div>
           <div className="text-lg font-bold text-blue-600">
-            {todayProgressPercentage}% complete
+            {progressPercentage}% complete
           </div>
         </div>
       </div>
@@ -263,35 +266,37 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
                       <ClockIcon className="w-5 h-5 text-yellow-600" />
                     )}
                     
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2 ml-3">
-                      {isPending ? (
-                        <>
+                    {/* Action Buttons - Only show for today or future dates */}
+                    {(isToday(selectedDate) || selectedDate > new Date()) && (
+                      <div className="flex space-x-2 ml-3">
+                        {isPending ? (
+                          <>
+                            <button
+                              onClick={() => handleMarkCompleted(habit.habit_id)}
+                              disabled={isLoading}
+                              className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {isLoading ? '...' : 'Done'}
+                            </button>
+                            <button
+                              onClick={() => handleMarkMissed(habit.habit_id)}
+                              disabled={isLoading}
+                              className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {isLoading ? '...' : 'Missed'}
+                            </button>
+                          </>
+                        ) : (
                           <button
-                            onClick={() => handleMarkCompleted(habit.habit_id)}
+                            onClick={() => handleUndo(habit.habit_id)}
                             disabled={isLoading}
-                            className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="px-3 py-1 text-xs font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
-                            {isLoading ? '...' : 'Done'}
+                            {isLoading ? '...' : 'Undo'}
                           </button>
-                          <button
-                            onClick={() => handleMarkMissed(habit.habit_id)}
-                            disabled={isLoading}
-                            className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {isLoading ? '...' : 'Missed'}
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => handleUndo(habit.habit_id)}
-                          disabled={isLoading}
-                          className="px-3 py-1 text-xs font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {isLoading ? '...' : 'Undo'}
-                        </button>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
