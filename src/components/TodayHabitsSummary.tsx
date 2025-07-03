@@ -3,10 +3,11 @@ import { apiClient } from '../api/apiConfig';
 import { 
   CheckCircleIcon, 
   ClockIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import { TrackingSummary, PendingHabit } from '../types/habit';
+import { TrackingSummary } from '../types/habit';
 
 interface TodayHabitsSummaryProps {
   onUpdate?: () => void;
@@ -14,19 +15,16 @@ interface TodayHabitsSummaryProps {
 
 const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => {
   const [trackingSummary, setTrackingSummary] = useState<TrackingSummary[]>([]);
-  const [pendingHabits, setPendingHabits] = useState<PendingHabit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const fetchTodaySummary = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const [summaryRes, pendingRes] = await Promise.all([
-        apiClient.get(`/api/habits/tracking_summary/?start_date=${today}&end_date=${today}`),
-        apiClient.get(`/api/habits/pending_for_date/?date=${today}`)
-      ]);
+      const summaryRes = await apiClient.get(`/api/habits/tracking_summary/?start_date=${today}&end_date=${today}`);
       
       // Extract tracking summary data from the API response structure
       const habitsData = summaryRes.data?.habits || [];
@@ -37,7 +35,6 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
       }));
       
       setTrackingSummary(summaryData);
-      setPendingHabits(pendingRes.data || []);
     } catch (err: unknown) {
       console.error("Error fetching today's summary:", err);
       setError("Failed to load today's habits summary.");
@@ -49,6 +46,52 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
   useEffect(() => {
     fetchTodaySummary();
   }, [fetchTodaySummary]);
+
+  const handleMarkCompleted = async (habitId: number) => {
+    setActionLoading(habitId);
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      await apiClient.post(`/api/habits/${habitId}/mark_completed/`, {
+        date: today
+      });
+      
+      // Refresh the data
+      await fetchTodaySummary();
+      
+      // Call onUpdate if provided
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (err) {
+      console.error('Error marking habit as completed:', err);
+      setError('Failed to mark habit as completed');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleMarkMissed = async (habitId: number) => {
+    setActionLoading(habitId);
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      await apiClient.post(`/api/habits/${habitId}/mark_not_completed/`, {
+        date: today
+      });
+      
+      // Refresh the data
+      await fetchTodaySummary();
+      
+      // Call onUpdate if provided
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (err) {
+      console.error('Error marking habit as missed:', err);
+      setError('Failed to mark habit as missed');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const getCompletionRateColor = (rate: number) => {
     if (rate >= 80) return 'text-green-600';
@@ -72,7 +115,8 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
 
   const totalHabits = trackingSummary.length;
   const completedToday = trackingSummary.filter(h => h.completed_count > 0).length;
-  const pendingCount = pendingHabits.length;
+  const missedToday = trackingSummary.filter(h => h.not_completed_count > 0).length;
+  const pendingCount = totalHabits - completedToday - missedToday;
 
   return (
     <div className="space-y-4">
@@ -84,24 +128,28 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
       )}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Today's Habits Summary</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Today's Habits</h3>
         <span className="text-sm text-gray-500">
           {format(new Date(), 'MMM d, yyyy')}
         </span>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-4 gap-3 mb-4">
         <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-blue-600">{totalHabits}</div>
-          <div className="text-xs text-gray-500">Total Habits</div>
+          <div className="text-xl font-bold text-blue-600">{totalHabits}</div>
+          <div className="text-xs text-gray-500">Total</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-green-600">{completedToday}</div>
-          <div className="text-xs text-gray-500">Completed</div>
+          <div className="text-xl font-bold text-green-600">{completedToday}</div>
+          <div className="text-xs text-gray-500">Done</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
+          <div className="text-xl font-bold text-red-600">{missedToday}</div>
+          <div className="text-xs text-gray-500">Missed</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
+          <div className="text-xl font-bold text-yellow-600">{pendingCount}</div>
           <div className="text-xs text-gray-500">Pending</div>
         </div>
       </div>
@@ -116,59 +164,77 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
         </div>
       ) : (
         <div className="space-y-3">
-          {trackingSummary.map(habit => (
-            <div 
-              key={habit.habit_id} 
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-gray-900">{habit.habit_name}</h4>
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                    <span>
-                      Today: {habit.completed_count > 0 ? (
-                        <span className="text-green-600 font-medium">✓ Completed</span>
-                      ) : habit.not_completed_count > 0 ? (
-                        <span className="text-red-600 font-medium">✗ Not Completed</span>
-                      ) : (
-                        <span className="text-yellow-600 font-medium">⏳ Pending</span>
-                      )}
-                    </span>
-                    <span>
-                      Rate: <span className={getCompletionRateColor(habit.completion_rate)}>
-                        {habit.completion_rate}%
+          {trackingSummary.map(habit => {
+            const isCompleted = habit.completed_count > 0;
+            const isMissed = habit.not_completed_count > 0;
+            const isPending = !isCompleted && !isMissed;
+            const isLoading = actionLoading === habit.habit_id;
+
+            return (
+              <div 
+                key={habit.habit_id} 
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-gray-900">{habit.habit_name}</h4>
+                    <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                      <span>
+                        Status: {isCompleted ? (
+                          <span className="text-green-600 font-medium">✓ Done</span>
+                        ) : isMissed ? (
+                          <span className="text-red-600 font-medium">✗ Missed</span>
+                        ) : (
+                          <span className="text-yellow-600 font-medium">⏳ Pending</span>
+                        )}
                       </span>
-                    </span>
-                    <span>
-                      Streak: <span className={getStreakColor(habit.current_streak)}>
-                        {habit.current_streak} days
+                      <span>
+                        Rate: <span className={getCompletionRateColor(habit.completion_rate)}>
+                          {habit.completion_rate}%
+                        </span>
                       </span>
-                    </span>
+                      <span>
+                        Streak: <span className={getStreakColor(habit.current_streak)}>
+                          {habit.current_streak} days
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    {/* Status Icon */}
+                    {isCompleted ? (
+                      <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                    ) : isMissed ? (
+                      <XCircleIcon className="w-5 h-5 text-red-600" />
+                    ) : (
+                      <ClockIcon className="w-5 h-5 text-yellow-600" />
+                    )}
+                    
+                    {/* Action Buttons - only show for pending habits */}
+                    {isPending && (
+                      <div className="flex space-x-2 ml-3">
+                        <button
+                          onClick={() => handleMarkCompleted(habit.habit_id)}
+                          disabled={isLoading}
+                          className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {isLoading ? '...' : 'Done'}
+                        </button>
+                        <button
+                          onClick={() => handleMarkMissed(habit.habit_id)}
+                          disabled={isLoading}
+                          className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {isLoading ? '...' : 'Missed'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {habit.completed_count > 0 ? (
-                    <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                  ) : habit.not_completed_count > 0 ? (
-                    <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
-                  ) : (
-                    <ClockIcon className="w-5 h-5 text-yellow-600" />
-                  )}
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {pendingCount > 0 && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="w-5 h-5 text-yellow-600 mr-2" />
-            <span className="text-sm font-medium text-yellow-800">
-              {pendingCount} habit{pendingCount !== 1 ? 's' : ''} still pending for today
-            </span>
-          </div>
+            );
+          })}
         </div>
       )}
     </div>
