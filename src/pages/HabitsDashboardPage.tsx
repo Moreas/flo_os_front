@@ -54,6 +54,7 @@ const HabitsDashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isHabitFormOpen, setIsHabitFormOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [totalStreaks, setTotalStreaks] = useState(0);
 
   const fetchHabitsData = async () => {
     setLoading(true);
@@ -106,9 +107,81 @@ const HabitsDashboardPage: React.FC = () => {
     }
   };
 
+  const calculateTotalStreaks = async () => {
+    try {
+      const activeHabits = habits.filter(habit => habit.is_active);
+      if (activeHabits.length === 0) {
+        setTotalStreaks(0);
+        return;
+      }
+
+      let currentStreak = 0;
+      const today = new Date();
+      
+      // Check each day going backwards from today
+      for (let i = 0; i < 30; i++) { // Check last 30 days maximum
+        const checkDate = new Date(today);
+        checkDate.setDate(today.getDate() - i);
+        const dateStr = format(checkDate, 'yyyy-MM-dd');
+        
+        // Fetch tracking summary for this specific date
+        try {
+          const summaryRes = await apiClient.get(`/api/habits/tracking_summary/?start_date=${dateStr}&end_date=${dateStr}`);
+          const habitsData = summaryRes.data?.habits || [];
+          
+          // Check if ALL active habits were completed on this day
+          let allCompleted = true;
+          let hasAnyData = false;
+          
+          for (const activeHabit of activeHabits) {
+            const habitData = habitsData.find((h: any) => h.id === activeHabit.id);
+            if (habitData && habitData.summary) {
+              hasAnyData = true;
+              const completed = habitData.summary.completed || 0;
+              const pending = habitData.summary.pending || 0;
+              const notCompleted = habitData.summary.not_completed || 0;
+              
+              // If this habit has any pending or not completed instances, not all habits were completed
+              if (pending > 0 || notCompleted > 0 || completed === 0) {
+                allCompleted = false;
+                break;
+              }
+            } else {
+              // No data for this habit on this date means not completed
+              allCompleted = false;
+              break;
+            }
+          }
+          
+          // If we have data and all habits were completed, increment streak
+          if (hasAnyData && allCompleted) {
+            currentStreak++;
+          } else {
+            // Streak is broken, stop checking
+            break;
+          }
+        } catch (error) {
+          // If we can't fetch data for this date, assume streak is broken
+          break;
+        }
+      }
+      
+      setTotalStreaks(currentStreak);
+    } catch (error) {
+      console.error('Error calculating total streaks:', error);
+      setTotalStreaks(0);
+    }
+  };
+
   useEffect(() => {
     fetchHabitsData();
   }, [refreshKey]);
+
+  useEffect(() => {
+    if (habits.length > 0) {
+      calculateTotalStreaks();
+    }
+  }, [habits, instances]);
 
   const handleHabitCreated = () => {
     setRefreshKey(prev => prev + 1);
@@ -135,14 +208,7 @@ const HabitsDashboardPage: React.FC = () => {
     };
   };
 
-  const getTotalStreaks = () => {
-    // Calculate total streaks - consecutive days where ALL habits were completed
-    // For now, we'll sum individual current streaks as requested
-    return trackingSummary.reduce((sum, habit) => sum + habit.current_streak, 0);
-  };
-
   const stats = getCompletionStats();
-  const totalStreaks = getTotalStreaks();
 
   if (loading) {
     return (
