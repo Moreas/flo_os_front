@@ -30,7 +30,7 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
       
       // Extract tracking summary data from the API response structure
       const habitsData = summaryRes.data?.habits || [];
-      const summaryData = habitsData.map(habit => ({
+      const summaryData = habitsData.map((habit: any) => ({
         habit_id: habit.id,
         habit_name: habit.name,
         ...habit.summary
