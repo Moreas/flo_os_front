@@ -155,7 +155,11 @@ const HabitsDashboardPage: React.FC = () => {
   };
 
   const handlePreviousDay = () => {
-    setSelectedDate(prev => subDays(prev, 1));
+    const habitTrackingStartDate = new Date(2025, 5, 27); // June 27, 2025
+    const previousDay = subDays(selectedDate, 1);
+    if (previousDay >= habitTrackingStartDate) {
+      setSelectedDate(previousDay);
+    }
   };
 
   const handleNextDay = () => {
@@ -231,10 +235,11 @@ const HabitsDashboardPage: React.FC = () => {
             <div className="flex items-center space-x-1">
               <button
                 onClick={handlePreviousDay}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                disabled={selectedDate <= new Date(2025, 5, 27)} // Disable if at or before start date
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Previous day"
               >
-                <ChevronLeftIcon className="w-4 h-4" />
+                <ChevronLeftIcon className={`w-4 h-4 ${selectedDate <= new Date(2025, 5, 27) ? 'opacity-30' : ''}`} />
               </button>
               <button
                 onClick={handleNextDay}
@@ -260,6 +265,7 @@ const HabitsDashboardPage: React.FC = () => {
               type="date"
               value={formatDateForInput(selectedDate)}
               onChange={(e) => handleDateChange(parseDateInput(e.target.value))}
+              min={formatDateForInput(new Date(2025, 5, 27))} // June 27, 2025
               max={formatDateForInput(new Date())} // Don't allow future dates
               className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             />
