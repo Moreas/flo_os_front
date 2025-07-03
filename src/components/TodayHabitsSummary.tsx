@@ -28,11 +28,32 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ onUpdate }) => 
       
       // Extract tracking summary data from the API response structure
       const habitsData = summaryRes.data?.habits || [];
-      const summaryData = habitsData.map((habit: any) => ({
-        habit_id: habit.id,
-        habit_name: habit.name,
-        ...habit.summary
-      }));
+      const summaryData = habitsData.map((habit: any) => {
+        const summary = habit.summary || {};
+        const completed = summary.completed || 0;
+        const notCompleted = summary.not_completed || 0;
+        const pending = summary.pending || 0;
+        const notTracked = summary.not_tracked || 0;
+        const totalDates = summary.total_dates || 0;
+        
+        // Calculate completion rate based on actual tracking days (exclude not_tracked)
+        const actualTrackingDays = totalDates - notTracked;
+        const completionRate = actualTrackingDays > 0 
+          ? Math.round((completed / actualTrackingDays) * 100) 
+          : 0;
+        
+        return {
+          habit_id: habit.id,
+          habit_name: habit.name,
+          completed_count: completed,
+          not_completed_count: notCompleted,
+          pending_count: pending,
+          total_days: totalDates,
+          completion_rate: completionRate,
+          current_streak: 0, // TODO: Backend should provide this
+          longest_streak: 0, // TODO: Backend should provide this
+        };
+      });
       
       setTrackingSummary(summaryData);
     } catch (err: unknown) {
