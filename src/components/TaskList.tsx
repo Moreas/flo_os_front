@@ -23,6 +23,7 @@ import { Task } from '../types/task';
 import { Category } from '../types/category';
 import { Project } from '../types/project';
 import { Business } from '../types/business';
+import { formatISOForInput } from '../utils/dateUtils';
 
 // Fallback Data
 const fallbackTasks: Task[] = [
@@ -93,26 +94,6 @@ const fallbackProjects: Project[] = [ {id: 1, name: "Website Redesign"}, {id: 2,
 type SortField = 'due_date' | 'created_at' | 'business';
 type SortDirection = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'completed';
-
-// Updated: Helper to format date for date input using UTC
-const formatDateForInput = (isoString?: string | null): string => {
-    if (!isoString) return '';
-    try {
-        const date = parseISO(isoString); // date-fns parses ISO correctly
-        // Check if date is valid
-        if (isNaN(date.getTime())) {
-            return '';
-        }
-        // Format to YYYY-MM-DD using UTC parts
-        const year = date.getUTCFullYear();
-        const month = (date.getUTCMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
-        const day = date.getUTCDate().toString().padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    } catch (e) {
-        console.error("Error formatting date for input:", e);
-        return '';
-    }
-};
 
 const TaskList: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -415,33 +396,25 @@ const TaskList: React.FC = () => {
       <ChevronDownIcon className="w-3 h-3 text-gray-600 ml-1" />;
   };
 
-  // Updated: formatDate to compensate for timezone display offset
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return 'No due date';
     try {
-        const date = parseISO(dateString); // Parse the ISO string (likely UTC)
-        // Get the date parts in UTC to avoid local conversion issues for comparison/display logic
-        const utcYear = date.getUTCFullYear();
-        const utcMonth = date.getUTCMonth();
-        const utcDay = date.getUTCDate();
-        const now = new Date();
-        const nowUtcYear = now.getUTCFullYear();
-        const nowUtcMonth = now.getUTCMonth();
-        const nowUtcDay = now.getUTCDate();
-        if (utcYear === nowUtcYear && utcMonth === nowUtcMonth && utcDay === nowUtcDay) {
-             return 'Today';
-        }
-        // Remove unused displayMonth and displayDay assignments
-        const localOffsetMinutes = date.getTimezoneOffset();
-        const adjustedDate = new Date(date.getTime() + localOffsetMinutes * 60 * 1000);
-        return format(adjustedDate, 'MMM d');
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      if (dateFnsIsToday(date)) {
+        return 'Today';
+      } else if (isPast(date) && !dateFnsIsToday(date)) {
+        return `${format(date, 'MMM d')} (overdue)`;
+      } else {
+        return format(date, 'MMM d, yyyy');
+      }
     } catch (e) {
-        console.error("Error parsing/formatting date:", dateString, e);
-        return "Invalid date";
+      console.error("Error formatting date:", e);
+      return 'Invalid date';
     }
-  }
+  };
 
-  // --- Inline Date Update Logic ---
   const handleInlineDateChange = async (taskId: number, newDateValue: string) => {
     setIsUpdatingDate(true);
     const originalTasks = [...tasks]; // For potential revert
@@ -451,17 +424,17 @@ const TaskList: React.FC = () => {
     let newDueDateISO: string | null = null;
     try {
         if (newDateValue) { // newDateValue is "YYYY-MM-DD"
-            // We still parse it to check validity and potentially use the ISO for local state if needed
-            const date = new Date(newDateValue + 'T00:00:00Z');
+            // Use a simple approach - create date in local timezone
+            const [year, month, day] = newDateValue.split('-').map(Number);
+            const date = new Date(year, month - 1, day); // month is 0-indexed
             if (!isNaN(date.getTime())) {
-                 newDueDateISO = date.toISOString(); // Keep ISO for potential local use
+                 newDueDateISO = date.toISOString(); // Keep ISO for backend
             } else {
                  throw new Error("Invalid date format selected");
             }
         } // If newDateValue is empty, newDueDateISO remains null
 
         // Optimistically update UI before API call for responsiveness
-        // Still using ISO locally might be fine, depends on formatting functions
         setTasks(currentTasks => 
             currentTasks.map(task => 
                 task.id === taskId ? { ...task, due_date: newDueDateISO } : task
@@ -469,8 +442,7 @@ const TaskList: React.FC = () => {
         );
         setEditingDateTaskId(null); // Exit edit mode immediately
 
-        // API call
-        // Send the correct format required by the backend (YYYY-MM-DD or null)
+        // API call - send the correct format required by the backend (YYYY-MM-DD or null)
         const payloadDueDate = newDateValue ? newDateValue : null; 
         await apiClient.patch(`/api/tasks/${taskId}/`, {
           due_date: payloadDueDate
@@ -643,7 +615,7 @@ const TaskList: React.FC = () => {
                       <span className={task.is_done ? 'line-through text-gray-500' : ''}>{task.description}</span>
                       {task.is_done && task.completion_date && (
                           <span className="block text-xs text-gray-400 mt-0.5">
-                              Completed: {format(parseISO(task.completion_date), 'MMM d, yyyy')}
+                            Completed: {format(parseISO(task.completion_date), 'MMM d, yyyy')}
                           </span>
                       )}
                   </td>
@@ -654,7 +626,7 @@ const TaskList: React.FC = () => {
                         ref={dateInputRef}
                         type="date"
                         className="block w-full p-0.5 border border-primary-300 rounded shadow-sm text-sm focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50"
-                        value={formatDateForInput(task.due_date)}
+                        value={formatISOForInput(task.due_date)}
                         onChange={(e) => handleInlineDateChange(task.id, e.target.value)}
                         onBlur={() => setEditingDateTaskId(null)}
                         disabled={isUpdatingDate}

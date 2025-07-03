@@ -11,9 +11,10 @@ import {
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
-import { format, addDays, subDays, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import HabitForm from '../components/forms/HabitForm';
 import TodayHabitsSummary from '../components/TodayHabitsSummary';
+import { parseDateInput, formatDateForInput, isToday, addDays, subDays } from '../utils/dateUtils';
 
 interface Habit {
   id: number;
@@ -264,9 +265,9 @@ const HabitsDashboardPage: React.FC = () => {
           <div className="flex items-center space-x-2">
             <input
               type="date"
-              value={format(selectedDate, 'yyyy-MM-dd')}
-              onChange={(e) => handleDateChange(new Date(e.target.value))}
-              max={format(new Date(), 'yyyy-MM-dd')} // Don't allow future dates
+              value={formatDateForInput(selectedDate)}
+              onChange={(e) => handleDateChange(parseDateInput(e.target.value))}
+              max={formatDateForInput(new Date())} // Don't allow future dates
               className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             />
           </div>

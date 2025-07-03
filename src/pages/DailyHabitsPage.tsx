@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { fetchWithCSRF } from '../api/fetchWithCreds';
 import HabitForm from '../components/forms/HabitForm';
 import { PendingHabit, TrackingSummary } from '../types/habit';
+import { parseDateInput, formatDateForInput } from '../utils/dateUtils';
 
 const DailyHabitsPage: React.FC = () => {
   const [pendingHabits, setPendingHabits] = useState<PendingHabit[]>([]);
@@ -23,7 +24,7 @@ const DailyHabitsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [updatingHabitId, setUpdatingHabitId] = useState<number | null>(null);
   const [isHabitFormOpen, setIsHabitFormOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const fetchDailyData = useCallback(async (date?: string) => {
@@ -171,7 +172,7 @@ const DailyHabitsPage: React.FC = () => {
             className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <CalendarIcon className="w-4 h-4" />
-            <span>{format(new Date(selectedDate), 'MMM d, yyyy')}</span>
+            <span>{format(parseDateInput(selectedDate), 'MMM d, yyyy')}</span>
           </button>
           <button
             onClick={() => setIsHabitFormOpen(true)}
@@ -228,7 +229,7 @@ const DailyHabitsPage: React.FC = () => {
             <CheckCircleIcon className="mx-auto h-12 w-12 text-green-400" />
             <p className="mt-2 text-sm font-medium text-gray-900">All caught up!</p>
             <p className="mt-1 text-sm text-gray-500">
-              No pending habits for {format(new Date(selectedDate), 'MMM d, yyyy')}
+              No pending habits for {format(parseDateInput(selectedDate), 'MMM d, yyyy')}
             </p>
           </div>
         ) : (
