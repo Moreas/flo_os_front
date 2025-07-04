@@ -174,9 +174,9 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
   const missedToday = trackingSummary.filter(h => h.not_completed_count > 0).length;
   const pendingCount = totalHabits - completedToday - missedToday;
   
-  // Filter habits based on hideCompleted setting
+  // Filter habits based on hideCompleted setting - exclude both completed and missed habits
   const filteredHabits = hideCompleted 
-    ? trackingSummary.filter(h => h.completed_count === 0) 
+    ? trackingSummary.filter(h => h.completed_count === 0 && h.not_completed_count === 0) 
     : trackingSummary;
   
   // Calculate progress percentage for the selected date
@@ -197,7 +197,7 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
         </h3>
         <div className="flex items-center space-x-3">
           {/* Filter Toggle */}
-          {completedToday > 0 && (
+          {(completedToday > 0 || missedToday > 0) && (
             <button
               onClick={() => setHideCompleted(!hideCompleted)}
               className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
@@ -205,12 +205,12 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
               {hideCompleted ? (
                 <>
                   <EyeSlashIcon className="w-4 h-4" />
-                  <span>Show completed</span>
+                  <span>Show all</span>
                 </>
               ) : (
                 <>
                   <EyeIcon className="w-4 h-4" />
-                  <span>Hide completed</span>
+                  <span>Show pending only</span>
                 </>
               )}
             </button>
@@ -250,14 +250,14 @@ const TodayHabitsSummary: React.FC<TodayHabitsSummaryProps> = ({ selectedDate = 
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm font-medium text-gray-900">
-            {hideCompleted && completedToday > 0 
-              ? `All ${completedToday} habits completed! 🎉` 
+            {hideCompleted && (completedToday > 0 || missedToday > 0)
+              ? `All habits completed or missed! 🎉` 
               : "No habits found"
             }
           </p>
           <p className="mt-1 text-sm text-gray-500">
-            {hideCompleted && completedToday > 0 
-              ? "Click 'Show completed' to see finished habits"
+            {hideCompleted && (completedToday > 0 || missedToday > 0)
+              ? "Click 'Show all' to see finished and missed habits"
               : "Create your first habit to start tracking"
             }
           </p>
