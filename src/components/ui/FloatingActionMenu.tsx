@@ -3,8 +3,8 @@ import { Dialog, Transition, Popover } from '@headlessui/react';
 import { PlusIcon, XMarkIcon, ArrowPathIcon, ExclamationCircleIcon, CheckCircleIcon, PencilSquareIcon, BookOpenIcon, FaceSmileIcon, BoltIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/apiConfig';
-import MentionInput from './MentionInput';
 import { useTaskRefresh } from '../../contexts/TaskRefreshContext';
+import MentionInput from './MentionInput';
 
 
 // Define emotions and their corresponding emojis
@@ -38,6 +38,8 @@ const energyMap: { [key: number]: { emoji: string, colorClass: string, label: st
 };
 
 const FloatingActionMenu: React.FC = () => {
+  const { refreshTasks } = useTaskRefresh(); 
+
   // Modal States
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isJournalModalOpen, setIsJournalModalOpen] = useState(false);
@@ -49,7 +51,6 @@ const FloatingActionMenu: React.FC = () => {
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
   const [submitTaskError, setSubmitTaskError] = useState<string | null>(null);
   const [submitTaskSuccess, setSubmitTaskSuccess] = useState(false);
-  const { refreshTasks } = useTaskRefresh(); 
 
   // Journal Modal State
   const [quickJournalInput, setQuickJournalInput] = useState('');
@@ -186,7 +187,12 @@ const FloatingActionMenu: React.FC = () => {
   }, [isSubmittingMood]);
 
   const handleMoodSelect = (level: number) => {
-    setSelectedMoodLevel(prev => prev === level ? null : level);
+    console.log(`[DEBUG] Mood selected: ${level} (${level === 1 ? 'Bad' : level === 2 ? 'Okay' : 'Good'})`);
+    setSelectedMoodLevel(prev => {
+      const newLevel = prev === level ? null : level;
+      console.log(`[DEBUG] Previous level: ${prev}, New level: ${newLevel}`);
+      return newLevel;
+    });
     setSubmitMoodError(null); // Clear error on new selection
     setSubmitMoodSuccess(false); // Clear success message
   };
@@ -197,25 +203,38 @@ const FloatingActionMenu: React.FC = () => {
         setSubmitMoodError("Please select a mood level.");
         return;
     }
+    
+    console.log(`[DEBUG] Submitting mood: Level ${selectedMoodLevel} (${selectedMoodLevel === 1 ? 'Bad' : selectedMoodLevel === 2 ? 'Okay' : 'Good'})`);
+    
     setIsSubmittingMood(true);
     setSubmitMoodError(null);
     setSubmitMoodSuccess(false);
     
     try {
-      const response = await apiClient.post('/api/moods/', { 
+      const payload = { 
         level: selectedMoodLevel,
         comment: moodComment.trim() || null 
-      });
+      };
+      console.log(`[DEBUG] Mood payload:`, payload);
+      
+      const response = await apiClient.post('/api/moods/', payload);
+      
+      console.log(`[DEBUG] Mood response:`, response.status, response.data);
       
       if (response.status >= 200 && response.status < 300) {
         setSubmitMoodSuccess(true);
         setMoodComment('');
         setSelectedMoodLevel(null); 
+        
+        // Trigger refresh of mood tracker
+        window.dispatchEvent(new CustomEvent('moodDataUpdated'));
+        
         setTimeout(() => { closeMoodModal(); }, 1000);
       } else {
         throw new Error(`Failed to track mood (${response.status})`);
       }
     } catch (err: any) {
+      console.error(`[DEBUG] Mood submission error:`, err);
       const errorMsg = err.message || 'Failed to track mood.';
       setSubmitMoodError(errorMsg);
     } finally {
@@ -263,6 +282,10 @@ const FloatingActionMenu: React.FC = () => {
         setSubmitEnergySuccess(true);
         setEnergyComment('');
         setSelectedEnergyLevel(null); 
+        
+        // Trigger refresh of energy tracker
+        window.dispatchEvent(new CustomEvent('energyDataUpdated'));
+        
         setTimeout(() => { closeEnergyModal(); }, 1000);
       } else {
         throw new Error(`Failed to track energy (${response.status})`);

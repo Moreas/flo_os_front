@@ -18,6 +18,7 @@ interface ChartData {
   level: number;
   comment?: string | null;
   fullDate: string; // For tooltip
+  originalDate: Date; // For sorting
 }
 
 const moodLabels: { [key: number]: string } = {
@@ -45,57 +46,76 @@ const MoodTracker: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchMoodData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await apiClient.get('/api/moods/');
+  const fetchMoodData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.get('/api/moods/');
+      
+      if (response.status >= 200 && response.status < 300) {
+        const data: MoodEntry[] = response.data;
         
-        if (response.status >= 200 && response.status < 300) {
-          const data: MoodEntry[] = response.data;
-          
-          const mappedData: (ChartData | null)[] = data.map(entry => {
-            if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
-              console.warn('Skipping mood entry due to missing or invalid created_at:', entry);
-              return null; 
-            }
-            try {
-              const parsedDate = parseISO(entry.created_at);
-              if (isNaN(parsedDate.getTime())) {
-                console.warn('Skipping mood entry due to unparseable created_at string:', entry.created_at, entry);
-                return null;
-              }
-              return {
-                date: format(parsedDate, 'MMM d'), 
-                level: entry.level,
-                comment: entry.comment,
-                fullDate: format(parsedDate, 'MMM d, yyyy'),
-              };
-            } catch (dateProcessingError) {
-              console.error('Error processing date for mood entry:', entry.created_at, entry, dateProcessingError);
+        const mappedData: (ChartData | null)[] = data.map(entry => {
+          if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
+            console.warn('Skipping mood entry due to missing or invalid created_at:', entry);
+            return null; 
+          }
+          try {
+            const parsedDate = parseISO(entry.created_at);
+            if (isNaN(parsedDate.getTime())) {
+              console.warn('Skipping mood entry due to unparseable created_at string:', entry.created_at, entry);
               return null;
             }
-          });
-          
-          // Filter out nulls using a type guard
-          const filteredData: ChartData[] = mappedData.filter(
-            (item): item is ChartData => item !== null
-          );
+            return {
+              date: format(parsedDate, 'MMM d'), 
+              level: entry.level,
+              comment: entry.comment,
+              fullDate: format(parsedDate, 'MMM d, yyyy'),
+              originalDate: parsedDate,
+            };
+          } catch (dateProcessingError) {
+            console.error('Error processing date for mood entry:', entry.created_at, entry, dateProcessingError);
+            return null;
+          }
+        });
+        
+        // Filter out nulls using a type guard
+        const filteredData: ChartData[] = mappedData.filter(
+          (item): item is ChartData => item !== null
+        );
 
-          setMoodData(filteredData);
-        } else {
-          throw new Error(`Failed to fetch mood data: ${response.status}`);
-        }
-      } catch (error) {
-        console.error('Error fetching mood data:', error);
-        setError('Failed to load mood data');
-      } finally {
-        setLoading(false);
+        // Sort data by date in ascending order (oldest to newest)
+        filteredData.sort((a, b) => {
+          const dateA = a.originalDate.getTime();
+          const dateB = b.originalDate.getTime();
+          return dateA - dateB;
+        });
+
+        setMoodData(filteredData);
+      } else {
+        throw new Error(`Failed to fetch mood data: ${response.status}`);
       }
-    };
+    } catch (err) {
+      console.error('Error fetching mood data:', err);
+      setError('Failed to load mood data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchMoodData();
+    
+    // Listen for mood refresh events
+    const handleMoodRefresh = () => {
+      fetchMoodData();
+    };
+    
+    window.addEventListener('moodDataUpdated', handleMoodRefresh);
+    
+    return () => {
+      window.removeEventListener('moodDataUpdated', handleMoodRefresh);
+    };
   }, []);
 
   if (loading) {

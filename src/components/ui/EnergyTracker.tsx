@@ -7,7 +7,7 @@ import { apiClient } from '../../api/apiConfig';
 // Interface for energy data from the API
 interface EnergyEntry {
   id: number;
-  level: 0 | 1 | 2 | 3 | 4 | 5; // Energy level: 0 (Exhausted) to 5 (Very High)
+  level: 1 | 2 | 3 | 4 | 5; // Energy level: 1 (Very Low) to 5 (Very High)
   comment?: string | null;
   created_at: string; // ISO date string
 }
@@ -18,13 +18,13 @@ interface ChartData {
   level: number;
   comment?: string | null;
   fullDate: string; // For tooltip
+  originalDate: Date; // For sorting
 }
 
 const energyLabels: { [key: number]: string } = {
-  0: 'Exhausted',
   1: 'Very Low',
   2: 'Low',
-  3: 'Moderate',
+  3: 'Medium',
   4: 'High',
   5: 'Very High',
 };
@@ -48,57 +48,76 @@ const EnergyTracker: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchEnergyData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await apiClient.get('/api/energy/');
+  const fetchEnergyData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.get('/api/energy/');
+      
+      if (response.status >= 200 && response.status < 300) {
+        const data: EnergyEntry[] = response.data;
         
-        if (response.status >= 200 && response.status < 300) {
-          const data: EnergyEntry[] = response.data;
-          
-          const mappedData: (ChartData | null)[] = data.map(entry => {
-            if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
-              console.warn('Skipping energy entry due to missing or invalid created_at:', entry);
-              return null; 
-            }
-            try {
-              const parsedDate = parseISO(entry.created_at);
-              if (isNaN(parsedDate.getTime())) {
-                console.warn('Skipping energy entry due to unparseable created_at string:', entry.created_at, entry);
-                return null;
-              }
-              return {
-                date: format(parsedDate, 'MMM d'), 
-                level: entry.level,
-                comment: entry.comment,
-                fullDate: format(parsedDate, 'MMM d, yyyy'),
-              };
-            } catch (dateProcessingError) {
-              console.error('Error processing date for energy entry:', entry.created_at, entry, dateProcessingError);
+        const mappedData: (ChartData | null)[] = data.map(entry => {
+          if (!entry || typeof entry.created_at !== 'string' || entry.created_at.trim() === '') {
+            console.warn('Skipping energy entry due to missing or invalid created_at:', entry);
+            return null; 
+          }
+          try {
+            const parsedDate = parseISO(entry.created_at);
+            if (isNaN(parsedDate.getTime())) {
+              console.warn('Skipping energy entry due to unparseable created_at string:', entry.created_at, entry);
               return null;
             }
-          });
-          
-          // Filter out nulls using a type guard
-          const filteredData: ChartData[] = mappedData.filter(
-            (item): item is ChartData => item !== null
-          );
+            return {
+              date: format(parsedDate, 'MMM d'), 
+              level: entry.level,
+              comment: entry.comment,
+              fullDate: format(parsedDate, 'MMM d, yyyy'),
+              originalDate: parsedDate,
+            };
+          } catch (dateProcessingError) {
+            console.error('Error processing date for energy entry:', entry.created_at, entry, dateProcessingError);
+            return null;
+          }
+        });
+        
+        // Filter out nulls using a type guard
+        const filteredData: ChartData[] = mappedData.filter(
+          (item): item is ChartData => item !== null
+        );
 
-          setEnergyData(filteredData);
-        } else {
-          throw new Error(`Failed to fetch energy data: ${response.status}`);
-        }
-      } catch (error) {
-        console.error('Error fetching energy data:', error);
-        setError('Failed to load energy data');
-      } finally {
-        setLoading(false);
+        // Sort data by date in ascending order (oldest to newest)
+        filteredData.sort((a, b) => {
+          const dateA = a.originalDate.getTime();
+          const dateB = b.originalDate.getTime();
+          return dateA - dateB;
+        });
+
+        setEnergyData(filteredData);
+      } else {
+        throw new Error(`Failed to fetch energy data: ${response.status}`);
       }
-    };
+    } catch (err) {
+      console.error('Error fetching energy data:', err);
+      setError('Failed to load energy data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchEnergyData();
+    
+    // Listen for energy refresh events
+    const handleEnergyRefresh = () => {
+      fetchEnergyData();
+    };
+    
+    window.addEventListener('energyDataUpdated', handleEnergyRefresh);
+    
+    return () => {
+      window.removeEventListener('energyDataUpdated', handleEnergyRefresh);
+    };
   }, []);
 
   if (loading) {
@@ -142,8 +161,8 @@ const EnergyTracker: React.FC = () => {
               tickLine={{ stroke: '#d1d5db' }}
             />
             <YAxis 
-              domain={[0, 5]} 
-              ticks={[0, 1, 2, 3, 4, 5]} 
+              domain={[1, 5]} 
+              ticks={[1, 2, 3, 4, 5]} 
               tickFormatter={(value) => energyLabels[value] || value.toString()}
               tick={{ fontSize: 12, fill: '#6b7280' }}
               axisLine={{ stroke: '#d1d5db' }} 
@@ -154,11 +173,11 @@ const EnergyTracker: React.FC = () => {
             <Area 
                 type="monotone" 
                 dataKey="level" 
-                stroke="#2563eb"
-                fill="#93c5fd"
+                stroke="#059669" // emerald-600
+                fill="#6ee7b7"   // emerald-300
                 strokeWidth={2}
-                dot={{ r: 4, strokeWidth: 1, fill: '#2563eb' }}
-                activeDot={{ r: 6, strokeWidth: 2, fill: '#fff', stroke: '#2563eb' }}
+                dot={{ r: 4, strokeWidth: 1, fill: '#059669' }}
+                activeDot={{ r: 6, strokeWidth: 2, fill: '#fff', stroke: '#059669' }}
             />
           </AreaChart>
         </ResponsiveContainer>
