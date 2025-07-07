@@ -8,7 +8,6 @@ import {
   ClipboardDocumentListIcon, 
   UsersIcon,
   WrenchScrewdriverIcon, 
-  AcademicCapIcon, 
   BriefcaseIcon,
   InboxIcon,
   HeartIcon,
@@ -18,7 +17,6 @@ import {
   CalendarDaysIcon,
   BookmarkIcon,
   ClockIcon,
-  DocumentTextIcon,
   UserGroupIcon,
   ShareIcon,
 } from '@heroicons/react/24/outline';
