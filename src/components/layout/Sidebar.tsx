@@ -20,6 +20,7 @@ import {
   ClockIcon,
   DocumentTextIcon,
   UserGroupIcon,
+  ShareIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -30,17 +31,16 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Inbox', href: '/emails', icon: InboxIcon },
   { name: 'Journal', href: '/journal', icon: BookOpenIcon },
-  { name: 'Books', href: '/books', icon: BookmarkIcon },
+  { name: 'Learning', href: '/books', icon: BookmarkIcon },
   { name: 'Habits', href: '/habits', icon: ClockIcon },
   { name: 'Projects', href: '/projects', icon: FolderIcon },
   { name: 'Goals', href: '/goals', icon: FlagIcon },
   { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
   { name: 'Businesses', href: '/businesses', icon: BriefcaseIcon },
   { name: 'People', href: '/people', icon: UsersIcon },
+  { name: 'Networking', href: '/networking', icon: ShareIcon },
   { name: 'Meetings', href: '/meetings', icon: PhoneIcon },
   { name: 'Tools', href: '/tools', icon: WrenchScrewdriverIcon },
-  { name: 'Learning', href: '/learning', icon: AcademicCapIcon },
-  { name: 'Knowledge Resources', href: '/knowledge', icon: DocumentTextIcon },
   { name: 'Mentoring', href: '/mentoring', icon: UserGroupIcon },
   { name: 'Health - Fitness', href: '/health', icon: HeartIcon },
   { name: 'Finance', href: '/finance', icon: BanknotesIcon },
