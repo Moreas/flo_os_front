@@ -24,6 +24,7 @@ const HabitDetailPage: React.FC = () => {
         habitId={parseInt(id, 10)} 
         onBack={handleBack}
       />
+      
     </div>
   );
 };
