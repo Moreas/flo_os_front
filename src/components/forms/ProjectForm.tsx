@@ -352,7 +352,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProje
                     >
                       <option value="active">Active</option>
                       <option value="paused">Paused</option>
-                      <option value="archived">Archived</option>
+                      <option value="completed">Completed</option>
                     </select>
                   </div>
 

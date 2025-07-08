@@ -20,7 +20,7 @@ interface SortField {
 }
 
 type SortDirection = 'asc' | 'desc';
-type StatusFilter = 'all' | 'active' | 'paused' | 'archived';
+type StatusFilter = 'all' | 'active' | 'paused' | 'completed';
 
 const ProjectList: React.FC = () => {
   const navigate = useNavigate();
@@ -92,8 +92,8 @@ const ProjectList: React.FC = () => {
         return 'bg-green-100 text-green-800';
       case 'paused':
         return 'bg-yellow-100 text-yellow-800';
-      case 'archived':
-        return 'bg-gray-100 text-gray-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -201,7 +201,7 @@ const ProjectList: React.FC = () => {
           <option value="all">All Statuses</option>
           <option value="active">Active</option>
           <option value="paused">Paused</option>
-          <option value="archived">Archived</option>
+          <option value="completed">Completed</option>
         </select>
 
         {/* Sort Controls */}

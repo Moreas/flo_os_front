@@ -3,7 +3,7 @@ import EmailList, { EmailListRef } from '../components/EmailList';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import API_BASE from '../apiBase';
-import { apiClient } from '../api/apiConfig';
+import { apiClient, longRunningApiClient } from '../api/apiConfig';
 
 const EmailsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,8 @@ const EmailsPage: React.FC = () => {
     setMessage(null);
     setError(null);
     try {
-      const response = await apiClient.post(`${API_BASE}/api/retrieve_emails/`, {
+      // Use longRunningApiClient for email retrieval due to longer processing times
+      const response = await longRunningApiClient.post(`${API_BASE}/api/retrieve_emails/`, {
         fetch_all: true,
         include_sent: true
       });
