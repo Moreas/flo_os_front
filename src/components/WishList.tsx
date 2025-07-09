@@ -6,6 +6,7 @@ import {
   XMarkIcon, 
   MagnifyingGlassIcon,
   ArrowTopRightOnSquareIcon,
+  ArrowPathIcon,
   CurrencyDollarIcon,
   TagIcon,
   CalendarIcon
@@ -120,8 +121,8 @@ const WishList: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="flex items-center justify-center p-6">
+        <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin" />
       </div>
     );
   }

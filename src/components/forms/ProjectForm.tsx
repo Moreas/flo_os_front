@@ -1,6 +1,6 @@
 import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ExclamationCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { apiClient } from '../../api/apiConfig';
 
 interface ProjectFormProps {
@@ -225,7 +225,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProje
                     <div className="mt-1">
                       {isLoadingCategories ? (
                         <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                          <ArrowPathIcon className="h-4 w-4 animate-spin" />
                           <span>Loading categories...</span>
                         </div>
                       ) : (
@@ -263,7 +263,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProje
                     <div className="mt-1">
                       {isLoadingBusinesses ? (
                         <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                          <ArrowPathIcon className="h-4 w-4 animate-spin" />
                           <span>Loading businesses...</span>
                         </div>
                       ) : (

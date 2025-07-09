@@ -5,7 +5,8 @@ import {
   EyeIcon,
   EyeSlashIcon,
   ArrowLeftIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { 
   format, 
@@ -197,7 +198,7 @@ const HabitProgressGraph: React.FC<HabitProgressGraphProps> = ({ habitId, habitN
     return (
       <div className="bg-white shadow-sm rounded-lg p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <ArrowPathIcon className="w-8 h-8 text-gray-400 animate-spin" />
         </div>
       </div>
     );

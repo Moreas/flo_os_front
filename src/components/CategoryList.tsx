@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/apiConfig';
-import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { ExclamationCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface Category {
   id: number;
@@ -35,7 +35,7 @@ const CategoryList: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <ArrowPathIcon className="w-8 h-8 text-gray-400 animate-spin" />
       </div>
     );
   }
