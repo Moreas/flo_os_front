@@ -210,7 +210,8 @@ const BookForm: React.FC<BookFormProps> = ({
                     >
                       <option value="not_started">Not Started</option>
                       <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
+                      <option value="read">Read</option>
+                      <option value="read_and_digested">Read and Digested</option>
                     </select>
                   </div>
 

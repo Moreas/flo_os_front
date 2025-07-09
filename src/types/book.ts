@@ -3,7 +3,7 @@ export interface Book {
   title: string;
   author?: string;
   description?: string;
-  status: 'not_started' | 'in_progress' | 'completed';
+  status: 'not_started' | 'in_progress' | 'read' | 'read_and_digested';
   current_chapter?: number;
   total_chapters?: number;
   rating?: number;
