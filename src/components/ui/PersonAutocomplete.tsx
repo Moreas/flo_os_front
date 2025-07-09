@@ -51,22 +51,22 @@ const PersonAutocomplete: React.FC<PersonAutocompleteProps> = ({
   }, []);
 
   // Filter people based on search and exclude already selected
-  const filteredPeople = people.filter(person =>
-    person.name.toLowerCase().includes(searchValue.toLowerCase()) &&
-    !selectedPersonIds.includes(person.id)
-  );
+  const filteredPeople = people.filter(person => {
+    const matchesSearch = searchValue.length === 0 || 
+      person.name.toLowerCase().includes(searchValue.toLowerCase());
+    const notSelected = !selectedPersonIds.includes(person.id);
+    return matchesSearch && notSelected;
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchValue(value);
-    setShowDropdown(value.length > 0);
+    setShowDropdown(true); // Always show dropdown when typing
     setSelectedIndex(0);
   };
 
   const handleInputFocus = () => {
-    if (searchValue.length > 0) {
-      setShowDropdown(true);
-    }
+    setShowDropdown(true); // Show dropdown on focus, even with empty search
   };
 
   const handleInputBlur = () => {
@@ -184,7 +184,11 @@ const PersonAutocomplete: React.FC<PersonAutocompleteProps> = ({
               ))
             ) : (
               <div className="px-4 py-2 text-sm text-gray-500">
-                No people found matching "{searchValue}"
+                {searchValue ? `No people found matching "${searchValue}"` : 'No people available'}
+                {/* Debug info */}
+                <div className="text-xs mt-1 text-gray-400">
+                  Total people: {people.length}, Filtered: {filteredPeople.length}
+                </div>
               </div>
             )}
           </div>
