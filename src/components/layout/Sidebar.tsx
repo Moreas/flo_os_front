@@ -19,6 +19,7 @@ import {
   ClockIcon,
   UserGroupIcon,
   ShareIcon,
+  GiftIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -34,6 +35,7 @@ const navigation = [
   { name: 'Projects', href: '/projects', icon: FolderIcon },
   { name: 'Goals', href: '/goals', icon: FlagIcon },
   { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+  { name: 'Wish List', href: '/wishlist', icon: GiftIcon },
   { name: 'Businesses', href: '/businesses', icon: BriefcaseIcon },
   { name: 'People', href: '/people', icon: UsersIcon },
   { name: 'Networking', href: '/networking', icon: ShareIcon },

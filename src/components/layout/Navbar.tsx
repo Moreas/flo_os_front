@@ -10,12 +10,14 @@ import {
   FolderIcon,
   BellIcon,
   Bars3Icon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  GiftIcon
 } from '@heroicons/react/24/outline';
 import TaskForm from '../forms/TaskForm';
 import JournalForm from '../forms/JournalForm';
 import GoalForm from '../forms/GoalForm';
 import ProjectForm from '../forms/ProjectForm';
+import WishListForm from '../forms/WishListForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../api/apiConfig';
 
@@ -56,6 +58,7 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
   const [isJournalFormOpen, setIsJournalFormOpen] = useState(false);
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
+  const [isWishListFormOpen, setIsWishListFormOpen] = useState(false);
 
   // Notifications state
   const [notifications, setNotifications] = useState<NotificationGroup[]>([]);
@@ -258,6 +261,14 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
             >
               <FolderIcon className="w-5 h-5" aria-hidden="true" />
             </button>
+            <button 
+              className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg" 
+              title="Add to Wish List"
+              onClick={() => setIsWishListFormOpen(true)}
+              aria-label="Add to Wish List"
+            >
+              <GiftIcon className="w-5 h-5" aria-hidden="true" />
+            </button>
           </div>
           {/* Notification Bell */}
           <Popover className="relative">
@@ -430,6 +441,11 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
       <ProjectForm 
         isOpen={isProjectFormOpen}
         onClose={() => setIsProjectFormOpen(false)}
+      />
+      <WishListForm 
+        isOpen={isWishListFormOpen}
+        onClose={() => setIsWishListFormOpen(false)}
+        onItemCreated={() => {}}
       />
     </>
   );

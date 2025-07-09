@@ -28,6 +28,7 @@ import ProjectDetailPage from './pages/ProjectDetailPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import BookDetailPage from './pages/BookDetailPage';
 import HabitDetailPage from './pages/HabitDetailPage';
+import WishListPage from './pages/WishListPage';
 import SettingsPage from './pages/SettingsPage';
 
 function App() {
@@ -101,6 +102,13 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <HabitsDashboardPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/wishlist" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <WishListPage />
                   </Layout>
                 </ProtectedRoute>
               } />
