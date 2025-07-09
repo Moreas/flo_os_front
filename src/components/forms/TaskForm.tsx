@@ -4,11 +4,11 @@ import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from
 import { useRefresh } from '../../contexts/RefreshContext';
 import { apiClient } from '../../api/apiConfig';
 import MentionInput from '../ui/MentionInput';
+import PersonAutocomplete from '../ui/PersonAutocomplete';
 import { Task } from '../../types/task';
 import { Category } from '../../types/category';
 import { Project } from '../../types/project';
 import { Business } from '../../types/business';
-import { Person } from '../../types/person';
 
 interface TaskFormProps {
   isOpen: boolean;
@@ -55,7 +55,6 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [people, setPeople] = useState<Person[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -68,16 +67,14 @@ const TaskForm: React.FC<TaskFormProps> = ({
       setIsLoadingData(true);
       setFetchError(null);
       try {
-        const [catRes, projRes, bizRes, peopleRes] = await Promise.all([
+        const [catRes, projRes, bizRes] = await Promise.all([
           apiClient.get('/api/categories/'),
           apiClient.get('/api/projects/'),
           apiClient.get('/api/businesses/'),
-          apiClient.get('/api/people/'),
         ]);
         setCategories(catRes.data || []);
         setProjects(projRes.data || []);
         setBusinesses(bizRes.data || []);
-        setPeople(peopleRes.data || []);
       } catch (err) {
         console.error("Error fetching form data:", err);
         setFetchError("Failed to load form data. Please try again.");
@@ -164,7 +161,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
     });
   };
 
-  const handleMultiSelectChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'category_ids' | 'responsible_ids' | 'impacted_ids') => {
+  const handleMultiSelectChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'category_ids') => {
     const id = parseInt(e.target.value);
     const isChecked = e.target.checked;
     setFormData(prev => ({
@@ -409,53 +406,19 @@ const TaskForm: React.FC<TaskFormProps> = ({
                       </div>
                     )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Responsible People (Optional)
-                      </label>
-                      <div className="mt-1 space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                        {people.map((person) => (
-                          <div key={person.id} className="flex items-center">
-                            <input
-                              id={`responsible-${person.id}`}
-                              name="responsible"
-                              type="checkbox"
-                              value={person.id}
-                              checked={formData.responsible_ids.includes(person.id)}
-                              onChange={(e) => handleMultiSelectChange(e, 'responsible_ids')}
-                              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                            />
-                            <label htmlFor={`responsible-${person.id}`} className="ml-2 block text-sm text-gray-900">
-                              {person.name}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <PersonAutocomplete
+                      selectedPersonIds={formData.responsible_ids}
+                      onChange={(selectedPersonIds) => setFormData(prev => ({ ...prev, responsible_ids: selectedPersonIds }))}
+                      label="Responsible People (Optional)"
+                      placeholder="Type to search for responsible people..."
+                    />
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Impacted People (Optional)
-                      </label>
-                      <div className="mt-1 space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                        {people.map((person) => (
-                          <div key={person.id} className="flex items-center">
-                            <input
-                              id={`impacted-${person.id}`}
-                              name="impacted"
-                              type="checkbox"
-                              value={person.id}
-                              checked={formData.impacted_ids.includes(person.id)}
-                              onChange={(e) => handleMultiSelectChange(e, 'impacted_ids')}
-                              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                            />
-                            <label htmlFor={`impacted-${person.id}`} className="ml-2 block text-sm text-gray-900">
-                              {person.name}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <PersonAutocomplete
+                      selectedPersonIds={formData.impacted_ids}
+                      onChange={(selectedPersonIds) => setFormData(prev => ({ ...prev, impacted_ids: selectedPersonIds }))}
+                      label="Impacted People (Optional)"
+                      placeholder="Type to search for impacted people..."
+                    />
 
                     {submitSuccess && (
                       <div className="p-3 text-sm text-green-700 bg-green-50 rounded-md border border-green-200 flex items-center">
