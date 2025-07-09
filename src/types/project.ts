@@ -15,7 +15,13 @@ export interface Project {
   business?: {
     id: number;
     name: string;
+    description?: string;
+    is_active?: boolean;
   };
+  categories?: {
+    id: number;
+    name: string;
+  }[];
   goal?: {
     id: number;
     title: string;

@@ -118,10 +118,50 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }));
+    
+    if (name === 'project_id') {
+      // Handle project selection with auto-inheritance
+      handleProjectChange(value);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      }));
+    }
+  };
+
+  const handleProjectChange = (projectId: string) => {
+    const selectedProject = projects.find(p => p.id.toString() === projectId);
+    
+    setFormData(prev => {
+      let updatedData = {
+        ...prev,
+        project_id: projectId
+      };
+
+      if (selectedProject) {
+        // Auto-inherit business from project if no business is currently selected
+        if (!prev.business_id && selectedProject.business) {
+          updatedData.business_id = selectedProject.business.id.toString();
+        }
+
+        // Auto-inherit categories from project (merge with existing selections)
+        if (selectedProject.categories && selectedProject.categories.length > 0) {
+          const projectCategoryIds = selectedProject.categories.map(cat => cat.id);
+          const existingCategoryIds = prev.category_ids;
+          // Merge and remove duplicates using filter approach
+          const allCategoryIds = [...existingCategoryIds, ...projectCategoryIds];
+          const mergedCategoryIds = allCategoryIds.filter((id, index) => allCategoryIds.indexOf(id) === index);
+          updatedData.category_ids = mergedCategoryIds;
+        }
+      } else if (projectId === '') {
+        // Project deselected - only clear auto-inherited values if they came from a project
+        // This is a simplified approach - in practice you might want to track which values were auto-inherited
+        // For now, we'll leave the business and categories as they are when project is deselected
+      }
+
+      return updatedData;
+    });
   };
 
   const handleMultiSelectChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'category_ids' | 'responsible_ids' | 'impacted_ids') => {
@@ -314,6 +354,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
                           </option>
                         ))}
                       </select>
+                      {formData.project_id && (
+                        <p className="mt-1 text-sm text-blue-600">
+                          💡 Business and categories will be auto-inherited from this project
+                        </p>
+                      )}
                     </div>
 
                     <div>
