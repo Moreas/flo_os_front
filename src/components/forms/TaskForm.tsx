@@ -356,54 +356,58 @@ const TaskForm: React.FC<TaskFormProps> = ({
                       </select>
                       {formData.project_id && (
                         <p className="mt-1 text-sm text-blue-600">
-                          💡 Business and categories will be auto-inherited from this project
+                          💡 Business and categories are auto-inherited from this project
                         </p>
                       )}
                     </div>
 
-                    <div>
-                      <label htmlFor="business_id" className="block text-sm font-medium text-gray-700">
-                        Business (Optional)
-                      </label>
-                      <select
-                        id="business_id"
-                        name="business_id"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        value={formData.business_id}
-                        onChange={handleInputChange}
-                      >
-                        <option value="">No Business</option>
-                        {businesses.map((biz) => (
-                          <option key={biz.id} value={biz.id}>
-                            {biz.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Categories (Optional)
-                      </label>
-                      <div className="mt-1 space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                        {categories.map((category) => (
-                          <div key={category.id} className="flex items-center">
-                            <input
-                              id={`category-${category.id}`}
-                              name="categories"
-                              type="checkbox"
-                              value={category.id}
-                              checked={formData.category_ids.includes(category.id)}
-                              onChange={(e) => handleMultiSelectChange(e, 'category_ids')}
-                              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                            />
-                            <label htmlFor={`category-${category.id}`} className="ml-2 block text-sm text-gray-900">
-                              {category.name}
-                            </label>
-                          </div>
-                        ))}
+                    {!formData.project_id && (
+                      <div>
+                        <label htmlFor="business_id" className="block text-sm font-medium text-gray-700">
+                          Business (Optional)
+                        </label>
+                        <select
+                          id="business_id"
+                          name="business_id"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                          value={formData.business_id}
+                          onChange={handleInputChange}
+                        >
+                          <option value="">No Business</option>
+                          {businesses.map((biz) => (
+                            <option key={biz.id} value={biz.id}>
+                              {biz.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    </div>
+                    )}
+
+                    {!formData.project_id && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Categories (Optional)
+                        </label>
+                        <div className="mt-1 space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
+                          {categories.map((category) => (
+                            <div key={category.id} className="flex items-center">
+                              <input
+                                id={`category-${category.id}`}
+                                name="categories"
+                                type="checkbox"
+                                value={category.id}
+                                checked={formData.category_ids.includes(category.id)}
+                                onChange={(e) => handleMultiSelectChange(e, 'category_ids')}
+                                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                              />
+                              <label htmlFor={`category-${category.id}`} className="ml-2 block text-sm text-gray-900">
+                                {category.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
