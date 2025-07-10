@@ -5,6 +5,7 @@ import { apiClient } from '../../api/apiConfig';
 import { useRefresh } from '../../contexts/RefreshContext';
 import MentionInput from '../ui/MentionInput';
 import { JournalEntry } from '../../types/journal';
+import { Project } from '../../types/project';
 
 interface JournalFormProps {
   isOpen: boolean;
@@ -19,12 +20,14 @@ interface FormData {
   content: string;
   emotion: string;
   tags: string;
+  project_id?: number | null;
 }
 
 const initialFormData: FormData = {
   content: '',
   emotion: '',
   tags: '',
+  project_id: null,
 };
 
 // Define emotions and their corresponding emojis
@@ -53,6 +56,7 @@ const JournalForm: React.FC<JournalFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     if (initialEntry && isEditMode) {
@@ -60,11 +64,26 @@ const JournalForm: React.FC<JournalFormProps> = ({
         content: initialEntry.content || '',
         emotion: initialEntry.emotion || '',
         tags: initialEntry.tags || '',
+        project_id: initialEntry.project?.id || null,
       });
     } else if (isOpen) {
       setFormData(initialFormData);
     }
   }, [isOpen, initialEntry, isEditMode]);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchProjects = async () => {
+        try {
+          const response = await apiClient.get('/api/projects/');
+          setProjects(response.data);
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+        }
+      };
+      fetchProjects();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -75,9 +94,12 @@ const JournalForm: React.FC<JournalFormProps> = ({
     }
   }, [isOpen]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: name === 'project_id' ? (value ? parseInt(value) : null) : value 
+    }));
     setSubmitError(null);
     setSubmitSuccess(false);
   };
@@ -103,6 +125,7 @@ const JournalForm: React.FC<JournalFormProps> = ({
       content: formData.content,
       emotion: formData.emotion,
       tags: formData.tags,
+      project_id: formData.project_id,
     };
 
     try {
@@ -226,6 +249,26 @@ const JournalForm: React.FC<JournalFormProps> = ({
                       onChange={handleInputChange}
                       placeholder="e.g., work, project-alpha, idea"
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor="project_id" className="block text-sm font-medium text-gray-700">
+                      Project (Optional)
+                    </label>
+                    <select
+                      id="project_id"
+                      name="project_id"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      value={formData.project_id || ''}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">No project</option>
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="mt-6 space-y-3">
