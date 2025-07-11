@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import EmailList, { EmailListRef } from '../components/EmailList';
+import SimpleEmailList, { SimpleEmailListRef } from '../components/SimpleEmailList';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import API_BASE from '../apiBase';
@@ -11,7 +11,7 @@ const EmailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isPurgeConfirmOpen, setIsPurgeConfirmOpen] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
-  const emailListRef = useRef<EmailListRef>(null);
+  const emailListRef = useRef<SimpleEmailListRef>(null);
 
   const handleRetrieveEmails = async () => {
     setLoading(true);
@@ -110,7 +110,7 @@ const EmailsPage: React.FC = () => {
 
       {/* Email List */}
       <div className="bg-white shadow-sm rounded-lg p-4">
-        <EmailList ref={emailListRef} />
+        <SimpleEmailList ref={emailListRef} />
       </div>
 
       {/* Purge Confirmation Dialog */}
