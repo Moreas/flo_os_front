@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { ChevronDownIcon, ChevronUpIcon, CheckIcon, ExclamationTriangleIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { EmailMessage } from '../types/email';
 import EmailProjectLinker from './ui/EmailProjectLinker';
+import { apiClient } from '../api/apiConfig';
 
 interface EmailItemProps {
   email: EmailMessage;
@@ -10,6 +11,20 @@ interface EmailItemProps {
 
 const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [people, setPeople] = useState<any[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    const fetchPeople = async () => {
+      try {
+        const response = await apiClient.get('/api/people/');
+        setPeople(response.data);
+      } catch (error) {
+        console.error('Error fetching people:', error);
+      }
+    };
+    fetchPeople();
+  }, []);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
@@ -18,6 +33,72 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
   const handleProjectLinked = (updatedEmail: EmailMessage) => {
     if (onEmailUpdated) {
       onEmailUpdated(updatedEmail);
+    }
+  };
+
+  const handleMarkHandled = async () => {
+    setIsUpdating(true);
+    try {
+      await apiClient.post(`/api/emails/${email.id}/mark_handled/`);
+      const updatedEmail = { ...email, is_handled: true };
+      onEmailUpdated?.(updatedEmail);
+    } catch (error) {
+      console.error('Error marking email as handled:', error);
+      alert('Failed to mark email as handled');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleMarkInternalHandling = async () => {
+    setIsUpdating(true);
+    try {
+      await apiClient.post(`/api/emails/${email.id}/mark_internal_handling/`);
+      const updatedEmail = { ...email, needs_internal_handling: true };
+      onEmailUpdated?.(updatedEmail);
+    } catch (error) {
+      console.error('Error marking for internal handling:', error);
+      alert('Failed to mark for internal handling');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleMarkExternalHandling = async () => {
+    setIsUpdating(true);
+    try {
+      await apiClient.post(`/api/emails/${email.id}/mark_external_handling/`);
+      const updatedEmail = { ...email, waiting_external_handling: true };
+      onEmailUpdated?.(updatedEmail);
+    } catch (error) {
+      console.error('Error marking for external handling:', error);
+      alert('Failed to mark for external handling');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleAssignToPerson = async (personId: number) => {
+    setIsUpdating(true);
+    try {
+      await apiClient.post(`/api/emails/${email.id}/link_to_person/`, {
+        person_id: personId
+      });
+      const selectedPerson = people.find(p => p.id === personId);
+      const updatedEmail = { 
+        ...email, 
+        person: selectedPerson ? {
+          id: selectedPerson.id,
+          name: selectedPerson.name,
+          relationship: selectedPerson.relationship
+        } : null
+      };
+      onEmailUpdated?.(updatedEmail);
+    } catch (error) {
+      console.error('Error assigning email to person:', error);
+      alert('Failed to assign email to person');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -104,8 +185,65 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
             </div>
           </div>
 
-          {/* Project Linking */}
+          {/* Action Buttons */}
           <div className="bg-blue-50 rounded-md p-3">
+            <h4 className="text-sm font-medium text-gray-900 mb-3">Email Actions</h4>
+            <div className="flex flex-wrap gap-2">
+              {!email.is_handled && (
+                <button
+                  onClick={handleMarkHandled}
+                  disabled={isUpdating}
+                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                >
+                  <CheckIcon className="h-3 w-3 mr-1" />
+                  Mark Handled
+                </button>
+              )}
+              
+              {!email.needs_internal_handling && (
+                <button
+                  onClick={handleMarkInternalHandling}
+                  disabled={isUpdating}
+                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50"
+                >
+                  <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                  Internal Handling
+                </button>
+              )}
+              
+              {!email.waiting_external_handling && (
+                <button
+                  onClick={handleMarkExternalHandling}
+                  disabled={isUpdating}
+                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  <ClockIcon className="h-3 w-3 mr-1" />
+                  External Handling
+                </button>
+              )}
+              
+              <div className="relative">
+                <select
+                  onChange={(e) => e.target.value && handleAssignToPerson(parseInt(e.target.value))}
+                  disabled={isUpdating}
+                  className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                  defaultValue=""
+                >
+                  <option value="">
+                    {email.person ? `Assigned: ${email.person.name}` : 'Assign to Person'}
+                  </option>
+                  {people.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Project Linking */}
+          <div className="bg-purple-50 rounded-md p-3">
             <h4 className="text-sm font-medium text-gray-900 mb-2">Project Assignment</h4>
             <EmailProjectLinker 
               email={email} 
