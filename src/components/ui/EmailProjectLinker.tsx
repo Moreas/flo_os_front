@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { apiClient } from '../../api/apiConfig';
 import { EmailMessage } from '../../types/email';
@@ -10,7 +10,7 @@ interface EmailProjectLinkerProps {
   className?: string;
 }
 
-const EmailProjectLinker: React.FC<EmailProjectLinkerProps> = ({ 
+const EmailProjectLinker: React.FC<EmailProjectLinkerProps> = React.memo(({ 
   email, 
   onProjectLinked, 
   className = '' 
@@ -32,7 +32,12 @@ const EmailProjectLinker: React.FC<EmailProjectLinkerProps> = ({
     fetchProjects();
   }, []);
 
-  const handleLinkProject = async () => {
+  // Update selected project when email changes
+  useEffect(() => {
+    setSelectedProjectId(email.project?.id || null);
+  }, [email.project?.id]);
+
+  const handleLinkProject = useCallback(async () => {
     setIsLoading(true);
     try {
       await apiClient.post(`/api/emails/${email.id}/link_to_project/`, {
@@ -59,28 +64,40 @@ const EmailProjectLinker: React.FC<EmailProjectLinkerProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [email, selectedProjectId, projects, onProjectLinked]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setSelectedProjectId(email.project?.id || null);
     setIsEditing(false);
-  };
+  }, [email.project?.id]);
+
+  const handleStartEditing = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  const handleProjectSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null);
+  }, []);
+
+  const projectOptions = useMemo(() => (
+    projects.map((project) => (
+      <option key={project.id} value={project.id}>
+        {project.name}
+      </option>
+    ))
+  ), [projects]);
 
   if (isEditing) {
     return (
       <div className={`flex items-center space-x-2 ${className}`}>
         <select
           value={selectedProjectId || ''}
-          onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
+          onChange={handleProjectSelectChange}
           className="block text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
           disabled={isLoading}
         >
           <option value="">No project</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
+          {projectOptions}
         </select>
         <button
           onClick={handleLinkProject}
@@ -112,13 +129,15 @@ const EmailProjectLinker: React.FC<EmailProjectLinkerProps> = ({
         )}
       </span>
       <button
-        onClick={() => setIsEditing(true)}
+        onClick={handleStartEditing}
         className="text-xs text-primary-600 hover:text-primary-800"
       >
         {email.project ? 'Change' : 'Link to project'}
       </button>
     </div>
   );
-};
+});
+
+EmailProjectLinker.displayName = 'EmailProjectLinker';
 
 export default EmailProjectLinker; 

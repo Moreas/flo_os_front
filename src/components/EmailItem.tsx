@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { ChevronDownIcon, ChevronUpIcon, CheckIcon, ExclamationTriangleIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { EmailMessage } from '../types/email';
 import EmailProjectLinker from './ui/EmailProjectLinker';
@@ -6,37 +6,24 @@ import { apiClient } from '../api/apiConfig';
 
 interface EmailItemProps {
   email: EmailMessage;
+  people: any[];
   onEmailUpdated?: (email: EmailMessage) => void;
 }
 
-const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
+const EmailItem: React.FC<EmailItemProps> = React.memo(({ email, people, onEmailUpdated }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [people, setPeople] = useState<any[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showFullBody, setShowFullBody] = useState(false);
 
-  useEffect(() => {
-    const fetchPeople = async () => {
-      try {
-        const response = await apiClient.get('/api/people/');
-        setPeople(response.data);
-      } catch (error) {
-        console.error('Error fetching people:', error);
-      }
-    };
-    fetchPeople();
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleString();
   }, []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
+  const handleProjectLinked = useCallback((updatedEmail: EmailMessage) => {
+    onEmailUpdated?.(updatedEmail);
+  }, [onEmailUpdated]);
 
-  const handleProjectLinked = (updatedEmail: EmailMessage) => {
-    if (onEmailUpdated) {
-      onEmailUpdated(updatedEmail);
-    }
-  };
-
-  const handleMarkHandled = async () => {
+  const handleMarkHandled = useCallback(async () => {
     setIsUpdating(true);
     try {
       await apiClient.post(`/api/emails/${email.id}/mark_handled/`);
@@ -48,9 +35,9 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [email, onEmailUpdated]);
 
-  const handleMarkInternalHandling = async () => {
+  const handleMarkInternalHandling = useCallback(async () => {
     setIsUpdating(true);
     try {
       await apiClient.post(`/api/emails/${email.id}/mark_internal_handling/`);
@@ -62,9 +49,9 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [email, onEmailUpdated]);
 
-  const handleMarkExternalHandling = async () => {
+  const handleMarkExternalHandling = useCallback(async () => {
     setIsUpdating(true);
     try {
       await apiClient.post(`/api/emails/${email.id}/mark_external_handling/`);
@@ -76,9 +63,9 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [email, onEmailUpdated]);
 
-  const handleAssignToPerson = async (personId: number) => {
+  const handleAssignToPerson = useCallback(async (personId: number) => {
     setIsUpdating(true);
     try {
       await apiClient.post(`/api/emails/${email.id}/link_to_person/`, {
@@ -100,9 +87,9 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [email, people, onEmailUpdated]);
 
-  const getStatusBadge = () => {
+  const getStatusBadge = useMemo(() => {
     const badges = [];
     
     if (email.needs_reply) {
@@ -138,14 +125,29 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
     }
     
     return badges;
-  };
+  }, [email.needs_reply, email.needs_internal_handling, email.waiting_external_handling, email.is_handled]);
+
+  const truncatedBody = useMemo(() => {
+    if (!email.body) return '';
+    return email.body.length > 200 ? email.body.substring(0, 200) + '...' : email.body;
+  }, [email.body]);
+
+  const formattedDate = useMemo(() => formatDate(email.received_at), [email.received_at, formatDate]);
+
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(!isExpanded);
+  }, [isExpanded]);
+
+  const toggleShowFullBody = useCallback(() => {
+    setShowFullBody(!showFullBody);
+  }, [showFullBody]);
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
       {/* Header Row */}
       <div 
         className="flex items-center justify-between cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggleExpanded}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-3">
@@ -153,12 +155,12 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
               {email.subject}
             </h3>
             <div className="flex items-center space-x-2">
-              {getStatusBadge()}
+              {getStatusBadge}
             </div>
           </div>
           <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
             <span>From: {email.sender_name || email.sender}</span>
-            <span>{formatDate(email.received_at)}</span>
+            <span>{formattedDate}</span>
           </div>
         </div>
         <div className="ml-4">
@@ -170,7 +172,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
         </div>
       </div>
 
-      {/* Expanded Content */}
+      {/* Expanded Content - Only render when expanded */}
       {isExpanded && (
         <div className="mt-4 space-y-4">
           <div className="bg-gray-50 rounded-md p-3">
@@ -251,17 +253,22 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
             />
           </div>
 
-          {/* Email Body Preview */}
+          {/* Email Body Preview - Lazy loaded */}
           <div className="bg-gray-50 rounded-md p-3">
             <h4 className="text-sm font-medium text-gray-900 mb-2">Email Content</h4>
             <div className="text-sm text-gray-600 max-h-40 overflow-y-auto">
-              {email.body.length > 500 ? (
-                <>
-                  {email.body.substring(0, 500)}...
-                  <span className="text-primary-600 cursor-pointer"> [Show more]</span>
-                </>
+              {showFullBody || email.body.length <= 200 ? (
+                <div className="whitespace-pre-wrap">{email.body}</div>
               ) : (
-                email.body
+                <div>
+                  <div className="whitespace-pre-wrap">{truncatedBody}</div>
+                  <button
+                    onClick={toggleShowFullBody}
+                    className="mt-2 text-primary-600 hover:text-primary-800 text-xs font-medium"
+                  >
+                    Show full content
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -288,6 +295,8 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onEmailUpdated }) => {
       )}
     </div>
   );
-};
+});
+
+EmailItem.displayName = 'EmailItem';
 
 export default EmailItem; 
