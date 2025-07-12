@@ -95,7 +95,7 @@ const EmailItem: React.FC<EmailItemProps> = React.memo(({ email, people, onEmail
     if (email.needs_reply) {
       badges.push(
         <span key="needs-reply" className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          Needs Reply
+          Reply
         </span>
       );
     }
@@ -103,7 +103,7 @@ const EmailItem: React.FC<EmailItemProps> = React.memo(({ email, people, onEmail
     if (email.needs_internal_handling) {
       badges.push(
         <span key="internal" className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          Internal Handling
+          Internal
         </span>
       );
     }
@@ -111,7 +111,7 @@ const EmailItem: React.FC<EmailItemProps> = React.memo(({ email, people, onEmail
     if (email.waiting_external_handling) {
       badges.push(
         <span key="external" className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          Waiting External
+          External
         </span>
       );
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { apiClient } from '../api/apiConfig';
 import { EmailMessage } from '../types/email';
@@ -13,7 +13,7 @@ export interface SimpleEmailListRef {
 const EMAILS_PER_PAGE = 20; // Limit initial load to 20 emails
 
 const SimpleEmailList = forwardRef<SimpleEmailListRef>((_, ref) => {
-  const [displayedEmails, setDisplayedEmails] = useState<EmailMessage[]>([]);
+  const [allEmails, setAllEmails] = useState<EmailMessage[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [people, setPeople] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +21,9 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef>((_, ref) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(true);
+  const [showInternalHandlingOnly, setShowInternalHandlingOnly] = useState(false);
+  const [showExternalHandlingOnly, setShowExternalHandlingOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -52,9 +55,9 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef>((_, ref) => {
       const newEmails = response.data;
       
       if (reset) {
-        setDisplayedEmails(newEmails);
+        setAllEmails(newEmails);
       } else {
-        setDisplayedEmails(prev => [...prev, ...newEmails]);
+        setAllEmails(prev => [...prev, ...newEmails]);
       }
       
       setHasMore(newEmails.length === EMAILS_PER_PAGE);
@@ -82,6 +85,28 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef>((_, ref) => {
     }
   }, []);
 
+  // Client-side filtering for handling types
+  const filteredEmails = useMemo(() => {
+    return allEmails.filter(email => {
+      // Needs Handling Filter - exclude emails that are marked as handled
+      if (showNeedsHandlingOnly && email.is_handled === true) {
+        return false;
+      }
+      
+      // Internal Handling Filter - show only emails that need internal handling
+      if (showInternalHandlingOnly && email.needs_internal_handling !== true) {
+        return false;
+      }
+      
+      // External Handling Filter - show only emails that are waiting for external handling
+      if (showExternalHandlingOnly && email.waiting_external_handling !== true) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [allEmails, showNeedsHandlingOnly, showInternalHandlingOnly, showExternalHandlingOnly]);
+
   useEffect(() => {
     fetchProjectsAndPeople();
   }, [fetchProjectsAndPeople]);
@@ -95,7 +120,7 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef>((_, ref) => {
   }));
 
   const handleEmailUpdated = useCallback((updatedEmail: EmailMessage) => {
-    setDisplayedEmails(prevEmails => 
+    setAllEmails(prevEmails => 
       prevEmails.map(email => 
         email.id === updatedEmail.id ? updatedEmail : email
       )
@@ -120,7 +145,7 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef>((_, ref) => {
     <div className="space-y-4">
       {/* Filters */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Search */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -165,20 +190,72 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef>((_, ref) => {
           </div>
         </div>
 
-        <div className="mt-2 text-sm text-gray-600">
-          Showing {displayedEmails.length} emails {hasMore && '(scroll for more)'}
+        {/* Handling Filters */}
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex flex-col space-y-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Handling Status:
+            </label>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center">
+                <input
+                  id="needs-handling-filter"
+                  name="needs-handling-filter"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  checked={showNeedsHandlingOnly}
+                  onChange={(e) => setShowNeedsHandlingOnly(e.target.checked)}
+                />
+                <label htmlFor="needs-handling-filter" className="ml-2 block text-sm text-gray-900">
+                  Exclude handled emails
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="internal-handling-filter"
+                  name="internal-handling-filter"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  checked={showInternalHandlingOnly}
+                  onChange={(e) => setShowInternalHandlingOnly(e.target.checked)}
+                />
+                <label htmlFor="internal-handling-filter" className="ml-2 block text-sm text-gray-900">
+                  Internal handling only
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="external-handling-filter"
+                  name="external-handling-filter"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  checked={showExternalHandlingOnly}
+                  onChange={(e) => setShowExternalHandlingOnly(e.target.checked)}
+                />
+                <label htmlFor="external-handling-filter" className="ml-2 block text-sm text-gray-900">
+                  External handling only
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 text-sm text-gray-600">
+          Showing {filteredEmails.length} of {allEmails.length} emails {hasMore && '(scroll for more)'}
         </div>
       </div>
 
       {/* Email List */}
       <div className="space-y-3">
-        {displayedEmails.length === 0 ? (
+        {filteredEmails.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            No emails found matching your filters.
+            {showNeedsHandlingOnly || showInternalHandlingOnly || showExternalHandlingOnly ? 
+              'No emails match the current filters.' : 
+              'No emails found matching your filters.'}
           </div>
         ) : (
           <>
-            {displayedEmails.map((email) => (
+            {filteredEmails.map((email) => (
               <EmailItem
                 key={email.id}
                 email={email}
