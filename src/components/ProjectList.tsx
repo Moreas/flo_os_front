@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowPathIcon, 
@@ -39,34 +39,34 @@ const ProjectList: React.FC = () => {
   const [sortField, setSortField] = useState<SortField['field']>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [projectsRes, tasksRes, goalsRes] = await Promise.all([
-          apiClient.get(`/api/projects/${searchQuery ? `?search=${searchQuery}` : ''}`),
-          apiClient.get('/api/tasks/'),
-          apiClient.get('/api/goals/')
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      const [projectsRes, tasksRes, goalsRes] = await Promise.all([
+        apiClient.get(`/api/projects/${searchQuery ? `?search=${searchQuery}` : ''}`),
+        apiClient.get('/api/tasks/'),
+        apiClient.get('/api/goals/')
+      ]);
 
-        // Combine projects with their tasks and goals
-        const projectsWithRelations = projectsRes.data.map((project: Project) => ({
-          ...project,
-          tasks: tasksRes.data.filter((task: any) => task.project?.id === project.id),
-          goals: goalsRes.data.filter((goal: any) => goal.project?.id === project.id)
-        }));
+      // Combine projects with their tasks and goals
+      const projectsWithRelations = projectsRes.data.map((project: Project) => ({
+        ...project,
+        tasks: tasksRes.data.filter((task: any) => task.project?.id === project.id),
+        goals: goalsRes.data.filter((goal: any) => goal.project?.id === project.id)
+      }));
 
-        setProjects(projectsWithRelations);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load projects. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+      setProjects(projectsWithRelations);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load projects. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   }, [searchQuery]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSort = (field: SortField['field']) => {
     if (sortField === field) {
@@ -377,7 +377,7 @@ const ProjectList: React.FC = () => {
             setIsEditModalOpen(false);
             setEditProject(null);
             // Refetch projects to get updated data
-            window.location.reload();
+            fetchData();
           }}
           initialProject={editProject}
           isEditMode={true}

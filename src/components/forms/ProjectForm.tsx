@@ -129,7 +129,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, initialProje
       end_date: endDate || null,
       status: status,
       priority: priority,
-      categories: selectedCategory ? [parseInt(selectedCategory)] : [],
+      category_ids: selectedCategory ? [parseInt(selectedCategory)] : [],
       business_id: selectedBusiness ? parseInt(selectedBusiness) : null,
       tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
     };
