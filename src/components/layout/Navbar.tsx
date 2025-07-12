@@ -395,6 +395,7 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar }) => {
                   {({ active }: MenuItemProps) => (
                     <button
                       type="button"
+                      onClick={() => navigate('/settings')}
                       className={`${
                         active ? 'bg-gray-100' : ''
                       } block px-4 py-2 text-sm text-gray-700 w-full text-left`}
