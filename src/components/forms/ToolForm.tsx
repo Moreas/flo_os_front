@@ -2,21 +2,35 @@ import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { apiClient } from '../../api/apiConfig';
+import { Tool } from '../../types/tool';
+import { Project } from '../../types/project';
 
 interface ToolFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onToolCreated: (tool: any) => void;
-  initialTool?: any;
+  onToolCreated: (tool: Tool) => void;
+  initialTool?: Tool | null;
   isEditMode?: boolean;
 }
 
-const initialFormData = {
-    name: '',
-    description: '',
-    status: 'active', // Default status
-    category: '',
-    last_used: '',
+interface ToolFormData {
+  name: string;
+  description: string;
+  status: 'active' | 'paused' | 'retired' | 'planned';
+  url_or_path: string;
+  related_project_id: string;
+  is_internal: boolean;
+  pending_review: boolean;
+}
+
+const initialFormData: ToolFormData = {
+  name: '',
+  description: '',
+  status: 'active',
+  url_or_path: '',
+  related_project_id: '',
+  is_internal: false,
+  pending_review: false,
 };
 
 const ToolForm: React.FC<ToolFormProps> = ({ 
@@ -26,20 +40,43 @@ const ToolForm: React.FC<ToolFormProps> = ({
     initialTool = null,
     isEditMode = false 
 }) => {
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState<ToolFormData>(initialFormData);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+
+  // Fetch projects for the dropdown
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!isOpen) return;
+      setIsLoadingProjects(true);
+      try {
+        const response = await apiClient.get('/api/projects/');
+        setProjects(response.data || []);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+    fetchProjects();
+  }, [isOpen]);
 
   // Reset form when modal opens/closes or initial data changes
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && initialTool) {
-        // Format last_used for date input (YYYY-MM-DD)
-        const formattedDate = initialTool.last_used 
-          ? initialTool.last_used.split('T')[0] // Take only date part if ISO
-          : '';
-        setFormData({ ...initialTool, last_used: formattedDate });
+        setFormData({
+          name: initialTool.name || '',
+          description: initialTool.description || '',
+          status: initialTool.status || 'active',
+          url_or_path: initialTool.url_or_path || '',
+          related_project_id: initialTool.related_project?.id?.toString() || '',
+          is_internal: initialTool.is_internal || false,
+          pending_review: initialTool.pending_review || false,
+        });
       } else {
         setFormData(initialFormData);
       }
@@ -53,8 +90,11 @@ const ToolForm: React.FC<ToolFormProps> = ({
   }, [isOpen, isEditMode, initialTool]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value 
+    }));
     setSubmitError(null);
     setSubmitSuccess(false);
   };
@@ -65,14 +105,20 @@ const ToolForm: React.FC<ToolFormProps> = ({
     setSubmitError(null);
     setSubmitSuccess(false);
     
-    const payload: any = { ...formData };
-    // Remove optional fields if empty
-    if (!payload.description) delete payload.description;
-    if (!payload.category) delete payload.category;
-    if (!payload.last_used) delete payload.last_used;
-    else {
-      // Ensure date is in YYYY-MM-DD format
-      payload.last_used = payload.last_used.split('T')[0];
+    const payload: any = { 
+      name: formData.name,
+      description: formData.description || '',
+      status: formData.status,
+      url_or_path: formData.url_or_path || '',
+      is_internal: formData.is_internal,
+      pending_review: formData.pending_review,
+    };
+
+    // Only include related_project if a project is selected
+    if (formData.related_project_id) {
+      payload.related_project = parseInt(formData.related_project_id);
+    } else {
+      payload.related_project = null;
     }
 
     try {
@@ -85,7 +131,7 @@ const ToolForm: React.FC<ToolFormProps> = ({
       
       if (response.status >= 200 && response.status < 300) {
         setSubmitSuccess(true);
-        onToolCreated(response.data); // Pass the created/updated tool back
+        onToolCreated(response.data);
         if (!isEditMode) {
           setFormData(initialFormData);
         }
@@ -108,7 +154,7 @@ const ToolForm: React.FC<ToolFormProps> = ({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={handleClose}>
+      <Dialog as="div" className="relative z-10" onClose={handleClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -189,39 +235,76 @@ const ToolForm: React.FC<ToolFormProps> = ({
                       onChange={handleInputChange}
                     >
                       <option value="active">Active</option>
-                      <option value="maintenance">Maintenance</option>
+                      <option value="paused">Paused</option>
                       <option value="retired">Retired</option>
-                      <option value="new">New</option>
+                      <option value="planned">Planned</option>
                     </select>
                   </div>
 
                   <div>
-                    <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                      Category
+                    <label htmlFor="url_or_path" className="block text-sm font-medium text-gray-700">
+                      URL or Path
                     </label>
                     <input
                       type="text"
-                      id="category"
-                      name="category"
+                      id="url_or_path"
+                      name="url_or_path"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                      value={formData.category}
+                      value={formData.url_or_path}
                       onChange={handleInputChange}
-                      placeholder="e.g., Development, Design, Testing"
+                      placeholder="e.g., https://example.com or /path/to/tool"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="last_used" className="block text-sm font-medium text-gray-700">
-                      Last Used
+                    <label htmlFor="related_project_id" className="block text-sm font-medium text-gray-700">
+                      Related Project
                     </label>
-                    <input
-                      type="date"
-                      id="last_used"
-                      name="last_used"
+                    <select
+                      id="related_project_id"
+                      name="related_project_id"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                      value={formData.last_used}
+                      value={formData.related_project_id}
                       onChange={handleInputChange}
-                    />
+                      disabled={isLoadingProjects}
+                    >
+                      <option value="">Select a project (optional)</option>
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="is_internal"
+                        name="is_internal"
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        checked={formData.is_internal}
+                        onChange={handleInputChange}
+                      />
+                      <label htmlFor="is_internal" className="ml-2 block text-sm text-gray-700">
+                        Internal Tool
+                      </label>
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="pending_review"
+                        name="pending_review"
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        checked={formData.pending_review}
+                        onChange={handleInputChange}
+                      />
+                      <label htmlFor="pending_review" className="ml-2 block text-sm text-gray-700">
+                        Pending Review
+                      </label>
+                    </div>
                   </div>
 
                   <div className="mt-6 space-y-3">

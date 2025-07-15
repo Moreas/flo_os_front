@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/apiConfig';
-import { ArrowPathIcon, ExclamationTriangleIcon, WrenchIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, WrenchIcon, PencilIcon, TrashIcon, LinkIcon, CheckIcon, ClockIcon } from '@heroicons/react/24/outline';
 import ToolForm from './forms/ToolForm';
-
-// Interface for Tool data
-interface Tool {
-  id: number;
-  name: string;
-  description?: string;
-  status?: string;
-  category?: string;
-  last_used?: string | null;
-}
+import { Tool } from '../types/tool';
 
 const ToolList: React.FC = () => {
   const [tools, setTools] = useState<Tool[]>([]);
@@ -67,30 +58,30 @@ const ToolList: React.FC = () => {
     setSelectedTool(null);
   };
 
-  const getStatusColor = (status?: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-blue-100 text-blue-800';
-      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'retired': return 'bg-red-100 text-red-800';
-      case 'new': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'paused':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'retired':
+        return 'bg-gray-100 text-gray-800';
+      case 'planned':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return null;
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch { 
-      return "Invalid Date"; 
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-6">
-        <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin" />
+      <div className="flex justify-center items-center py-8">
+        <ArrowPathIcon className="w-6 h-6 animate-spin text-primary-600" />
+        <span className="ml-2 text-gray-600">Loading tools...</span>
       </div>
     );
   }
@@ -116,19 +107,32 @@ const ToolList: React.FC = () => {
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary-50 rounded-full">
-                  <WrenchIcon className="w-5 h-5 text-primary-600" />
+                <div className={`p-2 rounded-full ${tool.is_internal ? 'bg-blue-50' : 'bg-primary-50'}`}>
+                  <WrenchIcon className={`w-5 h-5 ${tool.is_internal ? 'text-blue-600' : 'text-primary-600'}`} />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-base font-semibold text-gray-900">{tool.name}</h3>
-                  {tool.status && (
-                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tool.status)}`}>
-                      {tool.status.replace('_', ' ')}
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tool.status)}`}>
+                      {tool.status.charAt(0).toUpperCase() + tool.status.slice(1)}
                     </span>
-                  )}
+                    {tool.is_internal && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <CheckIcon className="w-3 h-3 mr-1" />
+                        Internal
+                      </span>
+                    )}
+                    {tool.pending_review && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                        <ClockIcon className="w-3 h-3 mr-1" />
+                        Review
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex space-x-2">
+              
+              <div className="flex items-center space-x-1">
                 <button
                   onClick={() => handleEdit(tool)}
                   className="p-1 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100"
@@ -150,17 +154,22 @@ const ToolList: React.FC = () => {
               <p className="mt-2 text-sm text-gray-500 line-clamp-3">{tool.description}</p>
             )}
             
-            {tool.category && (
+            {tool.url_or_path && (
+              <div className="mt-2 flex items-center text-xs text-gray-500">
+                <LinkIcon className="w-3 h-3 mr-1" />
+                <span className="truncate">{tool.url_or_path}</span>
+              </div>
+            )}
+            
+            {tool.related_project && (
               <p className="text-xs text-gray-500 mt-2">
-                Category: {tool.category}
+                Project: {tool.related_project.name}
               </p>
             )}
             
-            {tool.last_used && (
-              <p className="text-xs text-gray-400 mt-1 text-right">
-                Last used: {formatDate(tool.last_used)}
-              </p>
-            )}
+            <p className="text-xs text-gray-400 mt-2 text-right">
+              Created: {formatDate(tool.created_at)}
+            </p>
           </div>
         ))}
       </div>
