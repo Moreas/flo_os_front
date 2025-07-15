@@ -9,6 +9,9 @@ export interface Project {
   name: string;
   description?: string;
   status?: string;
+  type?: string;
+  income_monthly?: number;
+  notes?: string;
   start_date?: string;
   end_date?: string;
   created_at?: string;
@@ -32,5 +35,4 @@ export interface Project {
     is_done: boolean;
     due_date?: string;
   }[];
-  notes?: ProjectNote[];
 } 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
 import { Task } from '../types/task';
-import { Project, ProjectNote } from '../types/project';
+import { Project } from '../types/project';
 import API_BASE from '../apiBase';
 import ProjectForm from '../components/forms/ProjectForm';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -14,10 +14,10 @@ const ProjectDetailPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notes, setNotes] = useState<ProjectNote[]>([]);
-  const [newNote, setNewNote] = useState('');
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [editingNoteContent, setEditingNoteContent] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [notesError, setNotesError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
@@ -28,6 +28,7 @@ const ProjectDetailPage: React.FC = () => {
       try {
         const response = await apiClient.get(`${API_BASE}/api/projects/${id}/`);
         setProject(response.data);
+        setNotes(response.data.notes || '');
       } catch (err) {
         setError('Failed to load project details.');
         console.error('Error fetching project:', err);
@@ -52,39 +53,35 @@ const ProjectDetailPage: React.FC = () => {
     fetchTasks();
   }, [id]);
 
-  useEffect(() => {
-    if (project && project.notes) {
-      setNotes(project.notes);
-    }
-  }, [project]);
-
-  const handleAddNote = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newNote.trim() || !id) return;
+  const handleSaveNotes = async () => {
+    if (!project || !id) return;
+    
+    setIsSavingNotes(true);
+    setNotesError(null);
+    
     try {
-      const res = await apiClient.post(`${API_BASE}/api/projects/${id}/notes/`, { content: newNote });
-      setNotes([res.data, ...notes]);
-      setNewNote('');
+      const response = await apiClient.patch(`${API_BASE}/api/projects/${id}/`, {
+        notes: notes
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        setProject(prev => prev ? { ...prev, notes: notes } : null);
+        setIsEditingNotes(false);
+      } else {
+        throw new Error(`Failed to save notes (${response.status})`);
+      }
     } catch (err) {
-      alert('Failed to add note.');
+      console.error('Error saving notes:', err);
+      setNotesError('Failed to save notes. Please try again.');
+    } finally {
+      setIsSavingNotes(false);
     }
   };
 
-  const handleEditNote = (note: ProjectNote) => {
-    setEditingNoteId(note.id);
-    setEditingNoteContent(note.content);
-  };
-
-  const handleUpdateNote = async (noteId: number) => {
-    if (!editingNoteContent.trim() || !id) return;
-    try {
-      const res = await apiClient.patch(`${API_BASE}/api/projects/${id}/notes/${noteId}/`, { content: editingNoteContent });
-      setNotes(notes.map(n => n.id === noteId ? res.data : n));
-      setEditingNoteId(null);
-      setEditingNoteContent('');
-    } catch (err) {
-      alert('Failed to update note.');
-    }
+  const handleCancelNotesEdit = () => {
+    setNotes(project?.notes || '');
+    setIsEditingNotes(false);
+    setNotesError(null);
   };
 
   const handleEditProject = () => {
@@ -119,105 +116,170 @@ const ProjectDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white shadow-sm rounded-lg p-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-            {project.description && (
-              <p className="mt-2 text-gray-600">{project.description}</p>
-            )}
-            {project.status && (
-              <p className="mt-2 text-sm text-gray-500">Status: {project.status}</p>
-            )}
+            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
+            <div className="flex items-center space-x-4 mt-2">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                project.status === 'active' ? 'bg-green-100 text-green-800' :
+                project.status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {project.status}
+              </span>
+              {project.type && (
+                <span className="text-sm text-gray-500">Type: {project.type}</span>
+              )}
+              {project.income_monthly && project.income_monthly > 0 && (
+                <span className="text-sm text-gray-500">
+                  Monthly Income: ${project.income_monthly}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
             <button
               onClick={handleEditProject}
-              className="p-2 text-gray-400 hover:text-blue-500 rounded-full hover:bg-gray-100"
-              title="Edit project"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
-              <PencilIcon className="w-5 h-5" />
+              <PencilIcon className="h-4 w-4 mr-2" />
+              Edit
             </button>
             <button
               onClick={handleDeleteProject}
-              className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100"
-              title="Delete project"
+              className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              <TrashIcon className="w-5 h-5" />
+              <TrashIcon className="h-4 w-4 mr-2" />
+              Delete
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Tasks</h2>
-        {tasks.length === 0 ? (
-          <p className="text-gray-500">No tasks found for this project.</p>
-        ) : (
-          <ul className="space-y-4">
-            {tasks.map(task => (
-              <li key={task.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        {/* Business and Categories */}
+        {(project.business || (project.categories && project.categories.length > 0)) && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap items-center gap-4">
+              {project.business && (
                 <div>
-                  <p className="font-medium text-gray-900">{task.description}</p>
-                  {task.due_date && (
-                    <p className="text-sm text-gray-500">
-                      Due: {new Date(task.due_date).toLocaleDateString()}
-                    </p>
-                  )}
+                  <span className="text-sm font-medium text-gray-500">Business: </span>
+                  <span className="text-sm text-gray-900">{project.business.name}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    task.is_done ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {task.is_done ? 'Completed' : 'Pending'}
-                  </span>
+              )}
+              {project.categories && project.categories.length > 0 && (
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Categories: </span>
+                  <div className="inline-flex flex-wrap gap-1">
+                    {project.categories.map((category) => (
+                      <span
+                        key={category.id}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                      >
+                        {category.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes</h2>
-        <form onSubmit={handleAddNote} className="flex mb-4 space-x-2">
-          <textarea
-            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 min-h-[80px]"
-            placeholder="Add a new note..."
-            value={newNote}
-            onChange={e => setNewNote(e.target.value)}
-            rows={4}
-          />
-          <button type="submit" className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700">Add</button>
-        </form>
-        {notes.length === 0 ? (
-          <p className="text-gray-500">No notes for this project.</p>
+      {/* Tasks Section */}
+      <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Tasks ({tasks.length})
+        </h2>
+        {tasks.length === 0 ? (
+          <p className="text-gray-500">No tasks for this project.</p>
         ) : (
-          <ul className="space-y-2">
-            {notes.map(note => (
-              <li key={note.id} className="bg-gray-50 rounded-md p-3 flex items-center justify-between">
-                {editingNoteId === note.id ? (
-                  <>
-                    <textarea
-                      className="flex-1 border border-gray-300 rounded-md px-2 py-1 mr-2 min-h-[60px]"
-                      value={editingNoteContent}
-                      onChange={e => setEditingNoteContent(e.target.value)}
-                      rows={3}
-                    />
-                    <button onClick={() => handleUpdateNote(note.id)} className="text-green-600 font-semibold mr-2">Save</button>
-                    <button onClick={() => setEditingNoteId(null)} className="text-gray-500">Cancel</button>
-                  </>
-                ) : (
-                  <>
-                    <span className="flex-1 break-words whitespace-pre-line">{note.content}</span>
-                    <span className="text-xs text-gray-400 ml-2">{new Date(note.created_at).toLocaleString()}</span>
-                    <button onClick={() => handleEditNote(note)} className="ml-4 text-blue-600 hover:underline">Edit</button>
-                  </>
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className={`w-2 h-2 rounded-full ${
+                    task.is_done ? 'bg-green-500' : 'bg-yellow-500'
+                  }`} />
+                  <span className={`${task.is_done ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                    {task.description}
+                  </span>
+                </div>
+                {task.due_date && (
+                  <span className="text-sm text-gray-500">
+                    Due: {new Date(task.due_date).toLocaleDateString()}
+                  </span>
                 )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Notes Section */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
+          {!isEditingNotes && (
+            <button
+              onClick={() => setIsEditingNotes(true)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              <PencilIcon className="h-4 w-4 mr-2" />
+              {notes ? 'Edit Notes' : 'Add Notes'}
+            </button>
+          )}
+        </div>
+
+        {notesError && (
+          <div className="mb-4 rounded-md bg-red-50 p-4">
+            <div className="text-sm text-red-700">{notesError}</div>
+          </div>
+        )}
+
+        {isEditingNotes ? (
+          <div className="space-y-4">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              rows={8}
+              placeholder="Add your project notes here..."
+            />
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleSaveNotes}
+                disabled={isSavingNotes}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingNotes ? 'Saving...' : 'Save Notes'}
+              </button>
+              <button
+                onClick={handleCancelNotesEdit}
+                disabled={isSavingNotes}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {notes ? (
+              <div className="prose max-w-none">
+                <pre className="whitespace-pre-wrap text-sm text-gray-900 font-sans">
+                  {notes}
+                </pre>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No notes for this project.</p>
+            )}
+          </div>
         )}
       </div>
 
@@ -230,7 +292,10 @@ const ProjectDetailPage: React.FC = () => {
           onProjectUpdated={() => {
             setIsEditModalOpen(false);
             // Refetch project details after edit
-            apiClient.get(`${API_BASE}/api/projects/${id}/`).then(res => setProject(res.data));
+            apiClient.get(`${API_BASE}/api/projects/${id}/`).then(res => {
+              setProject(res.data);
+              setNotes(res.data.notes || '');
+            });
           }}
         />
       )}
