@@ -17,6 +17,7 @@ interface ToolFormData {
   name: string;
   description: string;
   status: 'active' | 'paused' | 'retired' | 'planned';
+  tool_type: 'software' | 'outsourcing' | 'other';
   url_or_path: string;
   related_project_id: string;
   is_internal: boolean;
@@ -27,6 +28,7 @@ const initialFormData: ToolFormData = {
   name: '',
   description: '',
   status: 'active',
+  tool_type: 'other',
   url_or_path: '',
   related_project_id: '',
   is_internal: false,
@@ -72,6 +74,7 @@ const ToolForm: React.FC<ToolFormProps> = ({
           name: initialTool.name || '',
           description: initialTool.description || '',
           status: initialTool.status || 'active',
+          tool_type: initialTool.tool_type || 'other',
           url_or_path: initialTool.url_or_path || '',
           related_project_id: initialTool.related_project?.id?.toString() || '',
           is_internal: initialTool.is_internal || false,
@@ -109,6 +112,7 @@ const ToolForm: React.FC<ToolFormProps> = ({
       name: formData.name,
       description: formData.description || '',
       status: formData.status,
+      tool_type: formData.tool_type,
       url_or_path: formData.url_or_path || '',
       is_internal: formData.is_internal,
       pending_review: formData.pending_review,
@@ -238,6 +242,23 @@ const ToolForm: React.FC<ToolFormProps> = ({
                       <option value="paused">Paused</option>
                       <option value="retired">Retired</option>
                       <option value="planned">Planned</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="tool_type" className="block text-sm font-medium text-gray-700">
+                      Tool Type
+                    </label>
+                    <select
+                      id="tool_type"
+                      name="tool_type"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      value={formData.tool_type}
+                      onChange={handleInputChange}
+                    >
+                      <option value="software">Software</option>
+                      <option value="outsourcing">Outsourcing</option>
+                      <option value="other">Other</option>
                     </select>
                   </div>
 

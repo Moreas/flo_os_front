@@ -73,6 +73,19 @@ const ToolList: React.FC = () => {
     }
   };
 
+  const getToolTypeColor = (toolType: string) => {
+    switch (toolType) {
+      case 'software':
+        return 'bg-purple-100 text-purple-800';
+      case 'outsourcing':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'other':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -115,6 +128,9 @@ const ToolList: React.FC = () => {
                   <div className="flex items-center space-x-2 mt-1">
                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tool.status)}`}>
                       {tool.status.charAt(0).toUpperCase() + tool.status.slice(1)}
+                    </span>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getToolTypeColor(tool.tool_type)}`}>
+                      {tool.tool_type.charAt(0).toUpperCase() + tool.tool_type.slice(1)}
                     </span>
                     {tool.is_internal && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
