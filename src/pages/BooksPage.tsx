@@ -273,11 +273,6 @@ const FilteredBookList: React.FC<{ books: Book[], onBookUpdated: () => void }> =
                 </div>
               </div>
               
-              {book.description && (
-                <div className="mt-3">
-                  <p className="text-sm text-gray-600 line-clamp-2">{book.description}</p>
-                </div>
-              )}
               
               <div className="mt-4 space-y-2">
                 {book.status && (
@@ -289,9 +284,6 @@ const FilteredBookList: React.FC<{ books: Book[], onBookUpdated: () => void }> =
                 {bookChapters.length > 0 && (
                   <div className="flex items-center text-sm text-gray-500">
                     <span>Progress: {completedChapters}/{bookChapters.length} chapters</span>
-                    {book.rating && (
-                      <span className="ml-4">Rating: {book.rating}/5</span>
-                    )}
                   </div>
                 )}
               </div>

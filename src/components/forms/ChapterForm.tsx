@@ -2,31 +2,33 @@ import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ExclamationCircleIcon, CheckCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { apiClient } from '../../api/apiConfig';
-import { Book } from '../../types/book';
+import { Chapter } from '../../types/book';
 
-interface BookFormProps {
+interface ChapterFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onBookCreated: () => void;
-  initialBook?: Book;
+  onChapterCreated: () => void;
+  bookId: number;
+  initialChapter?: Chapter;
   isEditMode?: boolean;
 }
 
-const initialFormData: Omit<Book, 'id' | 'created_at' | 'updated_at' | 'chapters'> = {
+const initialFormData: Omit<Chapter, 'id' | 'book_id'> = {
   title: '',
-  author: '',
-  overall_summary: '',
-  status: 'not_started',
-  category: undefined,
-  started_at: undefined,
-  completed_at: undefined,
+  chapter_number: 1,
+  summary: '',
+  personal_notes: '',
+  is_completed: false,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
 };
 
-const BookForm: React.FC<BookFormProps> = ({ 
+const ChapterForm: React.FC<ChapterFormProps> = ({ 
   isOpen, 
   onClose, 
-  onBookCreated,
-  initialBook = undefined,
+  onChapterCreated,
+  bookId,
+  initialChapter = null,
   isEditMode = false,
 }) => {
   const [formData, setFormData] = useState(initialFormData);
@@ -36,15 +38,15 @@ const BookForm: React.FC<BookFormProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      if (isEditMode && initialBook) {
+      if (isEditMode && initialChapter) {
         setFormData({
-          title: initialBook.title,
-          author: initialBook.author,
-          overall_summary: initialBook.overall_summary,
-          status: initialBook.status,
-          category: initialBook.category,
-          started_at: initialBook.started_at,
-          completed_at: initialBook.completed_at,
+          title: initialChapter.title,
+          chapter_number: initialChapter.chapter_number,
+          summary: initialChapter.summary || '',
+          personal_notes: initialChapter.personal_notes || '',
+          is_completed: initialChapter.is_completed,
+          created_at: initialChapter.created_at,
+          updated_at: initialChapter.updated_at,
         });
       } else {
         setFormData(initialFormData);
@@ -56,11 +58,15 @@ const BookForm: React.FC<BookFormProps> = ({
         setSubmitSuccess(false);
       }, 300);
     }
-  }, [isOpen, isEditMode, initialBook]);
+  }, [isOpen, isEditMode, initialChapter]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
+              name === 'chapter_number' ? parseInt(value) || 1 : value 
+    }));
     setSubmitError(null);
     setSubmitSuccess(false);
   };
@@ -72,30 +78,35 @@ const BookForm: React.FC<BookFormProps> = ({
     setSubmitSuccess(false);
 
     try {
+      const chapterData = {
+        ...formData,
+        book_id: bookId,
+      };
+
       if (isEditMode) {
-        const response = await apiClient.put(`/api/books/${initialBook?.id}/`, formData);
+        const response = await apiClient.put(`/api/chapters/${initialChapter?.id}/`, chapterData);
         if (response.status >= 200 && response.status < 300) {
           setSubmitSuccess(true);
-          onBookCreated();
+          onChapterCreated();
           setTimeout(() => { onClose(); }, 1500);
         } else {
-          throw new Error(`Failed to update book (${response.status})`);
+          throw new Error(`Failed to update chapter (${response.status})`);
         }
       } else {
-        const response = await apiClient.post('/api/books/', formData);
+        const response = await apiClient.post('/api/chapters/', chapterData);
         if (response.status >= 200 && response.status < 300) {
           setSubmitSuccess(true);
-          onBookCreated();
+          onChapterCreated();
           setFormData(initialFormData);
           setTimeout(() => { onClose(); }, 1500);
         } else {
-          throw new Error(`Failed to create book (${response.status})`);
+          throw new Error(`Failed to create chapter (${response.status})`);
         }
       }
     } catch (err: unknown) {
-      console.error(`Error ${isEditMode ? 'updating' : 'creating'} book:`, err);
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} chapter:`, err);
       const errorMsg = err instanceof Error ? err.message : 
-        `Failed to ${isEditMode ? 'update' : 'create'} book.`;
+        `Failed to ${isEditMode ? 'update' : 'create'} chapter.`;
       setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -143,7 +154,7 @@ const BookForm: React.FC<BookFormProps> = ({
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
                     <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
-                      {isEditMode ? 'Edit Book' : 'Add New Book'}
+                      {isEditMode ? 'Edit Chapter' : 'Add New Chapter'}
                     </Dialog.Title>
                     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                       <div>
@@ -162,78 +173,61 @@ const BookForm: React.FC<BookFormProps> = ({
                       </div>
 
                       <div>
-                        <label htmlFor="author" className="block text-sm font-medium text-gray-700">
-                          Author
+                        <label htmlFor="chapter_number" className="block text-sm font-medium text-gray-700">
+                          Chapter Number
                         </label>
                         <input
-                          type="text"
-                          name="author"
-                          id="author"
-                          value={formData.author}
+                          type="number"
+                          name="chapter_number"
+                          id="chapter_number"
+                          value={formData.chapter_number}
                           onChange={handleInputChange}
+                          min="1"
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                           required
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="overall_summary" className="block text-sm font-medium text-gray-700">
-                          Overall Summary
+                        <label htmlFor="summary" className="block text-sm font-medium text-gray-700">
+                          Summary
                         </label>
                         <textarea
-                          name="overall_summary"
-                          id="overall_summary"
+                          name="summary"
+                          id="summary"
                           rows={4}
-                          value={formData.overall_summary}
+                          value={formData.summary}
                           onChange={handleInputChange}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                          Status
+                        <label htmlFor="personal_notes" className="block text-sm font-medium text-gray-700">
+                          Personal Notes
                         </label>
-                        <select
-                          name="status"
-                          id="status"
-                          value={formData.status}
+                        <textarea
+                          name="personal_notes"
+                          id="personal_notes"
+                          rows={4}
+                          value={formData.personal_notes}
                           onChange={handleInputChange}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        >
-                          <option value="not_started">Not Started</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="read">Read</option>
-                          <option value="read_and_digested">Read and Digested</option>
-                        </select>
+                        />
                       </div>
 
-                      <div>
-                        <label htmlFor="started_at" className="block text-sm font-medium text-gray-700">
-                          Started At
-                        </label>
+                      <div className="flex items-center">
                         <input
-                          type="date"
-                          name="started_at"
-                          id="started_at"
-                          value={formData.started_at || ''}
+                          type="checkbox"
+                          name="is_completed"
+                          id="is_completed"
+                          checked={formData.is_completed}
                           onChange={handleInputChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                         />
-                      </div>
-
-                      <div>
-                        <label htmlFor="completed_at" className="block text-sm font-medium text-gray-700">
-                          Completed At
+                        <label htmlFor="is_completed" className="ml-2 block text-sm text-gray-900">
+                          Mark as completed
                         </label>
-                        <input
-                          type="date"
-                          name="completed_at"
-                          id="completed_at"
-                          value={formData.completed_at || ''}
-                          onChange={handleInputChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        />
                       </div>
 
                       {submitError && (
@@ -257,7 +251,7 @@ const BookForm: React.FC<BookFormProps> = ({
                             </div>
                             <div className="ml-3">
                               <h3 className="text-sm font-medium text-green-800">
-                                Book {isEditMode ? 'updated' : 'created'} successfully!
+                                Chapter {isEditMode ? 'updated' : 'created'} successfully!
                               </h3>
                             </div>
                           </div>
@@ -276,7 +270,7 @@ const BookForm: React.FC<BookFormProps> = ({
                               {isEditMode ? 'Updating...' : 'Creating...'}
                             </>
                           ) : (
-                            isEditMode ? 'Update Book' : 'Create Book'
+                            isEditMode ? 'Update Chapter' : 'Create Chapter'
                           )}
                         </button>
                         <button
@@ -299,4 +293,4 @@ const BookForm: React.FC<BookFormProps> = ({
   );
 };
 
-export default BookForm; 
+export default ChapterForm; 

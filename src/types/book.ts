@@ -1,13 +1,15 @@
 export interface Book {
   id: number;
   title: string;
-  author?: string;
-  description?: string;
+  author: string;
+  overall_summary: string;
   status: 'not_started' | 'in_progress' | 'read' | 'read_and_digested';
-  current_chapter?: number;
-  total_chapters?: number;
-  rating?: number;
-  notes?: string;
+  category?: number;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  chapters?: Chapter[];
 }
 
 export interface Chapter {
@@ -15,6 +17,9 @@ export interface Chapter {
   book_id: number;
   title: string;
   chapter_number: number;
-  notes?: string;
+  summary: string;
+  personal_notes: string;
   is_completed: boolean;
+  created_at: string;
+  updated_at: string;
 } 
