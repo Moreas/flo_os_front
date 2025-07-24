@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/apiConfig';
-import { ArrowPathIcon, ExclamationTriangleIcon, AcademicCapIcon, PencilIcon, TrashIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, AcademicCapIcon, PencilIcon, TrashIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import CourseForm from '../components/forms/CourseForm';
 import { Course } from '../types/course';
 
@@ -10,6 +10,7 @@ const CourseList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | undefined>(undefined);
+  const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
 
   const fetchData = async () => {
     try {
@@ -52,6 +53,13 @@ const CourseList: React.FC = () => {
       console.error('Error deleting course:', error);
       alert('Failed to delete course');
     }
+  };
+
+  const toggleModule = (moduleId: number) => {
+    setExpandedModules(prev => ({
+      ...prev,
+      [moduleId]: !prev[moduleId]
+    }));
   };
 
   const getStatusColor = (status: string) => {
@@ -131,8 +139,42 @@ const CourseList: React.FC = () => {
                 <p className="mt-2 text-sm text-gray-600 line-clamp-2">{course.description}</p>
               )}
 
+              <div className="mt-4 space-y-2">
+                {course.modules.map((module) => (
+                  <div key={module.id} className="border rounded-md">
+                    <button
+                      onClick={() => toggleModule(module.id)}
+                      className="w-full flex items-center justify-between p-2 hover:bg-gray-50"
+                    >
+                      <span className="text-sm font-medium text-gray-700">{module.title}</span>
+                      {expandedModules[module.id] ? (
+                        <ChevronUpIcon className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                    {expandedModules[module.id] && (
+                      <div className="border-t p-2 space-y-1">
+                        {module.lessons.map((lesson) => (
+                          <div
+                            key={lesson.id}
+                            className="flex items-center justify-between text-sm text-gray-600 py-1 px-2 hover:bg-gray-50 rounded"
+                          >
+                            <span className="line-clamp-1">{lesson.title}</span>
+                            {lesson.is_completed && (
+                              <span className="text-xs text-green-600 font-medium">Completed</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
               <div className="mt-2 text-sm text-gray-500">
-                {course.lessons?.length || 0} lesson{(course.lessons?.length || 0) !== 1 ? 's' : ''}
+                {course.modules.length} module{course.modules.length !== 1 ? 's' : ''} •{' '}
+                {course.modules.reduce((total, module) => total + module.lessons.length, 0)} lesson{course.modules.reduce((total, module) => total + module.lessons.length, 0) !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
