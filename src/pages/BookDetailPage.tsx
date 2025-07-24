@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
 import { Book, Chapter } from '../types/book';
@@ -16,7 +16,8 @@ const BookDetailPage: React.FC = () => {
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | undefined>(undefined);
 
-  const fetchBook = async () => {
+  const fetchBook = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
       const response = await apiClient.get(`/api/books/${id}/`);
@@ -27,11 +28,11 @@ const BookDetailPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchBook();
-  }, [id]);
+  }, [id, fetchBook]);
 
   const handleEditBook = () => {
     setIsEditModalOpen(true);
