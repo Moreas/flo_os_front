@@ -95,53 +95,53 @@ const BookList: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {books.map((book) => (
-        <Link
-          key={book.id}
-          to={`/books/${book.id}`}
-          className="block bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200"
-        >
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <BookOpenIcon className="h-6 w-6 text-primary-500" />
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{book.title}</h3>
-                  <p className="text-sm text-gray-500">{book.author}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {books.map((book) => (
+          <Link
+            key={book.id}
+            to={`/books/${book.id}`}
+            className="block bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <BookOpenIcon className="h-6 w-6 text-primary-500" />
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 line-clamp-1">{book.title}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-1">{book.author}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(book.status)}`}>
+                    {book.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </span>
+                  <button
+                    onClick={(e) => handleEdit(e, book)}
+                    className="p-1 rounded-full hover:bg-gray-100"
+                  >
+                    <PencilIcon className="h-5 w-5 text-gray-500" />
+                  </button>
+                  <button
+                    onClick={(e) => handleDelete(e, book.id)}
+                    className="p-1 rounded-full hover:bg-gray-100"
+                  >
+                    <TrashIcon className="h-5 w-5 text-red-500" />
+                  </button>
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(book.status)}`}>
-                  {book.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-                <button
-                  onClick={(e) => handleEdit(e, book)}
-                  className="p-1 rounded-full hover:bg-gray-100"
-                >
-                  <PencilIcon className="h-5 w-5 text-gray-500" />
-                </button>
-                <button
-                  onClick={(e) => handleDelete(e, book.id)}
-                  className="p-1 rounded-full hover:bg-gray-100"
-                >
-                  <TrashIcon className="h-5 w-5 text-red-500" />
-                </button>
-                <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+
+              {book.overall_summary && (
+                <p className="mt-2 text-sm text-gray-600 line-clamp-2">{book.overall_summary}</p>
+              )}
+
+              <div className="mt-2 text-sm text-gray-500">
+                {book.chapters?.length || 0} chapter{(book.chapters?.length || 0) !== 1 ? 's' : ''}
               </div>
             </div>
-
-            {book.overall_summary && (
-              <p className="mt-2 text-sm text-gray-600 line-clamp-2">{book.overall_summary}</p>
-            )}
-
-            {book.chapters && book.chapters.length > 0 && (
-              <div className="mt-2 text-sm text-gray-500">
-                {book.chapters.length} chapter{book.chapters.length !== 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-        </Link>
-      ))}
+          </Link>
+        ))}
+      </div>
 
       <BookForm 
         isOpen={isEditModalOpen} 
