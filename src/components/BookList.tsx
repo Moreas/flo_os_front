@@ -1,25 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
-import { ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon, PencilIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon, PencilIcon, TrashIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import BookForm from './forms/BookForm';
-import ChapterForm from './forms/ChapterForm';
-import { Book, Chapter } from '../types/book';
+import { Book } from '../types/book';
 
 const BookList: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | undefined>(undefined);
-  const [selectedChapter, setSelectedChapter] = useState<Chapter | undefined>(undefined);
-  const [expandedBooks, setExpandedBooks] = useState<Set<number>>(new Set());
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/api/books/');
-      console.log('Books data:', response.data);
       setBooks(response.data);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -33,12 +29,16 @@ const BookList: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleEdit = (book: Book) => {
+  const handleEdit = (e: React.MouseEvent, book: Book) => {
+    e.preventDefault();
+    e.stopPropagation();
     setSelectedBook(book);
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = async (bookId: number) => {
+  const handleDelete = async (e: React.MouseEvent, bookId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     try {
       const response = await apiClient.delete(`/api/books/${bookId}/`);
       
@@ -53,50 +53,6 @@ const BookList: React.FC = () => {
       console.error('Error deleting book:', error);
       alert('Failed to delete book');
     }
-  };
-
-  const handleAddChapter = (book: Book) => {
-    setSelectedBook(book);
-    setSelectedChapter(undefined);
-    setIsChapterModalOpen(true);
-  };
-
-  const handleEditChapter = (book: Book, chapter: Chapter) => {
-    setSelectedBook(book);
-    setSelectedChapter(chapter);
-    setIsChapterModalOpen(true);
-  };
-
-  const handleDeleteChapter = async (chapterId: number) => {
-    try {
-      const response = await apiClient.delete(`/api/chapters/${chapterId}/`);
-      
-      if (response.status >= 200 && response.status < 300) {
-        await fetchData(); // Refresh the book list to get updated chapters
-      } else {
-        const errorData = response.data;
-        console.error('Delete failed:', errorData);
-        alert('Failed to delete chapter: ' + (errorData?.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error deleting chapter:', error);
-      alert('Failed to delete chapter');
-    }
-  };
-
-  const toggleBookExpansion = (bookId: number) => {
-    console.log('Toggling book expansion for ID:', bookId);
-    console.log('Current expanded books:', Array.from(expandedBooks));
-    const newExpandedBooks = new Set(expandedBooks);
-    if (expandedBooks.has(bookId)) {
-      console.log('Collapsing book');
-      newExpandedBooks.delete(bookId);
-    } else {
-      console.log('Expanding book');
-      newExpandedBooks.add(bookId);
-    }
-    console.log('New expanded books:', Array.from(newExpandedBooks));
-    setExpandedBooks(newExpandedBooks);
   };
 
   const getStatusColor = (status: string) => {
@@ -140,7 +96,11 @@ const BookList: React.FC = () => {
   return (
     <div className="space-y-4">
       {books.map((book) => (
-        <div key={book.id} className="bg-white shadow rounded-lg overflow-hidden">
+        <Link
+          key={book.id}
+          to={`/books/${book.id}`}
+          className="block bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200"
+        >
           <div className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -155,101 +115,32 @@ const BookList: React.FC = () => {
                   {book.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </span>
                 <button
-                  onClick={() => handleEdit(book)}
+                  onClick={(e) => handleEdit(e, book)}
                   className="p-1 rounded-full hover:bg-gray-100"
                 >
                   <PencilIcon className="h-5 w-5 text-gray-500" />
                 </button>
                 <button
-                  onClick={() => handleDelete(book.id)}
+                  onClick={(e) => handleDelete(e, book.id)}
                   className="p-1 rounded-full hover:bg-gray-100"
                 >
                   <TrashIcon className="h-5 w-5 text-red-500" />
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Expand button clicked for book:', book.id);
-                    toggleBookExpansion(book.id);
-                  }}
-                  className="p-1 rounded-full hover:bg-gray-100"
-                >
-                  {expandedBooks.has(book.id) ? (
-                    <ChevronUpIcon className="h-5 w-5 text-gray-500" />
-                  ) : (
-                    <ChevronDownIcon className="h-5 w-5 text-gray-500" />
-                  )}
-                </button>
+                <ChevronRightIcon className="h-5 w-5 text-gray-400" />
               </div>
             </div>
 
             {book.overall_summary && (
-              <p className="mt-2 text-sm text-gray-600">{book.overall_summary}</p>
+              <p className="mt-2 text-sm text-gray-600 line-clamp-2">{book.overall_summary}</p>
             )}
 
-            {/* Debug info */}
-            <div className="mt-2 text-xs text-gray-400">
-              Book ID: {book.id}, Expanded: {expandedBooks.has(book.id) ? 'Yes' : 'No'}
-            </div>
-
-            {expandedBooks.has(book.id) && (
-              <div className="mt-4 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-sm font-medium text-gray-900">Chapters ({book.chapters?.length || 0})</h4>
-                  <button
-                    onClick={() => handleAddChapter(book)}
-                    className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    <PlusIcon className="h-4 w-4 mr-1" />
-                    Add Chapter
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {book.chapters && book.chapters.length > 0 ? (
-                    book.chapters.map((chapter) => (
-                      <div key={chapter.id} className="bg-gray-50 p-3 rounded-md">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="text-sm font-medium text-gray-900">
-                              Chapter {chapter.chapter_number}: {chapter.title}
-                            </h5>
-                            {chapter.summary && (
-                              <p className="mt-1 text-sm text-gray-600">{chapter.summary}</p>
-                            )}
-                            {chapter.personal_notes && (
-                              <div className="mt-2">
-                                <h6 className="text-xs font-medium text-gray-700">Personal Notes:</h6>
-                                <p className="mt-1 text-sm text-gray-600">{chapter.personal_notes}</p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleEditChapter(book, chapter)}
-                              className="p-1 rounded-full hover:bg-gray-200"
-                            >
-                              <PencilIcon className="h-4 w-4 text-gray-500" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteChapter(chapter.id)}
-                              className="p-1 rounded-full hover:bg-gray-200"
-                            >
-                              <TrashIcon className="h-4 w-4 text-red-500" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">No chapters added yet.</p>
-                  )}
-                </div>
+            {book.chapters && book.chapters.length > 0 && (
+              <div className="mt-2 text-sm text-gray-500">
+                {book.chapters.length} chapter{book.chapters.length !== 1 ? 's' : ''}
               </div>
             )}
           </div>
-        </div>
+        </Link>
       ))}
 
       <BookForm 
@@ -261,19 +152,6 @@ const BookList: React.FC = () => {
         onBookCreated={fetchData}
         initialBook={selectedBook}
         isEditMode={!!selectedBook}
-      />
-
-      <ChapterForm
-        isOpen={isChapterModalOpen}
-        onClose={() => {
-          setIsChapterModalOpen(false);
-          setSelectedBook(undefined);
-          setSelectedChapter(undefined);
-        }}
-        onChapterCreated={fetchData}
-        bookId={selectedBook?.id || 0}
-        initialChapter={selectedChapter}
-        isEditMode={!!selectedChapter}
       />
     </div>
   );
