@@ -30,7 +30,6 @@ import BookDetailPage from './pages/BookDetailPage';
 import HabitDetailPage from './pages/HabitDetailPage';
 import WishListPage from './pages/WishListPage';
 import SettingsPage from './pages/SettingsPage';
-import BookList from './components/BookList';
 
 function App() {
   return (
