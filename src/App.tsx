@@ -15,7 +15,7 @@ import BusinessesPage from './pages/BusinessesPage';
 import PeoplePage from './pages/PeoplePage';
 import ToolsPage from './pages/ToolsPage';
 import GoalsPage from './pages/GoalsPage';
-import BooksPage from './pages/BooksPage';
+import LearningPage from './pages/LearningPage';
 import HabitsDashboardPage from './pages/HabitsDashboardPage';
 import EmailsPage from './pages/EmailsPage';
 import JournalPage from './pages/JournalPage';
@@ -91,10 +91,10 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               } />
-              <Route path="/books" element={
+              <Route path="/learning" element={
                 <ProtectedRoute>
                   <Layout>
-                    <BooksPage />
+                    <LearningPage />
                   </Layout>
                 </ProtectedRoute>
               } />
