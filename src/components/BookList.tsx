@@ -19,6 +19,7 @@ const BookList: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/api/books/');
+      console.log('Books data:', response.data);
       setBooks(response.data);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -84,12 +85,17 @@ const BookList: React.FC = () => {
   };
 
   const toggleBookExpansion = (bookId: number) => {
+    console.log('Toggling book expansion for ID:', bookId);
+    console.log('Current expanded books:', Array.from(expandedBooks));
     const newExpandedBooks = new Set(expandedBooks);
     if (expandedBooks.has(bookId)) {
+      console.log('Collapsing book');
       newExpandedBooks.delete(bookId);
     } else {
+      console.log('Expanding book');
       newExpandedBooks.add(bookId);
     }
+    console.log('New expanded books:', Array.from(newExpandedBooks));
     setExpandedBooks(newExpandedBooks);
   };
 
@@ -161,7 +167,12 @@ const BookList: React.FC = () => {
                   <TrashIcon className="h-5 w-5 text-red-500" />
                 </button>
                 <button
-                  onClick={() => toggleBookExpansion(book.id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Expand button clicked for book:', book.id);
+                    toggleBookExpansion(book.id);
+                  }}
                   className="p-1 rounded-full hover:bg-gray-100"
                 >
                   {expandedBooks.has(book.id) ? (
@@ -177,10 +188,15 @@ const BookList: React.FC = () => {
               <p className="mt-2 text-sm text-gray-600">{book.overall_summary}</p>
             )}
 
+            {/* Debug info */}
+            <div className="mt-2 text-xs text-gray-400">
+              Book ID: {book.id}, Expanded: {expandedBooks.has(book.id) ? 'Yes' : 'No'}
+            </div>
+
             {expandedBooks.has(book.id) && (
               <div className="mt-4 space-y-4">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-sm font-medium text-gray-900">Chapters</h4>
+                  <h4 className="text-sm font-medium text-gray-900">Chapters ({book.chapters?.length || 0})</h4>
                   <button
                     onClick={() => handleAddChapter(book)}
                     className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
