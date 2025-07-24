@@ -27,6 +27,7 @@ import PersonDetailPage from './pages/PersonDetailPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import BookDetailPage from './pages/BookDetailPage';
+import CourseDetailPage from './pages/CourseDetailPage';
 import HabitDetailPage from './pages/HabitDetailPage';
 import WishListPage from './pages/WishListPage';
 import SettingsPage from './pages/SettingsPage';
@@ -188,6 +189,13 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <BookDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/courses/:id" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CourseDetailPage />
                   </Layout>
                 </ProtectedRoute>
               } />

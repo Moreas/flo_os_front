@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
 import { ArrowPathIcon, ExclamationTriangleIcon, AcademicCapIcon, PencilIcon, TrashIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import CourseForm from '../components/forms/CourseForm';
@@ -102,8 +103,9 @@ const CourseList: React.FC = () => {
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {courses.map((course) => (
-          <div
+          <Link
             key={course.id}
+            to={`/courses/${course.id}`}
             className="block bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200"
           >
             <div className="p-4">
@@ -143,7 +145,10 @@ const CourseList: React.FC = () => {
                 {course.modules.map((module) => (
                   <div key={module.id} className="border rounded-md">
                     <button
-                      onClick={() => toggleModule(module.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleModule(module.id);
+                      }}
                       className="w-full flex items-center justify-between p-2 hover:bg-gray-50"
                     >
                       <span className="text-sm font-medium text-gray-700">{module.title}</span>
@@ -177,7 +182,7 @@ const CourseList: React.FC = () => {
                 {course.modules.reduce((total, module) => total + module.lessons.length, 0)} lesson{course.modules.reduce((total, module) => total + module.lessons.length, 0) !== 1 ? 's' : ''}
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
