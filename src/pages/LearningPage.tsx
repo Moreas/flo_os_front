@@ -13,8 +13,15 @@ function classNames(...classes: string[]) {
 const LearningPage: React.FC = () => {
   const [isBookFormOpen, setIsBookFormOpen] = useState(false);
   const [isCourseFormOpen, setIsCourseFormOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const categories = ['Books', 'Courses'];
+
+  const handleItemCreated = () => {
+    setRefreshKey(prev => prev + 1);
+    setIsBookFormOpen(false);
+    setIsCourseFormOpen(false);
+  };
 
   return (
     <div>
@@ -63,10 +70,10 @@ const LearningPage: React.FC = () => {
 
           <Tab.Panels>
             <Tab.Panel>
-              <BookList />
+              <BookList key={refreshKey} />
             </Tab.Panel>
             <Tab.Panel>
-              <CourseList />
+              <CourseList key={refreshKey} />
             </Tab.Panel>
           </Tab.Panels>
         </Tab.Group>
@@ -75,13 +82,13 @@ const LearningPage: React.FC = () => {
       <BookForm
         isOpen={isBookFormOpen}
         onClose={() => setIsBookFormOpen(false)}
-        onBookCreated={() => setIsBookFormOpen(false)}
+        onBookCreated={handleItemCreated}
       />
 
       <CourseForm
         isOpen={isCourseFormOpen}
         onClose={() => setIsCourseFormOpen(false)}
-        onCourseCreated={() => setIsCourseFormOpen(false)}
+        onCourseCreated={handleItemCreated}
       />
     </div>
   );

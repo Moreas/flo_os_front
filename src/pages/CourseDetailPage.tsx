@@ -48,7 +48,7 @@ const CourseDetailPage: React.FC = () => {
   const handleModuleCompletion = async (moduleId: number, isCompleted: boolean) => {
     try {
       await apiClient.patch(`/api/modules/${moduleId}/`, { is_completed: isCompleted });
-      fetchCourse();
+      await fetchCourse();
     } catch (error) {
       console.error('Error updating module completion:', error);
       alert('Failed to update module completion status');
@@ -58,7 +58,7 @@ const CourseDetailPage: React.FC = () => {
   const handleLessonCompletion = async (lessonId: number, isCompleted: boolean) => {
     try {
       await apiClient.patch(`/api/lessons/${lessonId}/`, { is_completed: isCompleted });
-      fetchCourse();
+      await fetchCourse();
     } catch (error) {
       console.error('Error updating lesson completion:', error);
       alert('Failed to update lesson completion status');

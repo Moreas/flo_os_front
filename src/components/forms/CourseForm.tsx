@@ -167,7 +167,7 @@ const CourseForm: React.FC<CourseFormProps> = ({
       setTimeout(() => {
         onClose();
         setSuccess(false);
-      }, 1000);
+      }, 500);
     } catch (error) {
       console.error('Error saving course:', error);
       setError('Failed to save course');
