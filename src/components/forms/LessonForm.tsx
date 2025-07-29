@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { apiClient } from '../../api/apiConfig';
+import { AxiosProgressEvent } from 'axios';
 
 interface LessonFormProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface LessonFormProps {
 interface LessonFormData {
   title: string;
   video_url: string;
+  video_file?: File;
   transcript: string;
   summary: string;
   personal_notes: string;
@@ -33,13 +35,53 @@ const LessonForm: React.FC<LessonFormProps> = ({ isOpen, onClose, onLessonCreate
     is_completed: false,
   });
 
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, video_file: file }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post('/api/lessons/', {
-        ...formData,
-        module_id: moduleId,
+      setIsUploading(true);
+      
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append('module_id', moduleId.toString());
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('transcript', formData.transcript);
+      formDataToSend.append('summary', formData.summary);
+      formDataToSend.append('personal_notes', formData.personal_notes);
+      formDataToSend.append('quiz', formData.quiz);
+      formDataToSend.append('order', formData.order.toString());
+      formDataToSend.append('is_completed', formData.is_completed.toString());
+      
+      // If there's a video file, append it
+      if (formData.video_file) {
+        formDataToSend.append('video_file', formData.video_file);
+      } else if (formData.video_url) {
+        formDataToSend.append('video_url', formData.video_url);
+      }
+
+      // Send the request with upload progress tracking
+      await apiClient.post('/api/lessons/', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+          }
+        },
       });
+
       onLessonCreated();
       onClose();
       setFormData({
@@ -52,9 +94,12 @@ const LessonForm: React.FC<LessonFormProps> = ({ isOpen, onClose, onLessonCreate
         order: 1,
         is_completed: false,
       });
+      setUploadProgress(0);
     } catch (error) {
       console.error('Error creating lesson:', error);
       alert('Failed to create lesson');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -118,7 +163,7 @@ const LessonForm: React.FC<LessonFormProps> = ({ isOpen, onClose, onLessonCreate
 
                       <div>
                         <label htmlFor="video_url" className="block text-sm font-medium text-gray-700">
-                          Video URL
+                          Video URL (optional if uploading file)
                         </label>
                         <input
                           type="url"
@@ -127,6 +172,50 @@ const LessonForm: React.FC<LessonFormProps> = ({ isOpen, onClose, onLessonCreate
                           onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                         />
+                      </div>
+
+                      <div>
+                        <label htmlFor="video_file" className="block text-sm font-medium text-gray-700">
+                          Upload Video (optional)
+                        </label>
+                        <div className="mt-1 flex items-center">
+                          <input
+                            type="file"
+                            id="video_file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="video/*"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                          >
+                            <CloudArrowUpIcon className="h-5 w-5 mr-2" />
+                            Choose Video File
+                          </button>
+                          {formData.video_file && (
+                            <span className="ml-3 text-sm text-gray-500">
+                              {formData.video_file.name}
+                            </span>
+                          )}
+                        </div>
+                        {isUploading && (
+                          <div className="mt-2">
+                            <div className="relative pt-1">
+                              <div className="overflow-hidden h-2 text-xs flex rounded bg-primary-200">
+                                <div
+                                  style={{ width: `${uploadProgress}%` }}
+                                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 transition-all duration-300"
+                                />
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {uploadProgress}% uploaded
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -212,9 +301,14 @@ const LessonForm: React.FC<LessonFormProps> = ({ isOpen, onClose, onLessonCreate
                       <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                         <button
                           type="submit"
-                          className="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 sm:ml-3 sm:w-auto"
+                          disabled={isUploading}
+                          className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto ${
+                            isUploading
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-primary-600 hover:bg-primary-500'
+                          }`}
                         >
-                          Add Lesson
+                          {isUploading ? 'Uploading...' : 'Add Lesson'}
                         </button>
                         <button
                           type="button"
