@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import SimpleEmailList, { SimpleEmailListRef } from '../components/SimpleEmailList';
-import API_BASE from '../apiBase';
 import { apiClient } from '../api/apiConfig';
 
 const EmailsPage: React.FC = () => {
