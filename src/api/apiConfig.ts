@@ -1,8 +1,17 @@
 import axios from 'axios';
+import API_BASE from '../apiBase';
+
+// Basic Auth configuration
+const AUTH_CONFIG = {
+  basic: {
+    username: 'flo',
+    password: 'G?LB9?Q&y7xx7i4k9RFnGG9qC'
+  }
+};
 
 // Create Axios instance with custom config
 export const apiClient = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || '/api',
+    baseURL: API_BASE,
     timeout: 300000, // 5 minutes timeout for large file uploads
     headers: {
         'Content-Type': 'application/json',
@@ -11,9 +20,13 @@ export const apiClient = axios.create({
     maxBodyLength: Infinity, // Allow unlimited request body size
 });
 
-// Add request interceptor for debugging
+// Add request interceptor for authentication and debugging
 apiClient.interceptors.request.use(
     (config) => {
+        // Add Basic Auth header to all requests
+        const basicAuth = 'Basic ' + btoa(`${AUTH_CONFIG.basic.username}:${AUTH_CONFIG.basic.password}`);
+        config.headers.Authorization = basicAuth;
+
         // Log the request
         console.log('[API] Making ' + config.method?.toUpperCase() + ' request to:', config.url);
         if (config.data instanceof FormData) {
@@ -51,6 +64,16 @@ apiClient.interceptors.response.use(
                 'from:',
                 error.config.url
             );
+            if (error.response.status === 401) {
+                console.error('[API] Authentication failed: Invalid username or password');
+                error.message = 'Authentication failed: Please check your username and password';
+            } else if (error.response.status === 403) {
+                console.error('[API] Access forbidden: Insufficient permissions');
+                error.message = 'Access forbidden: You do not have permission to access this resource';
+            } else if (error.response.status >= 500) {
+                console.error('[API] Server error:', error.response.status, error.response.data);
+                error.message = 'Server error: Please try again later';
+            }
         } else if (error.request) {
             // Request made but no response
             if (error.code === 'ECONNABORTED') {
@@ -63,6 +86,7 @@ apiClient.interceptors.response.use(
                 );
             } else {
                 console.error('[API] No response received:', error.request);
+                error.message = 'Network error: Unable to connect to server. Please check your internet connection.';
             }
         } else {
             // Error in request configuration
