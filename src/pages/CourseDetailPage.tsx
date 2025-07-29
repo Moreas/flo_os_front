@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
 import { Course } from '../types/course';
-import { ArrowPathIcon, ExclamationTriangleIcon, PencilIcon, TrashIcon, ArrowLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, PencilIcon, TrashIcon, ArrowLeftIcon, CheckCircleIcon, PlusIcon } from '@heroicons/react/24/outline';
 import CourseForm from '../components/forms/CourseForm';
+import ModuleForm from '../components/forms/ModuleForm';
+import LessonForm from '../components/forms/LessonForm';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +14,9 @@ const CourseDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isModuleFormOpen, setIsModuleFormOpen] = useState(false);
+  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+  const [isLessonFormOpen, setIsLessonFormOpen] = useState(false);
 
   const fetchCourse = useCallback(async () => {
     if (!id) return;
@@ -63,6 +68,11 @@ const CourseDetailPage: React.FC = () => {
       console.error('Error updating lesson completion:', error);
       alert('Failed to update lesson completion status');
     }
+  };
+
+  const handleAddLesson = (moduleId: number) => {
+    setSelectedModuleId(moduleId);
+    setIsLessonFormOpen(true);
   };
 
   if (loading) {
@@ -159,7 +169,16 @@ const CourseDetailPage: React.FC = () => {
 
           {/* Modules */}
           <div className="mt-8">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Modules</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Modules</h2>
+              <button
+                onClick={() => setIsModuleFormOpen(true)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Add Module
+              </button>
+            </div>
             <div className="space-y-4">
               {course.modules.map((module) => (
                 <div key={module.id} className="border rounded-lg overflow-hidden">
@@ -173,6 +192,13 @@ const CourseDetailPage: React.FC = () => {
                       </button>
                       <h3 className="text-md font-medium text-gray-900">{module.title}</h3>
                     </div>
+                    <button
+                      onClick={() => handleAddLesson(module.id)}
+                      className="inline-flex items-center px-2 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                      <PlusIcon className="h-4 w-4 mr-1" />
+                      Add Lesson
+                    </button>
                   </div>
                   <div className="divide-y divide-gray-200">
                     {module.lessons.map((lesson) => (
@@ -232,6 +258,20 @@ const CourseDetailPage: React.FC = () => {
         onCourseCreated={fetchCourse}
         initialCourse={course}
         isEditMode={true}
+      />
+
+      <ModuleForm
+        isOpen={isModuleFormOpen}
+        onClose={() => setIsModuleFormOpen(false)}
+        onModuleCreated={fetchCourse}
+        courseId={course?.id || 0}
+      />
+
+      <LessonForm
+        isOpen={isLessonFormOpen}
+        onClose={() => setIsLessonFormOpen(false)}
+        onLessonCreated={fetchCourse}
+        moduleId={selectedModuleId || 0}
       />
     </div>
   );
