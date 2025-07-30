@@ -69,41 +69,51 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
   }
 
   return (
-    <div className="space-y-4">
-      {emails.map((email) => (
-        <div key={email.id} className="bg-white shadow rounded-lg p-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">{email.subject}</h3>
-              <p className="text-sm text-gray-500">{email.sender}</p>
+    <div className="overflow-hidden bg-white shadow sm:rounded-md">
+      <ul role="list" className="divide-y divide-gray-200">
+        {emails.map((email) => (
+          <li key={email.id}>
+            <div className="block hover:bg-gray-50">
+              <div className="px-4 py-4 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <div className="truncate">
+                    <div className="flex text-sm">
+                      <p className="font-medium text-primary-600 truncate">{email.subject}</p>
+                      <p className="ml-1 flex-shrink-0 font-normal text-gray-500">from {email.sender}</p>
+                    </div>
+                    <div className="mt-2 flex">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <p>
+                          {new Date(email.received_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ml-2 flex flex-shrink-0">
+                    {email.needs_reply && (
+                      <p className="inline-flex rounded-full bg-yellow-100 px-2 text-xs font-semibold leading-5 text-yellow-800 mr-2">
+                        Needs Reply
+                      </p>
+                    )}
+                    <p className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                      email.is_handled
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {email.is_handled ? 'Handled' : 'Unhandled'}
+                    </p>
+                  </div>
+                </div>
+                {email.body && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    {email.body.length > 200 ? `${email.body.substring(0, 200)}...` : email.body}
+                  </div>
+                )}
+              </div>
             </div>
-            <span className="text-sm text-gray-500">
-              {new Date(email.received_at).toLocaleString()}
-            </span>
-          </div>
-          {email.body && (
-            <div className="mt-2 text-sm text-gray-700">
-              {email.body.length > 200 ? `${email.body.substring(0, 200)}...` : email.body}
-            </div>
-          )}
-          <div className="mt-4 flex items-center space-x-4">
-            {email.needs_reply && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                Needs Reply
-              </span>
-            )}
-            {email.is_handled ? (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Handled
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                Unhandled
-              </span>
-            )}
-          </div>
-        </div>
-      ))}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 });
