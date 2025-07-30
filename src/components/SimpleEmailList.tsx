@@ -1,5 +1,7 @@
 import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { apiClient } from '../api/apiConfig';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/20/solid';
 
 export interface SimpleEmailListRef {
   refreshEmails: () => Promise<void>;
@@ -23,9 +25,10 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(false);
+  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(true);
   const [showInternalHandlingOnly, setShowInternalHandlingOnly] = useState(false);
   const [showExternalHandlingOnly, setShowExternalHandlingOnly] = useState(false);
+  const [expandedEmailId, setExpandedEmailId] = useState<number | null>(null);
 
   const fetchEmails = async () => {
     try {
@@ -73,10 +76,14 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
     return true; // Show if all filters pass
   });
 
+  const toggleEmailExpansion = (emailId: number) => {
+    setExpandedEmailId(expandedEmailId === emailId ? null : emailId);
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="flex items-center justify-center p-6">
+        <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin" />
       </div>
     );
   }
@@ -138,57 +145,72 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
       </div>
 
       <div className="space-y-4">
-        {filteredEmails.map((email) => (
-          <div 
-            key={email.id} 
-            className={`bg-white shadow rounded-lg p-4 ${
-              !email.is_handled && !email.needs_internal_handling && !email.waiting_external_handling 
-                ? 'bg-red-50' 
-                : ''
-            }`}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">{email.subject}</h3>
-                <p className="text-sm text-gray-500">{email.sender}</p>
+        {filteredEmails.map((email) => {
+          const isUncategorized = !email.needs_internal_handling && !email.waiting_external_handling;
+          return (
+            <div 
+              key={email.id} 
+              className={`bg-white shadow rounded-lg p-4 ${isUncategorized ? 'bg-red-50' : ''}`}
+            >
+              <button 
+                onClick={() => toggleEmailExpansion(email.id)}
+                className="w-full text-left"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-grow">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-gray-900">{email.subject}</h3>
+                      {email.body && (
+                        <div className="ml-2">
+                          {expandedEmailId === email.id ? (
+                            <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500">{email.sender}</p>
+                  </div>
+                  <span className="text-sm text-gray-500 ml-4 flex-shrink-0">
+                    {new Date(email.received_at).toLocaleString()}
+                  </span>
+                </div>
+                {email.body && (
+                  <div className={`mt-2 text-sm text-gray-700 ${expandedEmailId === email.id ? '' : 'line-clamp-2'}`}>
+                    {email.body}
+                  </div>
+                )}
+              </button>
+              <div className="mt-4 flex items-center space-x-4">
+                {email.needs_reply && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Needs Reply
+                  </span>
+                )}
+                {email.is_handled ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Handled
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    Unhandled
+                  </span>
+                )}
+                {email.needs_internal_handling && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Internal
+                  </span>
+                )}
+                {email.waiting_external_handling && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    External
+                  </span>
+                )}
               </div>
-              <span className="text-sm text-gray-500">
-                {new Date(email.received_at).toLocaleString()}
-              </span>
             </div>
-            {email.body && (
-              <div className="mt-2 text-sm text-gray-700">
-                {email.body.length > 200 ? `${email.body.substring(0, 200)}...` : email.body}
-              </div>
-            )}
-            <div className="mt-4 flex items-center space-x-4">
-              {email.needs_reply && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Needs Reply
-                </span>
-              )}
-              {email.is_handled ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Handled
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                  Unhandled
-                </span>
-              )}
-              {email.needs_internal_handling && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  Internal
-                </span>
-              )}
-              {email.waiting_external_handling && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  External
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

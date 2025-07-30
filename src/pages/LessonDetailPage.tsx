@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/apiConfig';
 import { Lesson } from '../types/course';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const LessonDetailPage: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -15,7 +15,7 @@ const LessonDetailPage: React.FC = () => {
     const fetchLesson = async () => {
       try {
         setLoading(true);
-        const response = await apiClient.get(`/api/lessons/${lessonId}/`);
+        const response = await apiClient.get<Lesson>(`/api/lessons/${lessonId}/`);
         setLesson(response.data);
         setError(null);
       } catch (err) {
@@ -44,8 +44,8 @@ const LessonDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
+      <div className="flex items-center justify-center p-6">
+        <ArrowPathIcon className="w-6 h-6 text-gray-400 animate-spin" />
       </div>
     );
   }
