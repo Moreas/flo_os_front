@@ -7,10 +7,25 @@ export interface SimpleEmailListRef {
 
 interface SimpleEmailListProps {}
 
+interface EmailMessage {
+  id: number;
+  subject: string;
+  sender: string;
+  body?: string;
+  received_at: string;
+  is_handled: boolean;
+  needs_reply: boolean;
+  needs_internal_handling: boolean;
+  waiting_external_handling: boolean;
+}
+
 const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((props, ref) => {
-  const [emails, setEmails] = useState<any[]>([]);
+  const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNeedsHandlingOnly, setShowNeedsHandlingOnly] = useState(false);
+  const [showInternalHandlingOnly, setShowInternalHandlingOnly] = useState(false);
+  const [showExternalHandlingOnly, setShowExternalHandlingOnly] = useState(false);
 
   const fetchEmails = async () => {
     try {
@@ -38,6 +53,25 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
   useImperativeHandle(ref, () => ({
     refreshEmails: fetchEmails
   }));
+
+  const filteredEmails = emails.filter(email => {
+    // Needs Handling Filter - exclude emails that are marked as handled
+    if (showNeedsHandlingOnly && email.is_handled === true) {
+      return false;
+    }
+    
+    // Internal Handling Filter - show only emails that need internal handling
+    if (showInternalHandlingOnly && email.needs_internal_handling !== true) {
+      return false;
+    }
+    
+    // External Handling Filter - show only emails that are waiting for external handling
+    if (showExternalHandlingOnly && email.waiting_external_handling !== true) {
+      return false;
+    }
+    
+    return true; // Show if all filters pass
+  });
 
   if (loading) {
     return (
@@ -69,51 +103,93 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
   }
 
   return (
-    <div className="overflow-hidden bg-white shadow sm:rounded-md">
-      <ul className="divide-y divide-gray-200">
-        {emails.map((email) => (
-          <li key={email.id}>
-            <div className="block hover:bg-gray-50">
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="truncate">
-                    <div className="flex text-sm">
-                      <p className="font-medium text-primary-600 truncate">{email.subject}</p>
-                      <p className="ml-1 flex-shrink-0 font-normal text-gray-500">from {email.sender}</p>
-                    </div>
-                    <div className="mt-2 flex">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <p>
-                          {new Date(email.received_at).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="ml-2 flex flex-shrink-0">
-                    {email.needs_reply && (
-                      <p className="inline-flex rounded-full bg-yellow-100 px-2 text-xs font-semibold leading-5 text-yellow-800 mr-2">
-                        Needs Reply
-                      </p>
-                    )}
-                    <p className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                      email.is_handled
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {email.is_handled ? 'Handled' : 'Unhandled'}
-                    </p>
-                  </div>
-                </div>
-                {email.body && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    {email.body.length > 200 ? `${email.body.substring(0, 200)}...` : email.body}
-                  </div>
-                )}
+    <div>
+      {/* Filter Controls */}
+      <div className="mb-4 space-y-2">
+        <div className="flex items-center space-x-4">
+          <label className="inline-flex items-center">
+            <input
+              type="checkbox"
+              checked={showNeedsHandlingOnly}
+              onChange={(e) => setShowNeedsHandlingOnly(e.target.checked)}
+              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="ml-2 text-sm text-gray-700">Needs Handling</span>
+          </label>
+          <label className="inline-flex items-center">
+            <input
+              type="checkbox"
+              checked={showInternalHandlingOnly}
+              onChange={(e) => setShowInternalHandlingOnly(e.target.checked)}
+              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="ml-2 text-sm text-gray-700">Internal Handling</span>
+          </label>
+          <label className="inline-flex items-center">
+            <input
+              type="checkbox"
+              checked={showExternalHandlingOnly}
+              onChange={(e) => setShowExternalHandlingOnly(e.target.checked)}
+              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="ml-2 text-sm text-gray-700">External Handling</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {filteredEmails.map((email) => (
+          <div 
+            key={email.id} 
+            className={`bg-white shadow rounded-lg p-4 ${
+              !email.is_handled && !email.needs_internal_handling && !email.waiting_external_handling 
+                ? 'bg-red-50' 
+                : ''
+            }`}
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">{email.subject}</h3>
+                <p className="text-sm text-gray-500">{email.sender}</p>
               </div>
+              <span className="text-sm text-gray-500">
+                {new Date(email.received_at).toLocaleString()}
+              </span>
             </div>
-          </li>
+            {email.body && (
+              <div className="mt-2 text-sm text-gray-700">
+                {email.body.length > 200 ? `${email.body.substring(0, 200)}...` : email.body}
+              </div>
+            )}
+            <div className="mt-4 flex items-center space-x-4">
+              {email.needs_reply && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Needs Reply
+                </span>
+              )}
+              {email.is_handled ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Handled
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Unhandled
+                </span>
+              )}
+              {email.needs_internal_handling && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Internal
+                </span>
+              )}
+              {email.waiting_external_handling && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  External
+                </span>
+              )}
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 });
