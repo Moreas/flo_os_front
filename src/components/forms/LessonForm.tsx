@@ -202,59 +202,85 @@ const LessonForm: React.FC<LessonFormProps> = ({ isOpen, onClose, onLessonCreate
 
                       <div>
                         <label htmlFor="video_url" className="block text-sm font-medium text-gray-700">
-                          Video URL (optional if uploading file)
+                          Video URL (for external videos)
                         </label>
-                        <input
-                          type="url"
-                          id="video_url"
-                          value={formData.video_url}
-                          onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        />
+                        <div className="mt-1">
+                          <input
+                            type="url"
+                            id="video_url"
+                            value={formData.video_url}
+                            onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                            placeholder="https://example.com/video.mp4"
+                          />
+                          <p className="mt-1 text-sm text-gray-500">
+                            Use this for linking to external videos. For uploading your own video, use the upload option below.
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <label htmlFor="video_file" className="block text-sm font-medium text-gray-700">
-                          Upload Video (optional)
+                      <div className="border-t border-gray-200 pt-4">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Upload Video
                         </label>
-                        <div className="mt-1 flex items-center">
-                          <input
-                            type="file"
-                            id="video_file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="video/*"
-                            className="hidden"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                          >
-                            <CloudArrowUpIcon className="h-5 w-5 mr-2" />
-                            Choose Video File
-                          </button>
-                          {formData.video_file && (
-                            <span className="ml-3 text-sm text-gray-500">
-                              {formData.video_file.name}
-                            </span>
-                          )}
-                        </div>
-                        {isUploading && (
-                          <div className="mt-2">
-                            <div className="relative pt-1">
-                              <div className="overflow-hidden h-2 text-xs flex rounded bg-primary-200">
-                                <div
-                                  style={{ width: `${uploadProgress}%` }}
-                                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 transition-all duration-300"
-                                />
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                {uploadProgress}% uploaded
+                        <div className="mt-1">
+                          <div className="flex items-center">
+                            <input
+                              type="file"
+                              id="video_file"
+                              ref={fileInputRef}
+                              onChange={handleFileChange}
+                              accept="video/*"
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                              disabled={isUploading}
+                            >
+                              <CloudArrowUpIcon className="h-5 w-5 mr-2" />
+                              {formData.video_file ? 'Change Video File' : 'Upload Video File'}
+                            </button>
+                            {formData.video_file && (
+                              <>
+                                <span className="ml-3 text-sm text-gray-500">
+                                  Selected: {formData.video_file.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({ ...prev, video_file: undefined }));
+                                    if (fileInputRef.current) {
+                                      fileInputRef.current.value = '';
+                                    }
+                                  }}
+                                  className="ml-2 text-sm text-red-600 hover:text-red-800"
+                                >
+                                  Remove
+                                </button>
+                              </>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Upload your own video file. Supported formats: MP4, MOV, AVI, WMV, FLV, WEBM. Max size: 10GB.
+                          </p>
+                          {isUploading && (
+                            <div className="mt-2">
+                              <div className="relative pt-1">
+                                <div className="overflow-hidden h-2 text-xs flex rounded bg-primary-200">
+                                  <div
+                                    style={{ width: `${uploadProgress}%` }}
+                                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 transition-all duration-300"
+                                  />
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {uploadProgress}% uploaded
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
 
                       <div>
