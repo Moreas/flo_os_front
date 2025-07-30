@@ -10,6 +10,7 @@ const LessonDetailPage: React.FC = () => {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLesson = async () => {
@@ -116,15 +117,48 @@ const LessonDetailPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Video</h2>
-                <div className="aspect-w-16 aspect-h-9">
-                  <video
-                    controls
-                    className="w-full rounded-lg"
-                    src={lesson.video_url_signed || lesson.video_url}
-                  >
-                    Your browser does not support the video tag.
-                  </video>
+                <div className="relative">
+                  <div className="aspect-w-16 aspect-h-9">
+                    <video
+                      controls
+                      className="w-full h-full rounded-lg"
+                      src={lesson.video_url_signed || lesson.video_url}
+                      onError={(e) => {
+                        console.error('Video loading error:', e);
+                        setVideoError('Failed to load video. Please try again later.');
+                      }}
+                      controlsList="nodownload"
+                      playsInline
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                  {videoError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-90 rounded-lg">
+                      <div className="text-center p-4">
+                        <p className="text-red-600 mb-2">{videoError}</p>
+                        <button
+                          onClick={() => {
+                            setVideoError(null);
+                            // Force video reload
+                            const video = document.querySelector('video');
+                            if (video) {
+                              video.load();
+                            }
+                          }}
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+                {(lesson.video_url || lesson.video_url_signed) && (
+                  <div className="mt-2 text-sm text-gray-500">
+                    Using {lesson.video_url_signed ? 'signed S3 URL' : 'direct URL'}
+                  </div>
+                )}
               </div>
             </div>
           )}
