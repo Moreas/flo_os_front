@@ -29,6 +29,7 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
   const [showInternalHandlingOnly, setShowInternalHandlingOnly] = useState(false);
   const [showExternalHandlingOnly, setShowExternalHandlingOnly] = useState(false);
   const [expandedEmailId, setExpandedEmailId] = useState<number | null>(null);
+  const [updatingEmailId, setUpdatingEmailId] = useState<number | null>(null);
 
   const fetchEmails = async () => {
     try {
@@ -56,6 +57,60 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
   useImperativeHandle(ref, () => ({
     refreshEmails: fetchEmails
   }));
+
+  const handleMarkInternal = async (emailId: number) => {
+    try {
+      setUpdatingEmailId(emailId);
+      await apiClient.patch(`/api/emails/${emailId}/`, {
+        needs_internal_handling: true,
+        waiting_external_handling: false
+      });
+      setEmails(emails.map(email => 
+        email.id === emailId 
+          ? { ...email, needs_internal_handling: true, waiting_external_handling: false }
+          : email
+      ));
+    } catch (error) {
+      console.error('Error marking email as internal:', error);
+    } finally {
+      setUpdatingEmailId(null);
+    }
+  };
+
+  const handleMarkExternal = async (emailId: number) => {
+    try {
+      setUpdatingEmailId(emailId);
+      await apiClient.patch(`/api/emails/${emailId}/`, {
+        needs_internal_handling: false,
+        waiting_external_handling: true
+      });
+      setEmails(emails.map(email => 
+        email.id === emailId 
+          ? { ...email, needs_internal_handling: false, waiting_external_handling: true }
+          : email
+      ));
+    } catch (error) {
+      console.error('Error marking email as external:', error);
+    } finally {
+      setUpdatingEmailId(null);
+    }
+  };
+
+  const handleMarkHandled = async (emailId: number) => {
+    try {
+      setUpdatingEmailId(emailId);
+      await apiClient.post(`/api/emails/${emailId}/mark_handled/`);
+      setEmails(emails.map(email => 
+        email.id === emailId 
+          ? { ...email, is_handled: true }
+          : email
+      ));
+    } catch (error) {
+      console.error('Error marking email as handled:', error);
+    } finally {
+      setUpdatingEmailId(null);
+    }
+  };
 
   const filteredEmails = emails.filter(email => {
     // Needs Handling Filter - exclude emails that are marked as handled
@@ -147,6 +202,7 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
       <div className="space-y-4">
         {filteredEmails.map((email) => {
           const isUncategorized = !email.needs_internal_handling && !email.waiting_external_handling;
+          const isUpdating = updatingEmailId === email.id;
           return (
             <div 
               key={email.id} 
@@ -182,30 +238,57 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
                   </div>
                 )}
               </button>
-              <div className="mt-4 flex items-center space-x-4">
-                {email.needs_reply && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Needs Reply
-                  </span>
-                )}
-                {email.is_handled ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Handled
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    Unhandled
-                  </span>
-                )}
-                {email.needs_internal_handling && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Internal
-                  </span>
-                )}
-                {email.waiting_external_handling && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    External
-                  </span>
+              <div className="mt-4 flex flex-wrap items-center gap-4">
+                <div className="flex items-center space-x-4">
+                  {email.needs_reply && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Needs Reply
+                    </span>
+                  )}
+                  {email.is_handled ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Handled
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Unhandled
+                    </span>
+                  )}
+                  {email.needs_internal_handling && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Internal
+                    </span>
+                  )}
+                  {email.waiting_external_handling && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      External
+                    </span>
+                  )}
+                </div>
+                {!email.is_handled && (
+                  <div className="flex items-center space-x-2 ml-auto">
+                    <button
+                      onClick={() => handleMarkInternal(email.id)}
+                      disabled={isUpdating}
+                      className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                      Mark Internal
+                    </button>
+                    <button
+                      onClick={() => handleMarkExternal(email.id)}
+                      disabled={isUpdating}
+                      className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+                    >
+                      Mark External
+                    </button>
+                    <button
+                      onClick={() => handleMarkHandled(email.id)}
+                      disabled={isUpdating}
+                      className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                    >
+                      Mark Handled
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
