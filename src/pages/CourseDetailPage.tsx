@@ -212,7 +212,12 @@ const CourseDetailPage: React.FC = () => {
                               <CheckCircleIcon className="h-5 w-5" />
                             </button>
                             <div>
-                              <h4 className="text-sm font-medium text-gray-900">{lesson.title}</h4>
+                              <button
+                                onClick={() => navigate(`/lessons/${lesson.id}`)}
+                                className="text-sm font-medium text-gray-900 hover:text-primary-600"
+                              >
+                                {lesson.title}
+                              </button>
                               {lesson.video_url && (
                                 <a
                                   href={lesson.video_url}
