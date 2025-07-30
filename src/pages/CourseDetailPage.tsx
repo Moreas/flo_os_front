@@ -50,6 +50,34 @@ const CourseDetailPage: React.FC = () => {
     }
   };
 
+  const handleModuleDelete = async (moduleId: number) => {
+    if (!window.confirm('Are you sure you want to delete this module? This will also delete all lessons in this module.')) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/api/modules/${moduleId}/`);
+      await fetchCourse();
+    } catch (error) {
+      console.error('Error deleting module:', error);
+      alert('Failed to delete module');
+    }
+  };
+
+  const handleLessonDelete = async (lessonId: number) => {
+    if (!window.confirm('Are you sure you want to delete this lesson?')) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/api/lessons/${lessonId}/`);
+      await fetchCourse();
+    } catch (error) {
+      console.error('Error deleting lesson:', error);
+      alert('Failed to delete lesson');
+    }
+  };
+
   const handleModuleCompletion = async (moduleId: number, isCompleted: boolean) => {
     try {
       await apiClient.patch(`/api/modules/${moduleId}/`, { is_completed: isCompleted });
@@ -192,13 +220,21 @@ const CourseDetailPage: React.FC = () => {
                       </button>
                       <h3 className="text-md font-medium text-gray-900">{module.title}</h3>
                     </div>
-                    <button
-                      onClick={() => handleAddLesson(module.id)}
-                      className="inline-flex items-center px-2 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                    >
-                      <PlusIcon className="h-4 w-4 mr-1" />
-                      Add Lesson
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleAddLesson(module.id)}
+                        className="inline-flex items-center px-2 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Add Lesson
+                      </button>
+                      <button
+                        onClick={() => handleModuleDelete(module.id)}
+                        className="inline-flex items-center px-2 py-1 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="divide-y divide-gray-200">
                     {module.lessons.map((lesson) => (
@@ -230,6 +266,12 @@ const CourseDetailPage: React.FC = () => {
                               )}
                             </div>
                           </div>
+                          <button
+                            onClick={() => handleLessonDelete(lesson.id)}
+                            className="inline-flex items-center p-1 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
                         </div>
                         {(lesson.summary || lesson.personal_notes) && (
                           <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
