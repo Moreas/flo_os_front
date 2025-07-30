@@ -70,7 +70,7 @@ const SimpleEmailList = forwardRef<SimpleEmailListRef, SimpleEmailListProps>((pr
 
   return (
     <div className="overflow-hidden bg-white shadow sm:rounded-md">
-      <ul role="list" className="divide-y divide-gray-200">
+      <ul className="divide-y divide-gray-200">
         {emails.map((email) => (
           <li key={email.id}>
             <div className="block hover:bg-gray-50">
